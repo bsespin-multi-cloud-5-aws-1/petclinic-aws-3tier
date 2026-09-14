@@ -18,7 +18,7 @@
 |---|---|---|---|---|
 | **Route 53 + ACM** | 도메인 없이는 CloudFront·HTTPS 구성 불가 | Route 53 별칭 레코드는 CloudFront·ALB에 무료로 연결되고 헬스체크 기반 장애 조치 가능. ACM 인증서는 무료·자동 갱신 | 도메인 → CloudFront 별칭, ACM 인증서 HTTPS 종단, HTTP→HTTPS 리다이렉트 | 도메인 응답, 인증서 만료 알람 |
 | **CloudFront** | 시설·수의사 프로필·후기 이미지 등 **정적 자원 요청이 ALB·WEB 대역폭을 압박** | 정적 자원은 엣지에서 캐시 히트로 응답 → 오리진(ALB·WEB)에 도달하는 요청 수 자체를 줄임. 캐시 미스(동적)만 오리진으로 전달. 원본 서버 증설보다 싸고 즉시 효과 | `/petclinic/resources/*` 캐시 정책(TTL 장기), 동적 경로는 캐시 비활성. 오리진 = Public ALB. ALB 보안그룹은 CloudFront 관리형 접두사 목록만 허용 | CloudFront CacheHitRate, ALB RequestCount 감소폭 |
-| **AWS WAF** | 특정 IP·경로(예약 접수)로 **비정상 폭주·봇 트래픽**이 서버 자원을 소진 | ALB 앞이 아닌 CloudFront에 붙이면 엣지에서 차단되어 오리진 부하 0. rate-based rule로 IP당 요청 상한, 경로별 규칙으로 예약 API만 더 엄격하게 제한 가능. 관리형 규칙(Common·KnownBadInputs)으로 Spring4Shell 같은 알려진 공격 패턴 차단 | Web ACL → CloudFront 연결. rate-based rule(5분 창), 예약 경로 별도 규칙, 관리형 규칙 그룹 | WAF BlockedRequests, AllowedRequests 비율 |
+| **AWS WAF** | 특정 IP·경로(예약 접수)로 **비정상 폭주·봇 트래픽**이 서버 자원을 소진 | WAF는 별도 홉이 아니라 CloudFront에 **부착되는 Web ACL**. CloudFront가 캐시 조회보다 먼저 규칙을 평가해 차단은 캐시·오리진에 도달하지 않음(오리진 부하 0). rate-based rule로 IP당 요청 상한, 경로별 규칙으로 예약 API만 더 엄격하게 제한 가능. 관리형 규칙(Common·KnownBadInputs)으로 Spring4Shell 같은 알려진 공격 패턴 차단 | Web ACL → CloudFront 연결. rate-based rule(5분 창), 예약 경로 별도 규칙, 관리형 규칙 그룹 | WAF BlockedRequests, AllowedRequests 비율 |
 
 ---
 

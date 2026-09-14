@@ -1,6 +1,51 @@
 # infra/terraform — PetClinic 3-Tier on AWS (1팀 Mission Critical)
 
-`docs/architecture-tiered-detail.drawio` 최종 구조를 코드로 옮긴 것. **plan/apply 전 단계** — 현재는 `fmt`·`validate`만 통과한 상태.
+`docs/architecture-tiered-detail.drawio` 최종 구조를 코드로 옮긴 것. **9/14 apply 완료** — 계정 528821350786(IAM 사용자 `mc-deploy`), 리전 ap-northeast-2, state 리소스 175개.
+
+## 배포 결과 (9/14)
+
+| 항목 | 값 |
+|---|---|
+| 서비스 URL | https://petclinic.mission-critical.site/petclinic/ (`/petclinic/*`는 Cognito 로그인 필요) |
+| 공개 확인 | `/health.html` · `/` → 200 (인증 없음) |
+| CloudFront | `d1zuqmc7aabioo.cloudfront.net` (WAF Web ACL · ACM us-east-1 부착) |
+| Route 53 존 | `mission-critical.site` — 가비아 네임서버를 아래 NS 4개로 변경 완료 |
+| Public ALB | `mc-alb-public-1647467264.ap-northeast-2.elb.amazonaws.com` (443만, ACM 서울, authenticate-cognito) |
+| Internal ALB | `internal-mc-alb-internal-526016631.ap-northeast-2.elb.amazonaws.com` (8080, sticky) |
+| RDS Proxy | `mc-rds-proxy.proxy-c7ku4mw88shn.ap-northeast-2.rds.amazonaws.com` |
+| Cognito | 풀 `ap-northeast-2_WiGQeZwfg`, Hosted UI `mc-hospital-528821350786.auth.ap-northeast-2.amazoncognito.com` |
+| 버킷 | `mc-images-…` · `mc-maintenance-…` · `mc-logs-…` · `mc-cloudtrail-…` (접미사 = 계정 ID) |
+| SNS | `mc-alerts` (이메일·Chatbot 구독은 tfvars에서 추가) |
+| Lambda | `mc-notify-reservation` (Slack webhook 값은 Secrets `mc/slack-webhook-reservations`에 수동 입력) |
+
+NS: `ns-1495.awsdns-58.org` · `ns-1538.awsdns-00.co.uk` · `ns-177.awsdns-22.com` · `ns-929.awsdns-52.net`
+
+### apply 중 겪은 제약과 수정 (케이스북)
+
+| 증상 | 원인 | 조치 |
+|---|---|---|
+| CloudFront 생성 400 `AllowedMethods cannot include POST … origin group` | 오리진 그룹은 GET·HEAD Behavior에만 허용 | 기본 Behavior는 ALB 직접, 점검 페이지는 `custom_error_response`(502·503·504 → /maintenance.html) |
+| SG 규칙 `RulesPerSecurityGroupLimitExceeded` | CloudFront 관리형 접두사 목록은 항목 수만큼 규칙으로 계산 | Public ALB 80 인바운드·리스너 제거(443만) |
+| RDS `Performance Insights not supported` | db.t3.small(MySQL)은 PI 미지원 | `performance_insights_enabled = false` |
+| Lambda `ReservedConcurrentExecutions … below minimum` | 새 계정 동시 실행 한도 | 예약 동시성 제거 |
+| ACM 검증 22분 대기 | 가비아 NS 전파 | 정상(전파 후 자동 통과) |
+| WAS `Remote branch chore/stack-update-2026 not found` | 스택 업데이트가 `test` 브랜치에 있음 | `app_repo_branch = "test"` |
+| WAS `GetSecretValue AccessDenied` (rds!db-…) | EC2 역할에 RDS 관리형 비밀 권한 누락 | `iam.tf` ec2_inline에 secret ARN 추가 |
+| WAS `aws: unbound variable` | CloudWatch 설정 heredoc의 `${aws:…}`가 `set -u`에 걸림 | `<<'CW'` 인용 + `$${` 이스케이프 |
+| WAS `wro4j … Could not resolve version conflict (minimatch)` | jshint 웹자 의존성 범위 충돌 | pom에서 `wro4j-extensions`의 jshint 제외(프로세서 미사용). Corretto 17로 빌드 검증 |
+| Tomcat `catalina.sh: eval … exec` 실패 | `setenv.sh`의 CATALINA_OPTS에 작은따옴표 | 따옴표 제거, 배열 인용 방식으로 |
+| JDBC URL의 `&`가 XML 속성에서 깨짐 | `datasource-config.xml` 속성 필터링 | URL·비밀번호를 XML 이스케이프(`&amp;`) |
+
+### 인증 방식 (최종)
+Spring Security OAuth2 Client는 앱 작업 부담으로 로드맵. **Public ALB 리스너 규칙**이 `/petclinic/*`를 Cognito Hosted UI로 보내고 콜백 `/oauth2/idpresponse`를 ALB가 처리(세션 8h). 앱 수정 없음. 사용자 생성:
+```bash
+aws cognito-idp admin-create-user --user-pool-id ap-northeast-2_WiGQeZwfg --username vet1@example.com \
+  --user-attributes Name=email,Value=vet1@example.com Name=email_verified,Value=true --profile mc-deploy
+aws cognito-idp admin-add-user-to-group --user-pool-id ap-northeast-2_WiGQeZwfg --username vet1@example.com --group-name vets --profile mc-deploy
+```
+
+### 자격증명 메모
+Terraform AWS 프로바이더는 `aws login` 세션을 직접 읽지 못한다 → `~/.aws/config`에 `credential_process = aws configure export-credentials --profile mc-deploy --format process`인 프로필 `mc-deploy-tf`를 두고 `AWS_PROFILE=mc-deploy-tf`로 실행.
 
 ## 구성 (파일 = 계층)
 
@@ -41,6 +86,5 @@ terraform validate
 
 ## 앱 쪽 전제 (코드 변경)
 
-- Spring Security OAuth2 Client(Cognito issuer) — `-Doauth.cognito.*` 시스템 속성 사용
 - 예약 등록 시 `RESERVATION_CREATED id= vet= time= owner_id= pet=` 로그 1줄 → `/opt/tomcat/logs/events.log` → CloudWatch Agent → `/mc/was/events`
-- Tomcat `RemoteIpValve`(x-forwarded-proto) — HTTPS 콜백 URL 생성
+- 로그인은 ALB가 처리하므로 앱 변경 없음. ALB가 `x-amzn-oidc-data` 헤더로 사용자 정보를 전달
