@@ -5,3 +5,5 @@ terraform.tfvars
 *.auto.tfvars
 lambda/*.zip
 .terraform.lock.hcl
+tfplan
+*.tfplan
