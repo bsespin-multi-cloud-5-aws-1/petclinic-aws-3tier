@@ -34,12 +34,19 @@ class Page:
     def service(self, cid, cat_label, name, sub, res, cat, x, y, kind="svc"):
         tint, stroke, fill = CAT[cat]
         self.vertex(f"grp-{cid}", cat_label, f"fillColor={tint};strokeColor={stroke};rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor={stroke};{FONT}container=1;collapsible=0;shadow=1;strokeWidth=1.5;", x, y, 120, 120)
-        val = f"{name}<div><i>{sub}</i></div>" if sub else name
+        val = name  # 아이콘 아래 설명 문구는 범례로 이동
         if kind == "svc":
             st = f"sketch=0;{PTS};outlineConnect=0;fontColor=#232F3E;fillColor={fill};strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.{res};{FONT}shadow=1;"
         else:
             st = f"sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor={fill};strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.{res};{FONT}"
         self.vertex(cid, val, st, 36, 30, 48, 48, parent=f"grp-{cid}")
+    def attach(self, host, cid, label, res, cat, corner="tr"):
+        tint, stroke, fill = CAT[cat]
+        x = 104 if corner.endswith("r") else -16
+        st = (f"sketch=0;{PTS};outlineConnect=0;fontColor={stroke};fillColor={fill};strokeColor=#ffffff;dashed=0;"
+              "verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;fontStyle=1;aspect=fixed;"
+              f"shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.{res};{FONT}shadow=1;")
+        self.vertex(cid, label, st, x, 34, 32, 32, parent=f"grp-{host}")
     def stub(self, cid, label, x, y, w=170, h=70):
         self.vertex(cid, label, f"rounded=1;whiteSpace=wrap;html=1;fillColor=light-dark(#EEEEEE,#3A3A3A);strokeColor=#888888;dashed=1;fontSize=11;fontStyle=1;fontColor=#444444;{FONT}", x, y, w, h)
     def actor(self, cid, label, x, y, res="users"):
@@ -97,38 +104,36 @@ mxfile.append(full)
 
 # ================= tab 2: 진입 계층 =================
 p = Page("1. 네트워크 진입 계층 · 글로벌 엣지", "tab-entry", 2300, 1000)
-p.title("① 네트워크 진입 계층 · 글로벌 엣지", "사용자 → Route 53 → WAF(먼저 검사) → CloudFront(Behavior 분기) → ALB / S3 · ACM(us-east-1) · Cognito(ALB 인증) · WAF 로그", 2200)
+p.title("① 네트워크 진입 계층 · 글로벌 엣지", "사용자 → Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3(OAC) · Cognito는 ALB 인증 · WAF 로그", 2200)
 p.vertex("cloud", "AWS Cloud (글로벌 엣지 · us-east-1)", STY["cloud"], 260, 150, 1330, 760)
 p.actor("users", "사용자 (의료진·환자)", 60, 330)
 p.service("r53", "DNS", "Amazon Route 53", "별칭 A/AAAA → CloudFront<br>Failover 없음(오리진 그룹으로 대체)", "route_53", "net", 320, 320)
-p.service("cf", "CDN · 엣지", "Amazon CloudFront", "WAF Web ACL 연결 · Behavior 3개<br>보안 헤더 · HTTP→HTTPS · TLSv1.2_2021", "cloudfront", "net", 880, 320)
-p.service("waf", "웹 방화벽 (먼저 검사)", "AWS WAF", "관리형 3 + rate 2 · Count→Block<br>차단은 캐시·오리진 미도달", "waf", "sec", 600, 320)
-p.service("acm", "인증서", "AWS Certificate Manager", "us-east-1 · DNS 검증<br>13개월 자동 갱신", "certificate_manager", "sec", 1160, 170)
-p.service("cwl-waf", "진입 계층 로그", "CloudWatch Logs", "aws-waf-logs-mc · 30일<br>차단 건수 · IP", "cloudwatch_logs", "integ", 600, 170, kind="sub")
+p.service("cf", "CDN · 엣지", "Amazon CloudFront", "", "cloudfront", "net", 600, 320)
+p.attach("cf", "waf", "WAF", "waf", "sec", "tl")
+p.attach("cf", "acm", "ACM", "certificate_manager", "sec", "tr")
+p.service("cwl-waf", "WAF 로그", "CloudWatch Logs", "", "cloudwatch_logs", "integ", 600, 150, kind="sub")
 p.service("cognito", "로그인", "Amazon Cognito", "Hosted UI · MFA · 그룹 vets/admins<br>ALB authenticate-cognito", "cognito", "sec", 320, 620)
 p.service("s3-img", "공개 이미지", "Amazon S3", "mc-images · OAC<br>시설·수의사·후기 사진", "s3", "storage", 880, 620)
 p.service("s3maint", "점검 페이지", "Amazon S3", "오리진 그룹 secondary · OAC<br>버킷 정책 SourceArn", "s3", "storage", 1160, 620)
 p.stub("to-web", "→ ② WEB 계층<br>IGW → Public ALB 443 (ACM 서울)", 1360, 345)
 p.stub("to-alb", "→ ② Public ALB 443 리스너 규칙<br>/petclinic/* → authenticate-cognito<br>콜백 /oauth2/idpresponse", 600, 640, 220, 80)
 p.edge("e1", "users", "r53", EDGE, label="DNS 조회", ly=-12, exit=(1,0.5), entry=(0,0.5))
-p.edge("e2", "r53", "waf", EDGE, label="별칭", ly=-12, exit=(1,0.5), entry=(0,0.5))
-p.edge("e3", "waf", "cf", EDGE, label="통과 요청만", ly=-12, exit=(1,0.5), entry=(0,0.5))
-p.edge("e4", "acm", "cf", EDGE_D, pts=[(1220,300),(980,300)], label="TLS 인증서", ly=-11, exit=(0.5,1), entry=(0.8,0))
-p.edge("e5", "waf", "cwl-waf", EDGE_D, label="WAF 로그 · 차단", lx=0, ly=0, exit=(0.5,0), entry=(0.5,1))
+p.edge("e2", "r53", "cf", EDGE, label="별칭", ly=-12, exit=(1,0.5), entry=(0,0.5))
+p.edge("e5", "cf", "cwl-waf", EDGE_D, label="WAF 로그 · 차단", lx=0, ly=0, exit=(0.5,0), entry=(0.5,1))
 p.edge("e6", "cf", "to-web", EDGE, label="동적 · 로그인 · /resources 캐시 미스 → ALB (HTTPS only · X-Origin-Verify)", lx=0.05, ly=-12, exit=(1,0.5), entry=(0,0.5))
-p.edge("e7", "cf", "s3-img", EDGE, label="/images/* → S3 오리진 (OAC · 캐시 1일+ · 서버 미경유)", lx=0, ly=0, exit=(0.5,1), entry=(0.5,0))
-p.edge("e8", "cf", "s3maint", EDGE_D, pts=[(980,560),(1220,560)], label="오리진 5xx → 점검 페이지", lx=0.3, ly=-11, exit=(0.85,1), entry=(0.5,0))
+p.edge("e7", "cf", "s3-img", EDGE, pts=[(660,600),(940,600)], label="/images/* → S3 오리진 (OAC · 캐시 1일+ · 서버 미경유)", lx=0.2, ly=12, exit=(0.5,1), entry=(0.5,0))
+p.edge("e8", "cf", "s3maint", EDGE_D, pts=[(700,560),(1220,560)], label="오리진 5xx → 점검 페이지", lx=0.3, ly=-11, exit=(0.85,1), entry=(0.5,0))
 p.edge("e9", "users", "cognito", EDGE_D, pts=[(113,680)], label="Hosted UI 로그인 (ALB가 리다이렉트)", lx=0.4, ly=12, exit=(0.5,1), entry=(0,0.5))
 p.edge("e10", "cognito", "to-alb", EDGE_D, label="code → ALB가 토큰 교환 · 세션 쿠키", ly=-12, exit=(1,0.5), entry=(0,0.5))
-for n,(x,y) in {1:(215,340),2:(500,300),3:(1330,300),4:(1000,545),5:(150,690)}.items(): p.badge(n,x,y)
-p.text("beh", "처리 순서: Route 53 → WAF(Web ACL 평가) → CloudFront Behavior (주소로 분기)<br>1) /petclinic/resources/* → ALB · CachingOptimized 1일<br>2) /images/* → S3 mc-images(OAC) · 캐시 1일+<br>3) 기본(/*, 로그인 콜백 /oauth2/idpresponse 포함) → ALB · CachingDisabled · AllViewer", 300, 790, 760, 90, "#8C4FFF", 11, False)
+for n,(x,y) in {1:(215,340),2:(500,300),3:(1330,300),4:(880,545),5:(150,690)}.items(): p.badge(n,x,y)
+p.text("beh", "CloudFront 내부 처리 순서: WAF Web ACL 평가 → 캐시 조회 → Behavior (주소로 분기)<br>1) /petclinic/resources/* → ALB · CachingOptimized 1일<br>2) /images/* → S3 mc-images(OAC) · 캐시 1일+<br>3) 기본(/*, 로그인 콜백 /oauth2/idpresponse 포함) → ALB · CachingDisabled · AllViewer", 300, 790, 760, 90, "#8C4FFF", 11, False)
 p.legend(1640, 30, 900, "진입 계층 · 흐름과 설정", [
  ("사용자 → Route 53", "hospital.example.com A/AAAA 별칭 → CloudFront. Route 53 Failover 없음(단일 리전). 리전 DR 시 로드맵"),
- ("WAF → CloudFront + ACM", "WAF가 CloudFront Web ACL로 먼저 평가(관리형 3 + rate 2, Count→Block). 차단은 캐시·오리진 미도달, 로그 → CloudWatch Logs. 통과한 요청만 CloudFront: 정적은 엣지 캐시, 동적은 캐시 없이 ALB. ACM은 us-east-1, 자동 갱신"),
+ ("CloudFront (WAF · ACM 부착)", "WAF는 별도 홉이 아니라 CloudFront에 붙은 Web ACL. 캐시 조회보다 먼저 평가하고 차단은 캐시·오리진 미도달(관리형 3 + rate 2, Count→Block, 로그 → CloudWatch Logs). ACM(us-east-1, 자동 갱신)도 부착. 정적은 엣지 캐시, 동적은 캐시 없이 ALB"),
  ("CloudFront → ALB", "Origin HTTPS only(ALB 443 + 서울 ACM), X-Origin-Verify 헤더로 우회 차단, SG는 CloudFront 접두사 목록만. 보안 헤더는 Response Headers Policy(HSTS·CSP·nosniff)"),
  ("CloudFront → S3 (OAC)", "/images/*는 mc-images 버킷을 직접 읽어 서버 미경유. 오리진 5xx면 점검 페이지 버킷. 둘 다 OAC(SigV4) + 버킷 정책 SourceArn 조건, 공개 읽기 없음. 환자 개인 이미지는 캐시 안 함(Presigned URL)"),
  ("로그인 (ALB authenticate-cognito)", "Public ALB 443 리스너 규칙이 /petclinic/* 요청을 Cognito Hosted UI로 보내고 콜백 /oauth2/idpresponse 를 ALB가 처리해 세션 쿠키 발급(8h). 앱 수정 없음. 역할별 인가는 로드맵"),
-], note="이 탭의 로그: WAF 로그(CloudWatch Logs, 30일). ACM DaysToExpiry 알람은 운영 탭 CloudWatch에서.")
+], note="모서리 작은 아이콘(WAF · ACM)은 CloudFront에 부착된 기능이며 트래픽 경로가 아님. 이 탭의 로그: WAF 로그(CloudWatch Logs, 30일).")
 mxfile.append(p.d)
 
 # ================= tab 3: WEB 계층 =================
@@ -144,7 +149,8 @@ p.vertex("web-a-sub", "프라이빗 WEB-A · 10.0.10.0/24", STY["priv"], 310, 50
 p.vertex("web-c-sub", "프라이빗 WEB-C · 10.0.11.0/24", STY["priv"], 1100, 500, 440, 230)
 p.stub("from-cf", "① CloudFront에서<br>HTTPS only · X-Origin-Verify", 60, 300)
 p.service("igw", "인터넷 연결", "Internet Gateway", "VPC ↔ 인터넷", "internet_gateway", "net", 860, 100, kind="sub")
-p.service("alb", "부하 분산 (외부)", "Public ALB", "443 · ACM(서울) · authenticate-cognito<br>헬스체크 /health.html 10s·2/3", "application_load_balancer", "net", 860, 270, kind="sub")
+p.service("alb", "부하 분산 (외부)", "Public ALB", "", "application_load_balancer", "net", 860, 270, kind="sub")
+p.attach("alb", "acm-alb", "ACM", "certificate_manager", "sec", "tr")
 p.service("nat-a", "아웃바운드", "NAT Gateway", "dnf · Agent · SSM<br>인바운드 불가", "nat_gateway", "net", 350, 280, kind="sub")
 p.service("nat-c", "아웃바운드", "NAT Gateway", "AZ당 1개<br>AZ 손실 대비", "nat_gateway", "net", 1140, 280, kind="sub")
 p.service("web-a", "WEB", "WEB-A · Apache 2.4", "AL2023 · MPM event<br>정적 직접 서빙 · /health.html", "ec2", "compute", 350, 560)
