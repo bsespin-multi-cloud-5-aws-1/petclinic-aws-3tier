@@ -294,6 +294,8 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods             = ["GET", "HEAD"]
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
+    # Host 헤더를 넘겨야 ALB 인증서(petclinic.<도메인>)와 일치. 없으면 TLS 검증 실패 → 오리진 그룹이 S3로 failover → 403
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
