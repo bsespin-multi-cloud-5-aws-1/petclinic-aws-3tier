@@ -84,6 +84,14 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Spring Data BOM이 끌어오는 spring-core/beans/context(5.3.7)와 webmvc(5.3.39)가 섞이지 않도록 Framework BOM을 먼저 선언 -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring-framework.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
