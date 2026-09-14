@@ -9,7 +9,8 @@ fi
 
 cat > /etc/httpd/conf.d/petclinic.conf <<CONF
 ProxyPreserveHost On
-RedirectMatch 301 ^${app_context}$ ${app_context}/
+RewriteEngine On
+RewriteRule ^${app_context}$ https://%%{HTTP_HOST}${app_context}/ [R=301,L]
 ProxyPass        ${app_context}/ http://${internal_alb_dns}:8080${app_context}/
 ProxyPassReverse ${app_context}/ http://${internal_alb_dns}:8080${app_context}/
 SetEnvIf Request_URI "^/health.html$" nolog
