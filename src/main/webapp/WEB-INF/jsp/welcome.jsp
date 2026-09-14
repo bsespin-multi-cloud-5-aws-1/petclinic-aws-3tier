@@ -1,121 +1,17 @@
 <%@ page session="false" trimDirectiveWhitespaces="true" pageEncoding="UTF-8" contentType="text/html; charset=UTF-8" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 <%@ taglib prefix="petclinic" tagdir="/WEB-INF/tags" %>
-
-<petclinic:layout pageName="home">
-
-    <jsp:attribute name="hero">
-        <%-- 배경 영상은 WAS가 아니라 CloudFront → S3(mc-images)에서 서빙: /images/hero/hero.mp4 --%>
-        <spring:url value="/resources/images/hero-poster.jpg" htmlEscape="true" var="heroPoster"/>
-        <section class="mc-hero" id="mc-hero">
-            <div class="mc-hero-video" style="background-image: url('${heroPoster}')">
-                <video id="mc-hero-video" src="/images/hero/hero.mp4" poster="${heroPoster}"
-                       muted autoplay loop playsinline preload="metadata"
-                       aria-hidden="true"></video>
-            </div>
-            <div class="mc-hero-main">
-                <div class="mc-hero-wrap">
-                    <span class="mc-hero-eyebrow">MISSION ANIMAL HOSPITAL · 24H EMERGENCY</span>
-                    <h1>가족의 <span>건강한 하루</span>를 함께 지키는<br/>미션 동물병원</h1>
-                    <p class="mc-hero-lead">예방접종·건강검진부터 응급 진료까지.<br class="hidden-xs"/>
-                        보호자 정보를 등록하면 반려동물의 진료 기록을 한곳에서 관리할 수 있습니다.</p>
-                    <p class="mc-hero-actions">
-                        <a class="btn btn-mc-primary" href="<spring:url value="/owners/new" htmlEscape="true" />">진료 예약하기</a>
-                        <a class="btn btn-mc-ghost" href="<spring:url value="/vets" htmlEscape="true" />">수의사 소개</a>
-                    </p>
-                </div>
-            </div>
-            <p class="mc-hero-controls">
-                <button type="button" id="mc-hero-toggle" aria-label="배경 영상 일시정지"><span class="glyphicon glyphicon-pause"></span></button>
-            </p>
-        </section>
-    </jsp:attribute>
-
-    <jsp:attribute name="customScript">
-        <script>
-            (function () {
-                var v = document.getElementById('mc-hero-video'), b = document.getElementById('mc-hero-toggle');
-                if (!v || !b) return;
-                v.addEventListener('error', function () { v.style.display = 'none'; b.style.display = 'none'; });
-                b.addEventListener('click', function () {
-                    if (v.paused) { v.play(); b.firstChild.className = 'glyphicon glyphicon-pause'; b.setAttribute('aria-label', '배경 영상 일시정지'); }
-                    else { v.pause(); b.firstChild.className = 'glyphicon glyphicon-play'; b.setAttribute('aria-label', '배경 영상 재생'); }
-                });
-            })();
-        </script>
-    </jsp:attribute>
-
-    <jsp:body>
-        <div class="mc-home-body">
-            <div class="mc-info-strip">
-                <div class="row">
-                    <div class="col-md-4"><div class="mc-info-item">
-                        <div class="mc-info-icon"><span class="glyphicon glyphicon-time"></span></div>
-                        <div><strong>진료 시간</strong><p>평일 09:00–20:00 · 토 09:00–17:00<br/>일·공휴일은 응급 진료</p></div>
-                    </div></div>
-                    <div class="col-md-4"><div class="mc-info-item">
-                        <div class="mc-info-icon"><span class="glyphicon glyphicon-earphone"></span></div>
-                        <div><strong>24시간 응급</strong><p>02-1234-5678<br/>야간·주말 응급 010-1234-5678</p></div>
-                    </div></div>
-                    <div class="col-md-4"><div class="mc-info-item">
-                        <div class="mc-info-icon"><span class="glyphicon glyphicon-map-marker"></span></div>
-                        <div><strong>오시는 길</strong><p>서울 강남구 테헤란로 123 미션빌딩 1층<br/>지하 주차 2시간 무료</p></div>
-                    </div></div>
-                </div>
-            </div>
-
-            <h2 class="mc-section-title">진료 안내</h2>
-            <p class="mc-section-lead">반려동물의 생애 주기에 맞춘 진료를 제공합니다.</p>
-            <div class="row mc-card-row">
-                <div class="col-md-4 col-sm-6">
-                    <a class="mc-card" href="<spring:url value="/owners/find" htmlEscape="true" />">
-                        <div class="mc-card-icon"><span class="glyphicon glyphicon-search"></span></div>
-                        <h3>보호자 · 반려동물 조회</h3>
-                        <p>보호자 성(姓)으로 등록된 반려동물과 진료(방문) 이력을 확인합니다.</p>
-                        <span class="mc-card-link">조회하기 →</span>
-                    </a>
-                </div>
-                <div class="col-md-4 col-sm-6">
-                    <a class="mc-card" href="<spring:url value="/owners/new" htmlEscape="true" />">
-                        <div class="mc-card-icon"><span class="glyphicon glyphicon-calendar"></span></div>
-                        <h3>진료 예약 · 보호자 등록</h3>
-                        <p>처음 방문이라면 보호자 정보를 등록하고 반려동물을 추가한 뒤 방문 일정을 잡습니다.</p>
-                        <span class="mc-card-link">등록하기 →</span>
-                    </a>
-                </div>
-                <div class="col-md-4 col-sm-6">
-                    <a class="mc-card" href="<spring:url value="/vets" htmlEscape="true" />">
-                        <div class="mc-card-icon"><span class="glyphicon glyphicon-user"></span></div>
-                        <h3>수의사 소개</h3>
-                        <p>내과·외과·치과·방사선 전문 수의사가 함께 진료합니다. 전문 분야를 확인해 보세요.</p>
-                        <span class="mc-card-link">수의사 보기 →</span>
-                    </a>
-                </div>
-            </div>
-
-            <div class="row mc-card-row">
-                <div class="col-md-4 col-sm-6">
-                    <div class="mc-card">
-                        <div class="mc-card-icon"><span class="glyphicon glyphicon-heart"></span></div>
-                        <h3>예방접종 · 건강검진</h3>
-                        <p>연령별 종합 백신, 심장사상충 예방, 연 1회 혈액·영상 검진 프로그램.</p>
-                    </div>
-                </div>
-                <div class="col-md-4 col-sm-6">
-                    <div class="mc-card">
-                        <div class="mc-card-icon"><span class="glyphicon glyphicon-plus-sign"></span></div>
-                        <h3>내과 · 외과 수술</h3>
-                        <p>중성화, 슬개골, 종양 제거 등 외과 수술과 입원 집중 관리.</p>
-                    </div>
-                </div>
-                <div class="col-md-4 col-sm-6">
-                    <div class="mc-card">
-                        <div class="mc-card-icon"><span class="glyphicon glyphicon-bell"></span></div>
-                        <h3>24시간 응급 진료</h3>
-                        <p>야간·주말에도 응급 수의사가 상주합니다. 내원 전 전화 주시면 준비해 두겠습니다.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </jsp:body>
-</petclinic:layout>
+<petclinic:layout pageName="home"><jsp:attribute name="hero"><section class="hero" aria-labelledby="hero-title">
+<video id="hero-video" muted loop playsinline preload="metadata" poster="<spring:url value="/resources/images/hero-poster.jpg" htmlEscape="true" />" aria-hidden="true"><%-- 배경 영상은 WAS가 아니라 CloudFront /images/* Behavior → S3(mc-images) 에서 서빙 (WAR 미포함) --%><source src="/images/hero/hero.mp4" type="video/mp4"></video><div class="hero-shade"></div>
+<div class="hero-content"><p class="eyebrow">FOR EVERY LITTLE LIFE</p><h1 id="hero-title">함께하는 오늘,<br><span>더 건강한 내일.</span></h1><p class="hero-lead">소중한 가족의 모든 순간에<br>미션 동물병원이 함께합니다.</p><a class="button light" href="<spring:url value="/owners/new" htmlEscape="true" />">우리 아이 첫 방문 등록 <span>↗</span></a></div>
+<div class="hero-bottom"><button id="hero-toggle" type="button" aria-label="배경 영상 재생">▷ <span>영상 재생</span></button><span class="hero-caption">A LITTLE CARE. A LIFETIME TOGETHER.</span><a href="#about" aria-label="병원 소개로 이동">아래로 <span>↓</span></a></div>
+</section></jsp:attribute><jsp:body><section class="intro-band" id="about"><div class="wrap intro-grid"><div class="intro-symbol" aria-hidden="true">m<span>+</span></div><div><p class="eyebrow">OUR MISSION</p><h2>작은 생명에게,<br>큰 진심을.</h2><a class="text-link" href="<spring:url value="/vets" htmlEscape="true" />">함께하는 의료진 만나기 ↗</a></div><div class="intro-values"><p>반려동물의 건강과 보호자의 안심.<br>우리가 매일 진료하는 이유입니다.</p><ul><li>아이의 일상까지 생각하는 진료</li><li>보호자와 함께 쌓아가는 진료 기록</li><li>처음부터 차근차근, 편안한 방문</li></ul></div></div></section>
+<section class="section care-section" id="care"><div class="wrap"><div class="section-heading"><div><p class="eyebrow">HERE TO HELP</p><h2>어떤 도움이 필요하신가요?</h2></div><p>처음 만나는 순간부터, 함께한 모든 기록까지.</p></div><div class="care-grid">
+<a class="care-card" href="<spring:url value="/owners/new" htmlEscape="true" />"><div class="card-top"><span>01 / FIRST VISIT</span><span class="round-arrow">↗</span></div><h3>처음 오셨나요?</h3><p>보호자 정보를 등록하고<br>우리 아이의 건강 관리를 시작하세요.</p><span class="text-link">보호자 등록하기</span></a>
+<a class="care-card" href="<spring:url value="/owners/find" htmlEscape="true" />"><div class="card-top"><span>02 / HEALTH RECORDS</span><span class="round-arrow">↗</span></div><h3>우리 아이의 기록</h3><p>등록된 반려동물 정보와<br>그동안의 방문 이력을 확인하세요.</p><span class="text-link">진료 기록 조회하기</span></a>
+<a class="care-card" href="<spring:url value="/vets" htmlEscape="true" />"><div class="card-top"><span>03 / OUR TEAM</span><span class="round-arrow">↗</span></div><h3>함께하는 수의사</h3><p>우리 아이를 만날 의료진과<br>각 수의사의 전문 분야를 알아보세요.</p><span class="text-link">의료진 알아보기</span></a>
+</div></div></section>
+<section class="feature feature-cream"><div class="wrap feature-grid"><div class="feature-photo"><img src="<spring:url value="/resources/images/story-1.jpg" htmlEscape="true" />" alt="푸른 잔디 위에서 편안히 쉬는 반려견" loading="lazy" width="1280" height="720"><span class="photo-note">MORE HEALTHY DAYS, TOGETHER.</span></div><div class="feature-copy"><p class="eyebrow">CARE THAT STAYS WITH YOU</p><h2>평범한 하루가<br>오래 이어지도록.</h2><p>신나게 뛰고, 잘 먹고, 곁에서 잠드는 하루.<br>그 소중한 일상을 지키는 건강 관리의 시작을<br>미션 동물병원과 함께하세요.</p><ul class="line-list"><li>예방접종 · 정기 건강검진</li><li>내과 진료 · 외과 상담</li><li>반려동물 정보 · 방문 이력 관리</li></ul><a class="button plum" href="<spring:url value="/vets" htmlEscape="true" />">의료진과 전문 분야 보기 <span>↗</span></a></div></div></section>
+<section class="feature feature-plum"><div class="wrap feature-grid reverse"><div class="feature-copy"><p class="eyebrow">A PARTNER FOR PET PARENTS</p><h2>가장 잘 아는 보호자와,<br>함께 살피는 건강.</h2><p>말로 표현하지 못하는 작은 변화도 놓치지 않도록.<br>보호자가 들려주는 일상과 방문 기록을 바탕으로<br>우리 아이를 더 깊이 이해합니다.</p><a class="text-link" href="<spring:url value="/owners/find" htmlEscape="true" />">보호자 · 반려동물 조회 <span>↗</span></a><a class="text-link" href="<spring:url value="/owners/new" htmlEscape="true" />">새 보호자 등록 <span>↗</span></a></div><div class="feature-photo cat-photo"><img src="<spring:url value="/resources/images/story-2.jpg" htmlEscape="true" />" alt="보호자와 장난감을 가지고 노는 고양이" loading="lazy" width="1280" height="720"></div></div></section>
+<section class="section visit-section" id="visit"><div class="wrap"><div class="section-heading"><div><p class="eyebrow">PLAN YOUR VISIT</p><h2>만나기 전, 확인해 주세요.</h2></div><span class="visit-label">미션 동물병원 방문 안내</span></div><div class="visit-grid"><article><span class="visit-number">01</span><h3>진료 시간</h3><dl><div><dt>평일</dt><dd>09:00 – 20:00</dd></div><div><dt>토요일</dt><dd>09:00 – 17:00</dd></div><div><dt>일 · 공휴일</dt><dd>응급 진료</dd></div></dl></article><article><span class="visit-number">02</span><h3>전화 문의</h3><a class="phone" href="tel:0212345678">02-1234-5678 ↗</a><p>야간 · 주말 응급<br><a href="tel:01012345678">010-1234-5678</a></p></article><article><span class="visit-number">03</span><h3>오시는 길</h3><p>서울 강남구 테헤란로 123<br>미션빌딩 1층</p><p class="muted">지하 주차 2시간 무료</p></article></div></div></section>
+<section class="closing"><div class="wrap"><p class="eyebrow">LET’S START A HEALTHIER CHAPTER</p><h2>우리 아이와의 다음 이야기,<br>함께 시작해요.</h2><a class="button plum" href="<spring:url value="/owners/new" htmlEscape="true" />">보호자 등록하기 <span>↗</span></a></div></section></jsp:body></petclinic:layout>
