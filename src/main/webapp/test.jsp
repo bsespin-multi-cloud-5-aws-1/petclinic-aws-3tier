@@ -30,7 +30,7 @@
 <tr><th>호스트 / 사설 IP</th><td><%= h(host) %> / <%= h(ip) %></td></tr>
 <tr><th>Java</th><td><%= h(System.getProperty("java.vendor")) %> <%= h(System.getProperty("java.version")) %> (<%= h(System.getProperty("java.runtime.name")) %>)</td></tr>
 <tr><th>Servlet 컨테이너</th><td><%= h(application.getServerInfo()) %></td></tr>
-<tr><th>서버 시각</th><td><%= new Date() %></td></tr>
+<tr><th>서버 시각</th><td><%= new java.util.Date() %></td></tr>
 </table>
 <h2>2. 요청 전달 (WEB → Internal ALB → WAS 헤더)</h2>
 <table>
