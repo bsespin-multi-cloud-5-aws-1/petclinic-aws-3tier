@@ -4,6 +4,7 @@ data "aws_ec2_managed_prefix_list" "cloudfront" {
 }
 
 # ---------- SG 체인: alb-public → web → alb-internal → was → rds-proxy → rds ----------
+# 80 인바운드 없음: CloudFront 접두사 목록은 항목 수만큼 규칙으로 계산되어 한도(60) 초과
 resource "aws_security_group" "alb_public" {
   name        = "mc-sg-alb-public"
   description = "Public ALB: CloudFront origin-facing only (443)"
@@ -18,15 +19,6 @@ resource "aws_vpc_security_group_ingress_rule" "alb_public_443" {
   to_port           = 443
   ip_protocol       = "tcp"
   description       = "HTTPS from CloudFront"
-}
-
-resource "aws_vpc_security_group_ingress_rule" "alb_public_80" {
-  security_group_id = aws_security_group.alb_public.id
-  prefix_list_id    = data.aws_ec2_managed_prefix_list.cloudfront.id
-  from_port         = 80
-  to_port           = 80
-  ip_protocol       = "tcp"
-  description       = "HTTP (redirect to HTTPS)"
 }
 
 resource "aws_vpc_security_group_egress_rule" "alb_public_all" {

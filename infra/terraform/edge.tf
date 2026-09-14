@@ -297,6 +297,16 @@ resource "aws_cloudfront_distribution" "main" {
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
+  # Behavior 1-b: 점검 페이지 객체 → S3 maintenance (custom_error_response가 참조)
+  ordered_cache_behavior {
+    path_pattern           = "/maintenance.html"
+    target_origin_id       = local.cf_origin_maintenance
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    cache_policy_id        = data.aws_cloudfront_cache_policy.optimized.id
+  }
+
   # Behavior 2: 공개 이미지 → S3 (서버 미경유)
   ordered_cache_behavior {
     path_pattern               = "/images/*"
@@ -324,15 +334,26 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # Behavior 4 (기본): 동적 → ALB(오리진 그룹) · 캐시 없음
+  # Behavior 4 (기본): 동적 → ALB 직접 · 캐시 없음 (POST 허용 → 오리진 그룹 불가, 점검 페이지는 custom_error_response로)
   default_cache_behavior {
-    target_origin_id           = local.cf_origin_group
+    target_origin_id           = local.cf_origin_alb
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods             = ["GET", "HEAD"]
     cache_policy_id            = data.aws_cloudfront_cache_policy.disabled.id
     origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
+  }
+
+  # ALB·WEB·WAS 전부 실패(5xx) 시 점검 페이지 (동적 요청 포함)
+  dynamic "custom_error_response" {
+    for_each = [502, 503, 504]
+    content {
+      error_code            = custom_error_response.value
+      response_code         = 503
+      response_page_path    = "/maintenance.html"
+      error_caching_min_ttl = 10
+    }
   }
 
   restrictions {

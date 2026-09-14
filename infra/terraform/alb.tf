@@ -37,22 +37,7 @@ resource "aws_lb_target_group" "web" {
   tags = merge(local.tier_tag.web, { Name = "${local.p}-tg-web" })
 }
 
-resource "aws_lb_listener" "public_http" {
-  load_balancer_arn = aws_lb.public.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
-  }
-}
-
-# 443: 기본 동작은 403 (CloudFront 우회 차단). X-Origin-Verify 헤더가 맞을 때만 전달
+# 443만 (HTTP→HTTPS 리다이렉트는 CloudFront viewer policy가 처리). 기본 403, X-Origin-Verify 헤더가 맞을 때만 전달
 resource "aws_lb_listener" "public_https" {
   load_balancer_arn = aws_lb.public.arn
   port              = 443
