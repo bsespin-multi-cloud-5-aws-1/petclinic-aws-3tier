@@ -13,8 +13,7 @@ if [ ! -x /opt/tomcat/bin/catalina.sh ]; then
   id tomcat >/dev/null 2>&1 || useradd -r -m -d /opt/tomcat -s /sbin/nologin tomcat
   rm -rf /opt/tomcat/webapps/*
   cd /opt && git clone -b "${repo_branch}" "${repo_url}" petclinic-src
-  cd /opt/petclinic-src && ./mvnw -q package -P MySQL -DskipTests
-  cp target/petclinic.war /opt/tomcat/webapps/
+  cd /opt/petclinic-src && ./mvnw -q package -P MySQL -DskipTests && cp target/petclinic.war /opt/tomcat/webapps/ || echo "BUILD FAILED: petclinic.war not deployed"
   chown -R tomcat:tomcat /opt/tomcat
   cat > /etc/systemd/system/tomcat.service <<UNIT
 [Unit]
@@ -39,10 +38,9 @@ DB_SECRET=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "
 DB_USER=$(echo "$DB_SECRET" | jq -r .username)
 DB_PASS=$(echo "$DB_SECRET" | jq -r .password)
 
+# catalina.sh는 CATALINA_OPTS를 eval하므로 값 안에 작은따옴표를 넣지 않는다 (& 는 큰따옴표 안이라 안전)
 cat > /opt/tomcat/bin/setenv.sh <<SETENV
-export CATALINA_OPTS="\$CATALINA_OPTS -Xms512m -Xmx1g \
- -Djdbc.url='jdbc:mysql://${rds_proxy_endpoint}:3306/${db_name}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&sslMode=REQUIRED' \
- -Djdbc.username=$DB_USER -Djdbc.password=$DB_PASS"
+export CATALINA_OPTS="\$CATALINA_OPTS -Xms512m -Xmx1g -Djdbc.url=jdbc:mysql://${rds_proxy_endpoint}:3306/${db_name}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&sslMode=REQUIRED -Djdbc.username=$DB_USER -Djdbc.password=$DB_PASS"
 SETENV
 chown tomcat:tomcat /opt/tomcat/bin/setenv.sh && chmod 750 /opt/tomcat/bin/setenv.sh
 

@@ -438,6 +438,18 @@
                     <contextFolder>${basedir}/src/main/webapp/resources/less</contextFolder>
                 </configuration>
                 <dependencies>
+                    <!-- jshint 웹자 의존성의 minimatch 버전 범위 충돌 회피 (jshint 프로세서 미사용) -->
+                    <dependency>
+                        <groupId>ro.isdc.wro4j</groupId>
+                        <artifactId>wro4j-extensions</artifactId>
+                        <version>${wro4j.version}</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>org.webjars.npm</groupId>
+                                <artifactId>jshint</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
                     <dependency>
                         <groupId>org.webjars</groupId>
                         <artifactId>bootstrap</artifactId>
