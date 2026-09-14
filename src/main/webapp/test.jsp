@@ -2,12 +2,14 @@
 <%!
   // WEB-WAS-DB 연동 및 요청 전달 확인용 (OT 제공 test.jsp 목적 동일). DB 접속정보는 WAR 안의 data-access.properties에서 읽음
   private String h(String s){ return s==null ? "-" : s.replace("&","&amp;").replace("<","&lt;"); }
+  private String xmlUnescape(String s){ return s==null ? "" : s.replace("&lt;","<").replace("&gt;",">").replace("&quot;","\"").replace("&#x27;","'").replace("&#39;","'").replace("&amp;","&"); }
   private String mask(String s){ return (s==null||s.length()<6) ? "(설정)" : s.substring(0,3)+"***"; }
 %>
 <%
   Properties p = new Properties();
   try (InputStream in = application.getResourceAsStream("/WEB-INF/classes/spring/data-access.properties")) { if (in != null) p.load(in); }
-  String url = p.getProperty("jdbc.url",""), user = p.getProperty("jdbc.username",""), pw = p.getProperty("jdbc.password","");
+  // 값은 빌드 시 XML용으로 이스케이프되어(&amp; 등) properties에도 그대로 들어가므로 되돌린다
+  String url = xmlUnescape(p.getProperty("jdbc.url","")), user = xmlUnescape(p.getProperty("jdbc.username","")), pw = xmlUnescape(p.getProperty("jdbc.password",""));
   String dbStatus, dbHost = url.replaceAll("jdbc:mysql://([^:/]+).*", "$1"), vets = "-", version = "-", ssl = "-";
   long t0 = System.currentTimeMillis();
   try {
@@ -35,7 +37,8 @@
 <h2>2. 요청 전달 (WEB → Internal ALB → WAS 헤더)</h2>
 <table>
 <tr><th>클라이언트 → ALB 공인 IP (X-Forwarded-For)</th><td><%= h(request.getHeader("X-Forwarded-For")) %></td></tr>
-<tr><th>X-Forwarded-Proto</th><td><%= h(request.getHeader("X-Forwarded-Proto")) %></td></tr>
+<tr><th>X-Forwarded-Proto</th><td><%= h(request.getHeader("X-Forwarded-Proto")) %> (Internal ALB가 http로 덮어씀)</td></tr>
+<tr><th>CloudFront-Forwarded-Proto</th><td><%= h(request.getHeader("CloudFront-Forwarded-Proto")) %> (사용자 → CloudFront 구간)</td></tr>
 <tr><th>Host (ProxyPreserveHost)</th><td><%= h(request.getHeader("Host")) %></td></tr>
 <tr><th>CloudFront 경유 (Via)</th><td><%= h(request.getHeader("Via")) %></td></tr>
 <tr><th>WAS가 본 원격 주소</th><td><%= h(request.getRemoteAddr()) %> (Apache/ALB 사설 IP)</td></tr>
