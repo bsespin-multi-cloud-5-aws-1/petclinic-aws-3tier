@@ -11,7 +11,10 @@ dnf install -y jq >/dev/null 2>&1 || true
 DB_SECRET=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${db_secret_arn}" --query SecretString --output text)
 DB_USER=$(echo "$DB_SECRET" | jq -r .username)
 DB_PASS=$(echo "$DB_SECRET" | jq -r .password)
-JDBC_URL="jdbc:mysql://${rds_proxy_endpoint}:3306/${db_name}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&sslMode=REQUIRED"
+# 비밀번호도 XML 속성으로 들어가므로 & < > " 를 XML 이스케이프 (python3는 AL2023 기본 포함)
+DB_PASS_XML=$(printf '%s' "$DB_PASS" | python3 -c 'import sys,html; print(html.escape(sys.stdin.read(), quote=True), end="")')
+# 필터링 대상이 XML 속성이므로 &는 &amp; 로 (data-access.properties의 jdbc.url은 미사용)
+JDBC_URL="jdbc:mysql://${rds_proxy_endpoint}:3306/${db_name}?useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Seoul&amp;sslMode=REQUIRED"
 
 if [ ! -x /opt/tomcat/bin/catalina.sh ]; then
   dnf install -y java-17-amazon-corretto-headless git unzip jq amazon-cloudwatch-agent
@@ -22,7 +25,7 @@ if [ ! -x /opt/tomcat/bin/catalina.sh ]; then
   rm -rf /opt/tomcat/webapps/*
   cd /opt && git clone -b "${repo_branch}" "${repo_url}" petclinic-src
   cd /opt/petclinic-src && ./mvnw -q package -P MySQL -DskipTests \
-    "-Djdbc.url=$JDBC_URL" "-Djdbc.username=$DB_USER" "-Djdbc.password=$DB_PASS" \
+    "-Djdbc.url=$JDBC_URL" "-Djdbc.username=$DB_USER" "-Djdbc.password=$DB_PASS_XML" \
     && cp target/petclinic.war /opt/tomcat/webapps/ || echo "BUILD FAILED: petclinic.war not deployed"
   rm -rf /opt/petclinic-src/target/classes /opt/petclinic-src/target/petclinic   # 평문 자격증명이 든 필터링 결과 제거
   chown -R tomcat:tomcat /opt/tomcat
