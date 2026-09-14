@@ -56,7 +56,7 @@ resource "aws_db_instance" "main" {
   deletion_protection     = false # 프로젝트 기간 중 destroy 가능하도록 끔 (운영 전환 시 true)
   skip_final_snapshot     = true
 
-  performance_insights_enabled = true
+  performance_insights_enabled = false # db.t3.small(MySQL)은 PI 미지원. 병목 분석은 CloudWatch 지표로
   monitoring_interval          = 0
   auto_minor_version_upgrade   = true
 

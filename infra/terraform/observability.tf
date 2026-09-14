@@ -194,7 +194,6 @@ resource "aws_lambda_function" "notify" {
   timeout          = 10
   memory_size      = 128
 
-  reserved_concurrent_executions = 5 # 예약 폭주 시 Slack rate limit 보호
 
   environment {
     variables = {
