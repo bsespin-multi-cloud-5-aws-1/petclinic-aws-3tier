@@ -69,8 +69,7 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CW'
  "metrics_collected":{"mem":{"measurement":["mem_used_percent"]},"disk":{"measurement":["used_percent"],"resources":["/"]}}},
  "logs":{"logs_collected":{"files":{"collect_list":[
   {"file_path":"/opt/tomcat/logs/catalina.out","log_group_name":"${log_group_prefix}/catalina","log_stream_name":"{instance_id}"},
-  {"file_path":"/opt/tomcat/logs/localhost_access_log.*.txt","log_group_name":"${log_group_prefix}/access","log_stream_name":"{instance_id}"},
-  {"file_path":"/opt/tomcat/logs/events.log","log_group_name":"${log_group_prefix}/events","log_stream_name":"{instance_id}"}]}}}}
+  {"file_path":"/opt/tomcat/logs/localhost_access_log.*.txt","log_group_name":"${log_group_prefix}/access","log_stream_name":"{instance_id}"}]}}}}
 CW
 /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json || true
 

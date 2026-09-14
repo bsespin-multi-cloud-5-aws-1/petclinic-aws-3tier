@@ -12,6 +12,4 @@ origin_verify_secret = "change-me-random-32-chars"
 loadgen_cidrs = ["203.0.113.10/32"]
 
 alert_emails            = ["team@example.com"]
-slack_team_id           = "" # AWS Chatbot 콘솔에서 Slack 워크스페이스 연결 후 ID 입력
-slack_alerts_channel_id = ""
 enable_grafana          = false

@@ -165,7 +165,7 @@ variable "waf_rate_limit_booking" {
 }
 
 variable "loadgen_cidrs" {
-  description = "JMeter 부하 발생기 공인 IP (WAF 허용). 실험 후 비움"
+  description = "JMeter 부하 발생기 공인 IP (WAF rate rule 허용). 실험 후 비움"
   type        = list(string)
   default     = []
 }
@@ -177,20 +177,8 @@ variable "alert_emails" {
   default     = []
 }
 
-variable "slack_team_id" {
-  description = "AWS Chatbot용 Slack 워크스페이스 ID (비우면 Chatbot 생성 안 함)"
-  type        = string
-  default     = ""
-}
-
-variable "slack_alerts_channel_id" {
-  description = "#mc-alerts 채널 ID"
-  type        = string
-  default     = ""
-}
-
 variable "enable_grafana" {
-  description = "Amazon Managed Grafana 워크스페이스 생성 (IAM Identity Center 필요)"
+  description = "Amazon Managed Grafana 워크스페이스 생성 (IAM Identity Center 필요). Slack 알림은 Grafana Alerting → Slack webhook(Contact point)로"
   type        = bool
   default     = false
 }

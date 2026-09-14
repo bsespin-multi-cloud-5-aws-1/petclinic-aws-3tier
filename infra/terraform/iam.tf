@@ -1,7 +1,7 @@
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
-# ---------- EC2 인스턴스 역할: SSM · CloudWatch Agent · Secrets 읽기 ----------
+# ---------- EC2 인스턴스 역할: SSM · CloudWatch Agent · RDS 비밀 읽기(빌드 시 주입) ----------
 data "aws_iam_policy_document" "ec2_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -32,7 +32,7 @@ data "aws_iam_policy_document" "ec2_inline" {
   statement {
     sid       = "ReadAppSecrets"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.slack_webhook.arn, aws_db_instance.main.master_user_secret[0].secret_arn]
+    resources = [aws_db_instance.main.master_user_secret[0].secret_arn]
   }
   statement {
     sid       = "KmsForSecrets"

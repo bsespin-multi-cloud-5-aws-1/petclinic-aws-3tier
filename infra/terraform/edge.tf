@@ -319,8 +319,7 @@ resource "aws_cloudfront_distribution" "main" {
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
-  # 로그인 콜백 /oauth2/idpresponse 와 앱 경로는 기본 Behavior(캐시 없음 · 쿠키·쿼리 전달)로 ALB에 도달
-  # Behavior 3 (기본): 동적 · 로그인 콜백 → ALB 직접 · 캐시 없음 (POST 허용 → 오리진 그룹 불가, 점검 페이지는 custom_error_response로)
+  # Behavior 3 (기본): 동적 → ALB 직접 · 캐시 없음 (POST 허용 → 오리진 그룹 불가, 점검 페이지는 custom_error_response로)
   default_cache_behavior {
     target_origin_id           = local.cf_origin_alb
     viewer_protocol_policy     = "redirect-to-https"

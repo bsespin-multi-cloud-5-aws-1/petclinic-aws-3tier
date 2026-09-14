@@ -55,94 +55,10 @@ resource "aws_lb_listener" "public_https" {
   }
 }
 
-# 리스너 규칙 (우선순위 순): 부하기 IP 우회 → 공개 경로 → 앱(Cognito 인증) → 기타
-# 부하 테스트 중에만: JMeter 공인 IP는 인증 없이 통과 (loadgen_cidrs 비우면 생성 안 함)
-resource "aws_lb_listener_rule" "loadgen_bypass" {
-  count        = length(var.loadgen_cidrs) > 0 ? 1 : 0
-  listener_arn = aws_lb_listener.public_https.arn
-  priority     = 1
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.web.arn
-  }
-
-  condition {
-    source_ip {
-      values = var.loadgen_cidrs
-    }
-  }
-  condition {
-    http_header {
-      http_header_name = "X-Origin-Verify"
-      values           = [var.origin_verify_secret]
-    }
-  }
-}
-
-# 공개 경로: 헬스체크·랜딩 (인증 없음)
-resource "aws_lb_listener_rule" "public_paths" {
-  listener_arn = aws_lb_listener.public_https.arn
-  priority     = 5
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.web.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/health.html", "/", "/index.html"]
-    }
-  }
-  condition {
-    http_header {
-      http_header_name = "X-Origin-Verify"
-      values           = [var.origin_verify_secret]
-    }
-  }
-}
-
-# 앱 경로: ALB가 Cognito Hosted UI로 인증 후 전달 (앱 수정 없음). 콜백 /oauth2/idpresponse 는 ALB가 처리
-resource "aws_lb_listener_rule" "app_authenticated" {
-  listener_arn = aws_lb_listener.public_https.arn
-  priority     = 10
-
-  action {
-    type = "authenticate-cognito"
-    authenticate_cognito {
-      user_pool_arn              = aws_cognito_user_pool.main.arn
-      user_pool_client_id        = aws_cognito_user_pool_client.petclinic.id
-      user_pool_domain           = aws_cognito_user_pool_domain.main.domain
-      scope                      = "openid email profile"
-      session_cookie_name        = "AWSELBAuthSessionCookie"
-      session_timeout            = 28800 # 8h
-      on_unauthenticated_request = "authenticate"
-    }
-  }
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.web.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["${local.app_context}/*"]
-    }
-  }
-  condition {
-    http_header {
-      http_header_name = "X-Origin-Verify"
-      values           = [var.origin_verify_secret]
-    }
-  }
-}
-
-# 나머지 (정적 등): 검증 헤더만 확인
+# 리스너 규칙: X-Origin-Verify 헤더가 맞을 때만 전달 (CloudFront 우회 차단). 로그인/인증 없음 — Cognito 제외(9/14 결정)
 resource "aws_lb_listener_rule" "origin_verify" {
   listener_arn = aws_lb_listener.public_https.arn
-  priority     = 20
+  priority     = 10
 
   action {
     type             = "forward"

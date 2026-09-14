@@ -6,10 +6,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.70"
     }
-    archive = {
-      source  = "hashicorp/archive"
-      version = "~> 2.4"
-    }
   }
 
   # 원격 상태는 팀 결정 후 활성화 (S3 + DynamoDB 잠금)
