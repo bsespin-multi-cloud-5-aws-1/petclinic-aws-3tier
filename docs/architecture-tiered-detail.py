@@ -99,7 +99,7 @@ ET.SubElement(tg, "mxGeometry", x="50", y="30", width="2000", height="83").set("
 t1 = ET.SubElement(root, "mxCell", id="title-text", value="PetClinic 3-Tier on AWS — 계층별 상세 아키텍처 (1팀 Mission Critical)",
                    style=f"text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t1, "mxGeometry", width="1600", height="42").set("as", "geometry")
-t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB 계층별 구성 + 각 계층의 운영·보안 로그  |  개인정보는 RDS · 진료 파일 저장 제외 · 예약 알림 = WAS 이벤트 로그 → CloudWatch → Lambda → Slack · 로그인 = Spring Security + Cognito",
+t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB 계층별 구성 + 각 계층의 운영·보안 로그  |  개인정보는 RDS · 진료 파일 저장 제외 · 예약 알림 = WAS 이벤트 로그 → CloudWatch → Lambda → Slack · 로그인 = ALB authenticate-cognito",
                    style=f"text;html=1;resizable=0;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=16;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t2, "mxGeometry", x="5", y="40", width="1600", height="25").set("as", "geometry")
 t3 = ET.SubElement(root, "mxCell", id="title-separator", value="", style=f"line;strokeWidth=2;html=1;fontSize=14;strokeColor=#FF9900;{FONT}", vertex="1", parent="title-group")
@@ -154,10 +154,10 @@ vertex("slack-icon", "", sub_icon_style("chat", "#232F3D"), 30, 30, 48, 48, pare
 
 # ---------- ① entry tier ----------
 service("r53", "DNS", "Amazon Route 53", "별칭 A/AAAA → CloudFront · Failover 없음", "route_53", "net", 300, 260)
-service("cf", "CDN · 엣지", "Amazon CloudFront", "Behavior: /resources·/images 캐시<br>동적·로그인은 ALB(캐시 없음)", "cloudfront", "net", 520, 260)
-service("waf", "웹 방화벽", "AWS WAF", "관리형 규칙 3 + rate 2<br>전체 2,000/5분 · 예약 100/5분", "waf", "sec", 740, 260)
+service("waf", "웹 방화벽 (먼저 검사)", "AWS WAF", "관리형 규칙 3 + rate 2<br>차단은 캐시·오리진 미도달", "waf", "sec", 520, 260)
+service("cf", "CDN · 엣지", "Amazon CloudFront", "WAF Web ACL 연결 · Behavior 분기<br>/resources·/images 캐시, 동적은 ALB", "cloudfront", "net", 740, 260)
 service("acm", "인증서", "AWS Certificate Manager", "us-east-1 · DNS 검증<br>13개월 자동 갱신", "certificate_manager", "sec", 960, 260)
-service("cognito", "로그인 IdP", "Amazon Cognito", "OIDC IdP · Hosted UI · MFA<br>그룹 → ROLE_VET / ROLE_ADMIN", "cognito", "sec", 1180, 260)
+service("cognito", "로그인", "Amazon Cognito", "Hosted UI · MFA · 그룹 vets/admins<br>ALB authenticate-cognito (앱 수정 없음)", "cognito", "sec", 1180, 260)
 service("s3maint", "점검 페이지", "Amazon S3", "오리진 그룹 secondary · OAC<br>버킷 정책 SourceArn 조건", "s3", "storage", 1400, 260)
 service("s3-img", "공개 이미지", "Amazon S3", "mc-images · /images/* Behavior<br>시설·수의사·후기 사진 · OAC", "s3", "storage", 1620, 260)
 service("cwl-waf", "진입 계층 로그", "CloudWatch Logs", "aws-waf-logs-mc · 30일<br>차단 건수 · IP 캡처", "cloudwatch_logs", "integ", 1840, 260, kind="sub")
@@ -165,16 +165,16 @@ service("cwl-waf", "진입 계층 로그", "CloudWatch Logs", "aws-waf-logs-mc �
 # ---------- VPC · middle lane ----------
 service("igw", "인터넷 연결", "Internet Gateway", "VPC ↔ 인터넷", "internet_gateway", "net", 840, 510, kind="sub")
 service("alb", "부하 분산 (외부)", "Public ALB", "443 · ACM(서울) · tg-web<br>헬스체크 /health.html", "application_load_balancer", "net", 840, 690, kind="sub")
-service("ialb", "부하 분산 (내부)", "Internal ALB", "8080 · tg-was · sticky(AWSALB)<br>헬스체크 /petclinic/ (permitAll)", "application_load_balancer", "net", 840, 1170, kind="sub")
+service("ialb", "부하 분산 (내부)", "Internal ALB", "8080 · tg-was · sticky(AWSALB)<br>헬스체크 /petclinic/", "application_load_balancer", "net", 840, 1170, kind="sub")
 service("proxy", "커넥션 관리", "RDS Proxy", "커넥션 다중화 · failover 단축<br>Require TLS", "rds_proxy", "db", 840, 1410, kind="sub")
 # NAT
-service("nat-a", "아웃바운드", "NAT Gateway", "dnf · Agent · SSM<br>OIDC 토큰 교환(아웃바운드)", "nat_gateway", "net", 380, 700, kind="sub")
+service("nat-a", "아웃바운드", "NAT Gateway", "dnf · Agent · SSM<br>인바운드 불가", "nat_gateway", "net", 380, 700, kind="sub")
 service("nat-c", "아웃바운드", "NAT Gateway", "AZ당 1개<br>AZ 손실 대비", "nat_gateway", "net", 1030, 700, kind="sub")
 # WEB
 service("web-a", "WEB", "WEB-A · Apache 2.4", "AL2023 · MPM event<br>정적 파일 직접 서빙", "ec2", "compute", 380, 935)
 service("web-c", "WEB", "WEB-C · Apache 2.4", "CloudWatch Agent<br>SSM Agent", "ec2", "compute", 1030, 935)
 # WAS
-service("was-a", "WAS", "WAS-A · Tomcat 9", "Corretto 17 · Spring Security<br>OAuth2 Client · 예약 이벤트 로그", "ec2", "compute", 380, 1180)
+service("was-a", "WAS", "WAS-A · Tomcat 9", "Corretto 17 · maxThreads<br>예약 이벤트 로그 1줄", "ec2", "compute", 380, 1180)
 service("was-c", "WAS", "WAS-C · Tomcat 9", "AZ당 2대 · 세션은 sticky<br>예약 이벤트 로그 → CloudWatch", "ec2", "compute", 1030, 1180)
 # DB
 service("rds-p", "관계형 DB (주) · 개인정보", "RDS MySQL 8.0 Primary", "개인정보 저장소(owners·pets·visits)<br>Multi-AZ · KMS 암호화 · TLS", "rds", "db", 380, 1410)
@@ -203,15 +203,15 @@ service("chatbot", "채팅 연동", "AWS Chatbot", "SNS → Slack 채널", "chat
 
 # ---------- edges ----------
 edge("e1", "users", "r53", EDGE, label="DNS 조회", lx=-0.1, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
-edge("e2", "r53", "cf", EDGE, label="별칭", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
-edge("e3", "waf", "cf", EDGE_D, label="Web ACL", lx=0, ly=12, exit=(0, 0.5), entry=(1, 0.5))
-edge("e4", "acm", "cf", EDGE_D, pts=[(1020, 230), (580, 230)], label="TLS 인증서 (us-east-1)", lx=0, ly=-10, exit=(0.5, 0), entry=(0.5, 0))
-edge("e5", "waf", "cwl-waf", EDGE_D, pts=[(800, 210), (1900, 210)], label="WAF 로그", lx=0.2, ly=-10, exit=(0.5, 0), entry=(0.5, 0))
-edge("e6", "cf", "s3maint", EDGE_D, pts=[(610, 440), (1460, 440)], label="오리진 실패(5xx·타임아웃) → 점검 페이지 (OAC SigV4 서명)", lx=-0.1, ly=12, exit=(0.75, 1), entry=(0.5, 1))
-edge("e7", "cf", "igw", EDGE, pts=[(580, 464), (900, 464)], label="HTTPS only · X-Origin-Verify · 캐시 미스만 오리진", lx=-0.45, ly=-12, exit=(0.5, 1), entry=(0.5, 0))
+edge("e2", "r53", "waf", EDGE, label="별칭", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
+edge("e3", "waf", "cf", EDGE, label="통과 요청만", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
+edge("e4", "acm", "cf", EDGE_D, pts=[(1020, 230), (800, 230)], label="TLS 인증서 (us-east-1)", lx=0, ly=-10, exit=(0.5, 0), entry=(0.5, 0))
+edge("e5", "waf", "cwl-waf", EDGE_D, pts=[(580, 210), (1900, 210)], label="WAF 로그 · 차단 건수", lx=0.2, ly=-10, exit=(0.5, 0), entry=(0.5, 0))
+edge("e6", "cf", "s3maint", EDGE_D, pts=[(830, 440), (1460, 440)], label="오리진 실패(5xx·타임아웃) → 점검 페이지 (OAC SigV4 서명)", lx=-0.1, ly=12, exit=(0.75, 1), entry=(0.5, 1))
+edge("e7", "cf", "igw", EDGE, pts=[(800, 464), (900, 464)], label="HTTPS only · X-Origin-Verify · 캐시 미스만 오리진", lx=-0.45, ly=-12, exit=(0.5, 1), entry=(0.5, 0))
 edge("e8", "igw", "alb", EDGE, exit=(0.5, 1), entry=(0.5, 0))
-edge("e38", "cf", "s3-img", EDGE, pts=[(628, 412), (1680, 412)], label="/images/* → S3 오리진 (OAC · 캐시 1일+) · 서버 미경유", lx=0.2, ly=12, exit=(0.9, 1), entry=(0.5, 1))
-edge("e9", "users", "cognito", EDGE_D, pts=[(113, 470), (1240, 470)], label="OAuth2 Authorization Code · Hosted UI 로그인 → 콜백 /petclinic/login/oauth2/code/cognito", lx=0.55, ly=13, exit=(0.5, 1), entry=(0.5, 1))
+edge("e38", "cf", "s3-img", EDGE, pts=[(848, 412), (1680, 412)], label="/images/* → S3 오리진 (OAC · 캐시 1일+) · 서버 미경유", lx=0.2, ly=12, exit=(0.9, 1), entry=(0.5, 1))
+edge("e9", "cognito", "alb", EDGE_D, pts=[(1240, 470), (980, 470), (980, 750)], label="ALB 리스너 규칙 authenticate-cognito → 콜백 /oauth2/idpresponse", lx=-0.15, ly=13, exit=(0.5, 1), entry=(1, 0.5))
 edge("e10", "alb", "web-a", EDGE, pts=[(870, 858), (440, 858)], label="tg-web · /health.html 10s · 2/3", lx=0.1, ly=-12, exit=(0.25, 1), entry=(0.5, 0))
 edge("e11", "alb", "web-c", EDGE, pts=[(930, 858), (1090, 858)], exit=(0.75, 1), entry=(0.5, 0))
 edge("e12", "web-a", "ialb", EDGE, pts=[(440, 1108), (870, 1108)], label="ProxyPass /petclinic/ · ProxyPreserveHost", lx=0.1, ly=-12, exit=(0.5, 1), entry=(0.25, 0))
@@ -241,7 +241,7 @@ edge("e36", "asg", "s3-logs", EDGE_D, label="종료 훅 → 로그 sync", lx=0, 
 edge("e37", "ops", "ssm", EDGE, pts=[(2030, 929), (2030, 995)], exit=(0, 0.5), entry=(1, 0.5))
 
 # ---------- badges ----------
-for n, (x, y) in {1: (215, 300), 2: (455, 285), 3: (545, 392), 4: (75, 400), 5: (885, 825), 6: (455, 1070),
+for n, (x, y) in {1: (215, 300), 2: (455, 285), 3: (765, 392), 4: (1200, 395), 5: (885, 825), 6: (455, 1070),
                   7: (805, 1205), 8: (455, 1312), 9: (1165, 1500), 10: (1625, 1540), 11: (1265, 1650),
                   12: (1165, 960), 13: (455, 1648), 14: (1030, 1850), 15: (2085, 850)}.items():
     badge(n, x, y)
@@ -255,9 +255,9 @@ lt = ET.SubElement(root, "mxCell", id="legend-title", value="계층별 흐름 ·
 ET.SubElement(lt, "mxGeometry", width="580", height="24").set("as", "geometry")
 steps = [
  ("① 사용자 → Route 53", "도메인 조회 후 A/AAAA 별칭이 CloudFront를 가리킴. Route 53 Failover는 단일 리전에서 불필요 → CloudFront 오리진 그룹으로 대체(리전 DR 시 로드맵)"),
- ("① CloudFront + WAF + ACM", "정적 자원 엣지 캐시, Response Headers Policy(HSTS·CSP·nosniff), HTTP→HTTPS. WAF: IP 평판·Common·KnownBadInputs + rate 전체 2,000/5분·예약 경로 100/5분(Count→Block), 로그 → CloudWatch Logs. ACM은 us-east-1, DNS 검증, 13개월 자동 갱신"),
+ ("① WAF → CloudFront + ACM", "WAF가 CloudFront Web ACL로 먼저 평가: IP 평판·Common·KnownBadInputs + rate 전체 2,000/5분·예약 경로 100/5분(Count→Block). 차단된 요청은 캐시·오리진에 도달하지 않음, 로그 → CloudWatch Logs. 통과한 요청만 CloudFront 캐시(정적)·오리진(동적). Response Headers Policy, HTTP→HTTPS. ACM은 us-east-1, 13개월 자동 갱신"),
  ("① CloudFront Behavior 분기 → ALB / S3(OAC)", "주소로 분기: /petclinic/resources/* 는 캐시(오리진 ALB), /images/* 는 S3 mc-images 오리진(시설·수의사·후기 사진, 서버 미경유), /login·/oauth2·나머지 동적은 ALB로 캐시 없이 쿠키·쿼리 전달. ALB 오리진은 HTTPS only + X-Origin-Verify. S3 오리진은 OAC(SigV4) + 버킷 정책 SourceArn, 공개 읽기 없음. 오리진 5xx 시 S3 점검 페이지. 환자 개인 이미지(MRI 등)는 캐시하지 않고 Presigned URL로만"),
- ("① 로그인 = Spring Security OAuth2 Client + Cognito(OIDC IdP)", "ALB 인증 액션 대신 앱 단 로그인. Cognito는 사용자 디렉터리·Hosted UI·MFA·그룹만 담당, 앱이 OIDC로 로그인하고 cognito:groups → ROLE_VET/ROLE_ADMIN 매핑(인가). CSRF는 form:form 자동. 세션은 Internal ALB sticky, Redis(Spring Session)는 로드맵"),
+ ("① 로그인 = ALB authenticate-cognito (앱 수정 없음)", "Public ALB 443 리스너 규칙: /health.html·/ 는 공개, /petclinic/* 는 Cognito Hosted UI로 인증 후 전달(세션 8h, 콜백 /oauth2/idpresponse 는 ALB가 처리). Cognito는 디렉터리·MFA·그룹. 역할별 인가(Spring Security)는 로드맵. JMeter는 부하기 IP 우회 규칙"),
  ("② Public ALB → WEB ASG", "tg-web 헬스체크 /health.html(얕게) 10s·5s·2/3, 등록 취소 30s. WEB ASG CPU 60% 대상 추적, min 2·max 6, 두 AZ 균등"),
  ("② WEB → Internal ALB", "Apache ProxyPass /petclinic/ + ProxyPreserveHost On(Host·X-Forwarded-For 유지). MPM event 튜닝, 정적 파일 직접 서빙"),
  ("③ Internal ALB → WAS ASG", "tg-was 헬스체크 /petclinic/(슬래시 필수, 302 방지). WAS ASG 대상당 요청 수 + CPU 대상 추적, 예약 증설(이벤트 15분 전 4대), min 2·max 8, 워밍업 300s"),
@@ -281,7 +281,7 @@ for i, (title, desc) in enumerate(steps, 1):
     d = ET.SubElement(root, "mxCell", id=f"step-{i}-desc-legend", value=val, style=f"text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;{FONT}", vertex="1", parent=f"step-{i}-legend")
     ET.SubElement(d, "mxGeometry", x="52", width="548", height="100").set("as", "geometry")
     y += 106
-note = ET.SubElement(root, "mxCell", id="legend-note", value='<i><span style="color: light-dark(rgb(0,0,0), rgb(255,255,255));">NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인(Spring Security)·예약 이벤트 로그·Lambda 알림은 앱 코드 추가가 전제. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.</span></i>', style=f"text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;{FONT}", vertex="1", parent="legend-container")
+note = ET.SubElement(root, "mxCell", id="legend-note", value='<i><span style="color: light-dark(rgb(0,0,0), rgb(255,255,255));">NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인은 ALB 인증 액션(앱 수정 없음). 예약 이벤트 로그·Lambda 알림은 앱 코드 1줄 추가가 전제. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.</span></i>', style=f"text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;{FONT}", vertex="1", parent="legend-container")
 ET.SubElement(note, "mxGeometry", x="0", y=str(y + 6), width="600", height="44").set("as", "geometry")
 y += 60
 lsg = ET.SubElement(root, "mxCell", id="legend-line-styles-group", value="", style=f"group;{FONT}fillColor=light-dark(#F5F5F5,#29393B);strokeColor=#666666;", vertex="1", parent="legend-container")

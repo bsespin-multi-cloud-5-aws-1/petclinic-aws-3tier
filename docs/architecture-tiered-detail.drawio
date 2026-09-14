@@ -10,7 +10,7 @@
         <mxCell id="title-text" value="PetClinic 3-Tier on AWS — 계층별 상세 아키텍처 (1팀 Mission Critical)" style="text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="title-group">
           <mxGeometry width="1600" height="42" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle-text" value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB 계층별 구성 + 각 계층의 운영·보안 로그  |  개인정보는 RDS · 진료 파일 저장 제외 · 예약 알림 = WAS 이벤트 로그 → CloudWatch → Lambda → Slack · 로그인 = Spring Security + Cognito" style="text;html=1;resizable=0;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=16;fontFamily=Helvetica;" vertex="1" parent="title-group">
+        <mxCell id="subtitle-text" value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB 계층별 구성 + 각 계층의 운영·보안 로그  |  개인정보는 RDS · 진료 파일 저장 제외 · 예약 알림 = WAS 이벤트 로그 → CloudWatch → Lambda → Slack · 로그인 = ALB authenticate-cognito" style="text;html=1;resizable=0;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=16;fontFamily=Helvetica;" vertex="1" parent="title-group">
           <mxGeometry x="5" y="40" width="1600" height="25" as="geometry" />
         </mxCell>
         <mxCell id="title-separator" value="" style="line;strokeWidth=2;html=1;fontSize=14;strokeColor=#FF9900;fontFamily=Helvetica;" vertex="1" parent="title-group">
@@ -136,16 +136,16 @@
         <mxCell id="r53" value="Amazon Route 53&lt;div&gt;&lt;i&gt;별칭 A/AAAA → CloudFront · Failover 없음&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.route_53;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-r53">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
-        <mxCell id="grp-cf" value="CDN · 엣지" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="grp-waf" value="웹 방화벽 (먼저 검사)" style="fillColor=#FFEBEE;strokeColor=#DD344C;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#DD344C;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="520" y="260" width="120" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="cf" value="Amazon CloudFront&lt;div&gt;&lt;i&gt;Behavior: /resources·/images 캐시&lt;br&gt;동적·로그인은 ALB(캐시 없음)&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-cf">
+        <mxCell id="waf" value="AWS WAF&lt;div&gt;&lt;i&gt;관리형 규칙 3 + rate 2&lt;br&gt;차단은 캐시·오리진 미도달&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.waf;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-waf">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
-        <mxCell id="grp-waf" value="웹 방화벽" style="fillColor=#FFEBEE;strokeColor=#DD344C;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#DD344C;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="grp-cf" value="CDN · 엣지" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="740" y="260" width="120" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="waf" value="AWS WAF&lt;div&gt;&lt;i&gt;관리형 규칙 3 + rate 2&lt;br&gt;전체 2,000/5분 · 예약 100/5분&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.waf;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-waf">
+        <mxCell id="cf" value="Amazon CloudFront&lt;div&gt;&lt;i&gt;WAF Web ACL 연결 · Behavior 분기&lt;br&gt;/resources·/images 캐시, 동적은 ALB&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#8C4FFF;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-cf">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
         <mxCell id="grp-acm" value="인증서" style="fillColor=#FFEBEE;strokeColor=#DD344C;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#DD344C;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
@@ -154,10 +154,10 @@
         <mxCell id="acm" value="AWS Certificate Manager&lt;div&gt;&lt;i&gt;us-east-1 · DNS 검증&lt;br&gt;13개월 자동 갱신&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.certificate_manager;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-acm">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
-        <mxCell id="grp-cognito" value="로그인 IdP" style="fillColor=#FFEBEE;strokeColor=#DD344C;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#DD344C;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
+        <mxCell id="grp-cognito" value="로그인" style="fillColor=#FFEBEE;strokeColor=#DD344C;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#DD344C;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="1180" y="260" width="120" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="cognito" value="Amazon Cognito&lt;div&gt;&lt;i&gt;OIDC IdP · Hosted UI · MFA&lt;br&gt;그룹 → ROLE_VET / ROLE_ADMIN&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cognito;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-cognito">
+        <mxCell id="cognito" value="Amazon Cognito&lt;div&gt;&lt;i&gt;Hosted UI · MFA · 그룹 vets/admins&lt;br&gt;ALB authenticate-cognito (앱 수정 없음)&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#DD344C;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cognito;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-cognito">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
         <mxCell id="grp-s3maint" value="점검 페이지" style="fillColor=#E8F5E9;strokeColor=#3F8624;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#3F8624;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
@@ -193,7 +193,7 @@
         <mxCell id="grp-ialb" value="부하 분산 (내부)" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="840" y="1170" width="120" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="ialb" value="Internal ALB&lt;div&gt;&lt;i&gt;8080 · tg-was · sticky(AWSALB)&lt;br&gt;헬스체크 /petclinic/ (permitAll)&lt;/i&gt;&lt;/div&gt;" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.application_load_balancer;fontFamily=Helvetica;" vertex="1" parent="grp-ialb">
+        <mxCell id="ialb" value="Internal ALB&lt;div&gt;&lt;i&gt;8080 · tg-was · sticky(AWSALB)&lt;br&gt;헬스체크 /petclinic/&lt;/i&gt;&lt;/div&gt;" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.application_load_balancer;fontFamily=Helvetica;" vertex="1" parent="grp-ialb">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
         <mxCell id="grp-proxy" value="커넥션 관리" style="fillColor=#F5E6F7;strokeColor=#C925D1;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#C925D1;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
@@ -205,7 +205,7 @@
         <mxCell id="grp-nat-a" value="아웃바운드" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="380" y="700" width="120" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="nat-a" value="NAT Gateway&lt;div&gt;&lt;i&gt;dnf · Agent · SSM&lt;br&gt;OIDC 토큰 교환(아웃바운드)&lt;/i&gt;&lt;/div&gt;" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.nat_gateway;fontFamily=Helvetica;" vertex="1" parent="grp-nat-a">
+        <mxCell id="nat-a" value="NAT Gateway&lt;div&gt;&lt;i&gt;dnf · Agent · SSM&lt;br&gt;인바운드 불가&lt;/i&gt;&lt;/div&gt;" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.nat_gateway;fontFamily=Helvetica;" vertex="1" parent="grp-nat-a">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
         <mxCell id="grp-nat-c" value="아웃바운드" style="fillColor=#EDE7F6;strokeColor=#8C4FFF;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#8C4FFF;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
@@ -229,7 +229,7 @@
         <mxCell id="grp-was-a" value="WAS" style="fillColor=#FFF2E8;strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#ED7100;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
           <mxGeometry x="380" y="1180" width="120" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="was-a" value="WAS-A · Tomcat 9&lt;div&gt;&lt;i&gt;Corretto 17 · Spring Security&lt;br&gt;OAuth2 Client · 예약 이벤트 로그&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-was-a">
+        <mxCell id="was-a" value="WAS-A · Tomcat 9&lt;div&gt;&lt;i&gt;Corretto 17 · maxThreads&lt;br&gt;예약 이벤트 로그 1줄&lt;/i&gt;&lt;/div&gt;" style="sketch=0;points=[[0,0,0],[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0,0],[0,1,0],[0.25,1,0],[0.5,1,0],[0.75,1,0],[1,1,0],[0,0.25,0],[0,0.5,0],[0,0.75,0],[1,0.25,0],[1,0.5,0],[1,0.75,0]];outlineConnect=0;fontColor=#232F3E;fillColor=#ED7100;strokeColor=#ffffff;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;fontFamily=Helvetica;shadow=1;" vertex="1" parent="grp-was-a">
           <mxGeometry x="36" y="30" width="48" height="48" as="geometry" />
         </mxCell>
         <mxCell id="grp-was-c" value="WAS" style="fillColor=#FFF2E8;strokeColor=#ED7100;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#ED7100;fontFamily=Helvetica;container=1;collapsible=0;shadow=1;strokeWidth=1.5;" vertex="1" parent="1">
@@ -348,7 +348,7 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="r53" target="cf">
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="r53" target="waf">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e2-label" value="별칭" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;fontSize=11;fontFamily=Helvetica;" connectable="0" vertex="1" parent="e2">
@@ -356,11 +356,11 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="waf" target="cf">
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="waf" target="cf">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e3-label" value="Web ACL" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;fontSize=11;fontFamily=Helvetica;" connectable="0" vertex="1" parent="e3">
-          <mxGeometry relative="1" x="0" y="12" as="geometry">
+        <mxCell id="e3-label" value="통과 요청만" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;fontSize=11;fontFamily=Helvetica;" connectable="0" vertex="1" parent="e3">
+          <mxGeometry relative="1" x="0" y="-12" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
@@ -368,7 +368,7 @@
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="1020" y="230" />
-              <mxPoint x="580" y="230" />
+              <mxPoint x="800" y="230" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -380,12 +380,12 @@
         <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;dashed=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="waf" target="cwl-waf">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="800" y="210" />
+              <mxPoint x="580" y="210" />
               <mxPoint x="1900" y="210" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e5-label" value="WAF 로그" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;fontSize=11;fontFamily=Helvetica;" connectable="0" vertex="1" parent="e5">
+        <mxCell id="e5-label" value="WAF 로그 · 차단 건수" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;fontSize=11;fontFamily=Helvetica;" connectable="0" vertex="1" parent="e5">
           <mxGeometry relative="1" x="0.2" y="-10" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -393,7 +393,7 @@
         <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;dashed=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="cf" target="s3maint">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="610" y="440" />
+              <mxPoint x="830" y="440" />
               <mxPoint x="1460" y="440" />
             </Array>
           </mxGeometry>
@@ -406,7 +406,7 @@
         <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cf" target="igw">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="580" y="464" />
+              <mxPoint x="800" y="464" />
               <mxPoint x="900" y="464" />
             </Array>
           </mxGeometry>
@@ -422,7 +422,7 @@
         <mxCell id="e38" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;exitX=0.9;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="cf" target="s3-img">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="628" y="412" />
+              <mxPoint x="848" y="412" />
               <mxPoint x="1680" y="412" />
             </Array>
           </mxGeometry>
@@ -432,16 +432,17 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="users" target="cognito">
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;startArrow=none;endFill=1;strokeColor=#545B64;rounded=0;fontFamily=Helvetica;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cognito" target="alb">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="113" y="470" />
               <mxPoint x="1240" y="470" />
+              <mxPoint x="980" y="470" />
+              <mxPoint x="980" y="750" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e9-label" value="OAuth2 Authorization Code · Hosted UI 로그인 → 콜백 /petclinic/login/oauth2/code/cognito" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;fontSize=11;fontFamily=Helvetica;" connectable="0" vertex="1" parent="e9">
-          <mxGeometry relative="1" x="0.55" y="13" as="geometry">
+        <mxCell id="e9-label" value="ALB 리스너 규칙 authenticate-cognito → 콜백 /oauth2/idpresponse" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];labelBackgroundColor=none;fontSize=11;fontFamily=Helvetica;" connectable="0" vertex="1" parent="e9">
+          <mxGeometry relative="1" x="-0.15" y="13" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
@@ -708,10 +709,10 @@
           <mxGeometry x="455" y="285" width="28" height="28" as="geometry" />
         </mxCell>
         <mxCell id="step-3" value="3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" vertex="1" parent="1">
-          <mxGeometry x="545" y="392" width="28" height="28" as="geometry" />
+          <mxGeometry x="765" y="392" width="28" height="28" as="geometry" />
         </mxCell>
         <mxCell id="step-4" value="4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" vertex="1" parent="1">
-          <mxGeometry x="75" y="400" width="28" height="28" as="geometry" />
+          <mxGeometry x="1200" y="395" width="28" height="28" as="geometry" />
         </mxCell>
         <mxCell id="step-5" value="5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=16;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;align=center;verticalAlign=middle;labelBackgroundColor=none;" vertex="1" parent="1">
           <mxGeometry x="885" y="825" width="28" height="28" as="geometry" />
@@ -770,7 +771,7 @@
         <mxCell id="step-2-badge-legend" value="2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" vertex="1" parent="step-2-legend">
           <mxGeometry y="2" width="40" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="step-2-desc-legend" value="&lt;div&gt;&lt;b&gt;① CloudFront + WAF + ACM&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;정적 자원 엣지 캐시, Response Headers Policy(HSTS·CSP·nosniff), HTTP→HTTPS. WAF: IP 평판·Common·KnownBadInputs + rate 전체 2,000/5분·예약 경로 100/5분(Count→Block), 로그 → CloudWatch Logs. ACM은 us-east-1, DNS 검증, 13개월 자동 갱신&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" vertex="1" parent="step-2-legend">
+        <mxCell id="step-2-desc-legend" value="&lt;div&gt;&lt;b&gt;① WAF → CloudFront + ACM&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;WAF가 CloudFront Web ACL로 먼저 평가: IP 평판·Common·KnownBadInputs + rate 전체 2,000/5분·예약 경로 100/5분(Count→Block). 차단된 요청은 캐시·오리진에 도달하지 않음, 로그 → CloudWatch Logs. 통과한 요청만 CloudFront 캐시(정적)·오리진(동적). Response Headers Policy, HTTP→HTTPS. ACM은 us-east-1, 13개월 자동 갱신&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" vertex="1" parent="step-2-legend">
           <mxGeometry x="52" width="548" height="100" as="geometry" />
         </mxCell>
         <mxCell id="step-3-legend" value="" style="group;fontFamily=Helvetica;" connectable="0" vertex="1" parent="legend-container">
@@ -788,7 +789,7 @@
         <mxCell id="step-4-badge-legend" value="4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007CBD;strokeColor=default;fontColor=#FFFFFF;fontStyle=1;fontSize=22;labelBackgroundColor=none;fontFamily=Helvetica;shadow=1;glass=0;strokeWidth=2;" vertex="1" parent="step-4-legend">
           <mxGeometry y="2" width="40" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="step-4-desc-legend" value="&lt;div&gt;&lt;b&gt;① 로그인 = Spring Security OAuth2 Client + Cognito(OIDC IdP)&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;ALB 인증 액션 대신 앱 단 로그인. Cognito는 사용자 디렉터리·Hosted UI·MFA·그룹만 담당, 앱이 OIDC로 로그인하고 cognito:groups → ROLE_VET/ROLE_ADMIN 매핑(인가). CSRF는 form:form 자동. 세션은 Internal ALB sticky, Redis(Spring Session)는 로드맵&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" vertex="1" parent="step-4-legend">
+        <mxCell id="step-4-desc-legend" value="&lt;div&gt;&lt;b&gt;① 로그인 = ALB authenticate-cognito (앱 수정 없음)&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;Public ALB 443 리스너 규칙: /health.html·/ 는 공개, /petclinic/* 는 Cognito Hosted UI로 인증 후 전달(세션 8h, 콜백 /oauth2/idpresponse 는 ALB가 처리). Cognito는 디렉터리·MFA·그룹. 역할별 인가(Spring Security)는 로드맵. JMeter는 부하기 IP 우회 규칙&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" vertex="1" parent="step-4-legend">
           <mxGeometry x="52" width="548" height="100" as="geometry" />
         </mxCell>
         <mxCell id="step-5-legend" value="" style="group;fontFamily=Helvetica;" connectable="0" vertex="1" parent="legend-container">
@@ -890,7 +891,7 @@
         <mxCell id="step-15-desc-legend" value="&lt;div&gt;&lt;b&gt;② ③ 운영자 접속&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;-&lt;/font&gt; &lt;/b&gt;Bastion·22번 포트 없음. SSM Session Manager(IAM 인증), 세션 로그 → CloudWatch Logs /mc/ssm 90일, DB 접속은 포트 포워딩. NAT는 아웃바운드(dnf·Agent·SSM)용이라 별개로 필요&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;fontFamily=Helvetica;" vertex="1" parent="step-15-legend">
           <mxGeometry x="52" width="548" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="legend-note" value="&lt;i&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인(Spring Security)·예약 이벤트 로그·Lambda 알림은 앱 코드 추가가 전제. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.&lt;/span&gt;&lt;/i&gt;" style="text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;fontFamily=Helvetica;" vertex="1" parent="legend-container">
+        <mxCell id="legend-note" value="&lt;i&gt;&lt;span style=&quot;color: light-dark(rgb(0,0,0), rgb(255,255,255));&quot;&gt;NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인은 ALB 인증 액션(앱 수정 없음). 예약 이벤트 로그·Lambda 알림은 앱 코드 1줄 추가가 전제. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.&lt;/span&gt;&lt;/i&gt;" style="text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;fontFamily=Helvetica;" vertex="1" parent="legend-container">
           <mxGeometry x="0" y="1632" width="600" height="44" as="geometry" />
         </mxCell>
         <mxCell id="legend-line-styles-group" value="" style="group;fontFamily=Helvetica;fillColor=light-dark(#F5F5F5,#29393B);strokeColor=#666666;" vertex="1" parent="legend-container">
