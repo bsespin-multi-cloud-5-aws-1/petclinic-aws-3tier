@@ -112,27 +112,22 @@ p.service("cf", "CDN · 엣지", "Amazon CloudFront", "", "cloudfront", "net", 6
 p.attach("cf", "waf", "WAF", "waf", "sec", "tl")
 p.attach("cf", "acm", "ACM", "certificate_manager", "sec", "tr")
 p.service("cwl-waf", "WAF 로그", "CloudWatch Logs", "", "cloudwatch_logs", "integ", 600, 150, kind="sub")
-p.service("cognito", "로그인", "Amazon Cognito", "Hosted UI · MFA · 그룹 vets/admins<br>ALB authenticate-cognito", "cognito", "sec", 320, 620)
 p.service("s3-img", "공개 이미지", "Amazon S3", "mc-images · OAC<br>시설·수의사·후기 사진", "s3", "storage", 880, 620)
 p.service("s3maint", "점검 페이지", "Amazon S3", "오리진 그룹 secondary · OAC<br>버킷 정책 SourceArn", "s3", "storage", 1160, 620)
 p.stub("to-web", "→ ② WEB 계층<br>IGW → Public ALB 443 (ACM 서울)", 1360, 345)
-p.stub("to-alb", "→ ② Public ALB 443 리스너 규칙<br>/petclinic/* → authenticate-cognito<br>콜백 /oauth2/idpresponse", 600, 640, 220, 80)
 p.edge("e1", "users", "r53", EDGE, label="DNS 조회", ly=-12, exit=(1,0.5), entry=(0,0.5))
 p.edge("e2", "r53", "cf", EDGE, label="별칭", ly=-12, exit=(1,0.5), entry=(0,0.5))
 p.edge("e5", "cf", "cwl-waf", EDGE_D, label="WAF 로그 · 차단", lx=0, ly=0, exit=(0.5,0), entry=(0.5,1))
 p.edge("e6", "cf", "to-web", EDGE, label="동적 · 로그인 · /resources 캐시 미스 → ALB (HTTPS only · X-Origin-Verify)", lx=0.05, ly=-12, exit=(1,0.5), entry=(0,0.5))
 p.edge("e7", "cf", "s3-img", EDGE, pts=[(660,600),(940,600)], label="/images/* → S3 오리진 (OAC · 캐시 1일+ · 서버 미경유)", lx=0.2, ly=12, exit=(0.5,1), entry=(0.5,0))
 p.edge("e8", "cf", "s3maint", EDGE_D, pts=[(700,560),(1220,560)], label="오리진 5xx → 점검 페이지", lx=0.3, ly=-11, exit=(0.85,1), entry=(0.5,0))
-p.edge("e9", "users", "cognito", EDGE_D, pts=[(113,680)], label="Hosted UI 로그인 (ALB가 리다이렉트)", lx=0.4, ly=12, exit=(0.5,1), entry=(0,0.5))
-p.edge("e10", "cognito", "to-alb", EDGE_D, label="code → ALB가 토큰 교환 · 세션 쿠키", ly=-12, exit=(1,0.5), entry=(0,0.5))
-for n,(x,y) in {1:(215,340),2:(500,300),3:(1330,300),4:(880,545),5:(150,690)}.items(): p.badge(n,x,y)
+for n,(x,y) in {1:(215,340),2:(500,300),3:(1330,300),4:(880,545)}.items(): p.badge(n,x,y)
 p.text("beh", "CloudFront 내부 처리 순서: WAF Web ACL 평가 → 캐시 조회 → Behavior (주소로 분기)<br>1) /petclinic/resources/* → ALB · CachingOptimized 1일<br>2) /images/* → S3 mc-images(OAC) · 캐시 1일+<br>3) 기본(/*, 로그인 콜백 /oauth2/idpresponse 포함) → ALB · CachingDisabled · AllViewer", 300, 790, 760, 90, "#8C4FFF", 11, False)
 p.legend(1640, 30, 900, "진입 계층 · 흐름과 설정", [
  ("사용자 → Route 53", "hospital.example.com A/AAAA 별칭 → CloudFront. Route 53 Failover 없음(단일 리전). 리전 DR 시 로드맵"),
  ("CloudFront (WAF · ACM 부착)", "WAF는 별도 홉이 아니라 CloudFront에 붙은 Web ACL. 캐시 조회보다 먼저 평가하고 차단은 캐시·오리진 미도달(관리형 3 + rate 2, Count→Block, 로그 → CloudWatch Logs). ACM(us-east-1, 자동 갱신)도 부착. 정적은 엣지 캐시, 동적은 캐시 없이 ALB"),
  ("CloudFront → ALB", "Origin HTTPS only(ALB 443 + 서울 ACM), X-Origin-Verify 헤더로 우회 차단, SG는 CloudFront 접두사 목록만. 보안 헤더는 Response Headers Policy(HSTS·CSP·nosniff)"),
  ("CloudFront → S3 (OAC)", "/images/*는 mc-images 버킷을 직접 읽어 서버 미경유. 오리진 5xx면 점검 페이지 버킷. 둘 다 OAC(SigV4) + 버킷 정책 SourceArn 조건, 공개 읽기 없음. 환자 개인 이미지는 캐시 안 함(Presigned URL)"),
- ("로그인 (ALB authenticate-cognito)", "Public ALB 443 리스너 규칙이 /petclinic/* 요청을 Cognito Hosted UI로 보내고 콜백 /oauth2/idpresponse 를 ALB가 처리해 세션 쿠키 발급(8h). 앱 수정 없음. 역할별 인가는 로드맵"),
 ], note="모서리 작은 아이콘(WAF · ACM)은 CloudFront에 부착된 기능이며 트래픽 경로가 아님. 이 탭의 로그: WAF 로그(CloudWatch Logs, 30일).")
 mxfile.append(p.d)
 
@@ -172,7 +167,7 @@ p.edge("e9", "ops", "ssm", EDGE, label="Session Manager", ly=-12, exit=(0,0.5), 
 p.edge("e10", "ssm", "web-c", EDGE_D, pts=[(1650,740),(1650,650)], label="세션 · 포트 없이 접속", lx=0.3, ly=12, exit=(0,0.5), entry=(1,0.75))
 for n,(x,y) in {1:(240,270),2:(880,240),3:(870,455),4:(430,770),5:(1300,600),6:(1900,660)}.items(): p.badge(n,x,y)
 p.legend(2080, 30, 1000, "WEB 계층 · 흐름과 설정", [
- ("CloudFront → IGW → Public ALB", "ALB 443 리스너 + 서울 ACM. 규칙 순서: 부하기 IP 우회(실험 시) → /health.html·/ 공개 → /petclinic/* authenticate-cognito(세션 8h) → 나머지. 전부 X-Origin-Verify 헤더 필수, 불일치 403. SG는 CloudFront 접두사 목록만(80 없음)"),
+ ("CloudFront → IGW → Public ALB", "ALB 443 리스너 + 서울 ACM. 리스너 규칙: X-Origin-Verify 헤더 일치 시만 tg-web 전달, 불일치 403(CloudFront 우회 차단). 로그인 없음. SG는 CloudFront 접두사 목록만(80 없음)"),
  ("헬스체크 (얕게)", "tg-web 경로 /health.html(정적, Apache 생존만) 10s·5s·정상 2/비정상 3, 등록 취소 30s. WAS 장애는 Internal ALB·RDS 알람이 잡음(연쇄 unhealthy 방지)"),
  ("Auto Scaling — WEB", "CPU 60% 대상 추적, min 2·max 6, 두 AZ 균등, 워밍업 180s, 헬스체크 유형 ELB. 골든 AMI(AL2023·Apache MPM event·CloudWatch Agent) 기동"),
  ("Apache → Internal ALB", "ProxyPass /petclinic/ → 내부 ALB DNS:8080, ProxyPreserveHost On(Host·X-Forwarded-For 유지). 정적 /resources는 Apache가 직접 서빙(캐시 미스 시)"),
@@ -183,7 +178,7 @@ mxfile.append(p.d)
 
 # ================= tab 4: WAS 계층 =================
 p = Page("3. WAS 계층", "tab-was", 2720, 1100)
-p.title("③ WAS 계층 · Internal ALB → Tomcat Auto Scaling", "Internal ALB(8080 · sticky · 헬스체크 /petclinic/) → WAS ASG(Corretto 17 · Tomcat 9 · Spring Security OAuth2 Client) → RDS Proxy | 로그: Agent · 종료 훅 · 증설 정책", 2200)
+p.title("③ WAS 계층 · Internal ALB → Tomcat Auto Scaling", "Internal ALB(8080 · 헬스체크 /petclinic/) → WAS ASG(OpenJDK 8 · Tomcat 9.0.121 · Spring 5.3.39) → RDS Proxy | 로그: Agent · 종료 훅 · 증설 정책", 2200)
 p.vertex("vpc", "VPC 10.0.0.0/16", STY["vpc"], 260, 150, 1330, 860)
 p.vertex("az-a", "가용영역 A", STY["az"], 290, 210, 480, 520)
 p.vertex("az-c", "가용영역 C", STY["az"], 1080, 210, 480, 520)
@@ -191,13 +186,11 @@ p.vertex("asg", "Auto Scaling — WAS (min 2 · max 8 · 대상당 요청 수 + 
 p.vertex("was-a-sub", "프라이빗 WAS-A · 10.0.20.0/24", STY["priv"], 310, 410, 440, 280)
 p.vertex("was-c-sub", "프라이빗 WAS-C · 10.0.21.0/24", STY["priv"], 1100, 410, 440, 280)
 p.stub("from-web", "② WEB 계층에서<br>Apache ProxyPass /petclinic/", 60, 300)
-p.service("ialb", "부하 분산 (내부)", "Internal ALB", "8080 · tg-was · sticky(AWSALB 1일)<br>헬스체크 /petclinic/", "application_load_balancer", "net", 860, 240, kind="sub")
-p.service("was-a", "WAS", "WAS-A · Tomcat 9.0.121", "Corretto 17 · maxThreads·acceptCount<br>예약 등록 시 이벤트 로그 1줄", "ec2", "compute", 350, 470)
+p.service("ialb", "부하 분산 (내부)", "Internal ALB", "8080 · tg-was<br>헬스체크 /petclinic/", "application_load_balancer", "net", 860, 240, kind="sub")
+p.service("was-a", "WAS", "WAS-A · Tomcat 9.0.121", "OpenJDK 8 · Tomcat 9.0.121<br>maxThreads·acceptCount 튜닝", "ec2", "compute", 350, 470)
 p.service("was-c", "WAS", "WAS-C · Tomcat 9.0.121", "AZ당 2대<br>한 AZ 손실 시 피크 100%", "ec2", "compute", 1140, 470)
 p.stub("to-db", "→ ④ DB 계층<br>RDS Proxy 3306 · JDBC sslMode=REQUIRED", 840, 780, 200, 70)
-p.stub("cog", "② Public ALB에서 인증 완료<br>x-amzn-oidc-data 헤더로 사용자 전달", 60, 560, 190, 70)
-p.stub("evt", "⑤ CloudWatch Logs /mc/was/events<br>예약 이벤트 → Lambda → Slack", 60, 680, 190, 60)
-p.service("cwl-was", "WAS 로그", "CloudWatch Logs", "/mc/was catalina·access·gc<br>/mc/was/auth 로그인 이벤트", "cloudwatch_logs", "integ", 1680, 280, kind="sub")
+p.service("cwl-was", "WAS 로그", "CloudWatch Logs", "/mc/was catalina·access·gc<br>보존 30일", "cloudwatch_logs", "integ", 1680, 280, kind="sub")
 p.service("asg-svc", "증설 정책", "Auto Scaling", "대상당 요청 수 300/분 + CPU 60%<br>예약: 이벤트 15분 전 desired 4", "autoscaling", "compute", 1680, 480)
 p.service("s3-logs", "종료 로그", "Amazon S3", "mc-logs/was · 종료 수명 주기 훅<br>마지막 로그 · 힙 덤프 sync", "s3", "storage", 1680, 680)
 p.stub("cw", "⑤ CloudWatch 알람<br>→ 증설 · 축소 트리거", 1950, 505, 170, 70)
@@ -206,19 +199,16 @@ p.edge("e2", "ialb", "was-a", EDGE, pts=[(890,360),(410,360)], label="tg-was · 
 p.edge("e3", "ialb", "was-c", EDGE, pts=[(950,360),(1200,360)], exit=(0.75,1), entry=(0.5,0))
 p.edge("e4", "was-a", "to-db", EDGE, pts=[(410,750),(840,750)], label="JDBC (풀 validationQuery)", lx=0.2, ly=-12, exit=(0.5,1), entry=(0,0.3))
 p.edge("e5", "was-c", "to-db", EDGE, pts=[(1200,750),(1040,750)], exit=(0.5,1), entry=(1,0.3))
-p.edge("e6", "cog", "was-a", EDGE_D, label="로그인 사용자 헤더", ly=-12, exit=(1,0.5), entry=(0,0.4))
-p.edge("e7", "was-a", "evt", EDGE_D, pts=[(300,560),(300,710)], label="RESERVATION_CREATED 로그", lx=0.5, ly=12, exit=(0,0.75), entry=(1,0.5))
 p.edge("e8", "was-c", "cwl-was", EDGE_D, pts=[(1290,530),(1290,340)], label="CloudWatch Agent", lx=0.3, ly=12, exit=(1,0.5), entry=(0,0.5))
 p.edge("e9", "cw", "asg-svc", EDGE_D, label="알람", ly=-12, exit=(0,0.5), entry=(1,0.5))
 p.edge("e10", "asg-svc", "s3-logs", EDGE_D, label="종료 훅 → sync", lx=0, ly=0, exit=(0.5,1), entry=(0.5,0))
 p.edge("e11", "asg-svc", "was-c", EDGE_D, pts=[(1620,540),(1620,600)], label="증설·교체", lx=0.5, ly=12, exit=(0,0.5), entry=(1,0.75))
-for n,(x,y) in {1:(240,270),2:(870,370),3:(430,760),4:(240,540),5:(1300,545),6:(1900,470)}.items(): p.badge(n,x,y)
+for n,(x,y) in {1:(240,270),2:(870,370),3:(430,760),4:(1300,545),5:(1900,470)}.items(): p.badge(n,x,y)
 p.legend(2080, 30, 1000, "WAS 계층 · 흐름과 설정", [
- ("Internal ALB (깊게)", "tg-was 헬스체크 /petclinic/(슬래시 필수, permitAll이라 로그인 리다이렉트 없음) 10s·2/3, 등록 취소 30s. 로그인 세션 때문에 stickiness(AWSALB 쿠키 1일) 켬 — Apache는 쿠키 그대로 전달"),
+ ("Internal ALB (깊게)", "tg-was 헬스체크 /petclinic/(슬래시 필수, 302 방지) 10s·2/3, 등록 취소 30s. PetClinic은 stateless라 sticky 불필요"),
  ("Tomcat 튜닝", "maxThreads·acceptCount 상향, connectionTimeout 단축, JVM -Xms=-Xmx. 커넥션 풀 크기 = maxThreads와 DB 상한 사이"),
  ("WAS → RDS Proxy", "JDBC sslMode=REQUIRED, 풀 validationQuery. 8대로 늘어도 Proxy가 DB 연결 상한을 지킴(④ 탭)"),
- ("로그인 · 예약 이벤트", "로그인은 ② Public ALB의 authenticate-cognito가 처리(앱 수정 없음). ALB가 x-amzn-oidc-data 헤더로 사용자 정보를 전달하므로 test.jsp에서 출력 가능. 고객이 예약을 등록하면 구조화 로그 1줄(RESERVATION_CREATED vet·time) → CloudWatch Logs → ⑤ 탭에서 Slack 알림"),
- ("로그", "Agent → /mc/was catalina·access·gc 30일 + 로그인 성공/실패 이벤트 /mc/was/auth. 종료 수명 주기 훅(300s)으로 마지막 로그·덤프를 S3 mc-logs/was에 sync 후 종료"),
+ ("로그", "Agent → /mc/was catalina·access·gc 30일. 종료 수명 주기 훅(300s)으로 마지막 로그·덤프를 S3 mc-logs/was에 sync 후 종료"),
  ("증설", "대상당 요청 수 + CPU 대상 추적, 예약 증설(영상 공개 15분 전 4대), min 2·max 8, AZ당 2대. 알람은 ⑤ CloudWatch에서"),
 ], note="Redis(Spring Session)는 로드맵: 축소·전환 중 로그인 유지가 필요할 때. 현재는 sticky + 재로그인 허용.")
 mxfile.append(p.d)
@@ -256,23 +246,20 @@ mxfile.append(p.d)
 
 # ================= tab 6: 운영 · 관측 공통 =================
 p = Page("5. 운영 · 관측 공통", "tab-ops", 2720, 1100)
-p.title("⑤ 운영 · 관측 공통 — CloudWatch · Grafana · Slack · CloudTrail · SSM", "계층별 로그 5종 → CloudWatch / S3 → Managed Grafana 대시보드 → Slack | 알람 → SNS → Chatbot → Slack · Auto Scaling 트리거", 2200)
+p.title("⑤ 운영 · 관측 공통 — CloudWatch · Grafana · Slack · CloudTrail · SSM", "계층별 로그 5종 → CloudWatch / S3 → Managed Grafana 대시보드 → Slack(Alerting) | 기본 알람 → SNS 이메일 · Auto Scaling 트리거", 2200)
 p.vertex("cloud", "AWS Cloud (ap-northeast-2)", STY["cloud"], 260, 150, 1330, 780)
 p.stub("in-web", "② WEB Agent 로그<br>/mc/web", 60, 200, 170, 60)
-p.stub("in-was", "③ WAS Agent 로그<br>/mc/was · auth · events(예약)", 60, 290, 170, 60)
+p.stub("in-was", "③ WAS Agent 로그<br>/mc/was catalina·access·gc", 60, 290, 170, 60)
 p.stub("in-alb", "② ALB 액세스 로그<br>S3 mc-logs", 60, 380, 170, 60)
 p.stub("in-waf", "① WAF 로그<br>aws-waf-logs-mc", 60, 470, 170, 60)
 p.stub("in-ssm", "② SSM 세션 로그<br>/mc/ssm", 60, 560, 170, 60)
 p.service("cwl", "로그 저장", "CloudWatch Logs", "/mc/* · aws-waf-logs-mc<br>보존 30~90일 · Logs Insights", "cloudwatch_logs", "integ", 340, 330, kind="sub")
 p.service("cw", "지표 · 알람", "Amazon CloudWatch", "RequestCount · p95 · 5XX · HealthyHost<br>DB 연결 · CPU · DaysToExpiry", "cloudwatch", "integ", 640, 330)
 p.service("grafana", "대시보드", "Amazon Managed Grafana", "Identity Center 로그인<br>계층별 행 · 전/후 비교", "managed_service_for_grafana", "integ", 940, 200)
-p.service("sns", "알림 주제", "Amazon SNS", "mc-alerts", "sns", "integ", 940, 460)
-p.service("chatbot", "채팅 연동", "AWS Chatbot", "SNS → Slack #mc-alerts", "chatbot", "integ", 1220, 460)
+p.service("sns", "알림 주제", "Amazon SNS", "mc-alerts · 이메일<br>Grafana 도입 전 기본", "sns", "integ", 940, 460)
 p.service("trail", "감사 추적", "AWS CloudTrail", "관리 이벤트 + S3 데이터 이벤트<br>다중 리전 · 검증", "cloudtrail", "integ", 640, 680)
 p.service("s3-trail", "감사 로그", "Amazon S3", "mc-cloudtrail · 1년", "s3", "storage", 940, 680)
 p.service("ssm", "운영자 접속", "SSM Session Manager", "22번 없음 · 세션 로그<br>Run Command · 패치", "systems_manager_session_manager", "integ", 1220, 680, kind="sub")
-p.service("lambda-notify", "예약 알림", "AWS Lambda", "구독 필터 RESERVATION_CREATED<br>수의사·시간·링크 → Slack", "lambda", "compute", 340, 680)
-p.actor("vet", "수의사 (Slack → Cognito 로그인)", 1680, 200, res="user")
 p.stub("to-asg", "③ WAS Auto Scaling<br>대상 추적 · 알람 트리거", 1220, 230, 170, 60)
 p.actor("slack", "Slack (#mc-alerts)", 1680, 360, res="users")
 p.actor("ops", "운영자 (관리자)", 1680, 700, res="user")
@@ -282,29 +269,23 @@ for i,(src,yy) in enumerate([("in-web",230),("in-was",320),("in-alb",410),("in-w
 p.edge("i3", "in-alb", "cw", EDGE_D, pts=[(300,410),(300,470),(700,470)], label="S3 → Athena/Logs Insights 분석", lx=0.4, ly=12, exit=(1,0.5), entry=(0.5,1))
 p.edge("e1", "cwl", "cw", EDGE_D, label="지표 필터", ly=-12, exit=(1,0.5), entry=(0,0.5))
 p.edge("e2", "cw", "grafana", EDGE, pts=[(700,260)], label="지표 · 로그 쿼리", lx=0.3, ly=-12, exit=(0.5,0), entry=(0,0.5))
-p.edge("e3", "cw", "sns", EDGE, pts=[(700,520)], label="알람 3개 (HealthyHost<2 · DB 연결 80% · p95≥2s)", lx=0.3, ly=12, exit=(0.5,1), entry=(0,0.5))
-p.edge("e4", "sns", "chatbot", EDGE, exit=(1,0.5), entry=(0,0.5))
-p.edge("e5", "chatbot", "slack", EDGE, pts=[(1500,520),(1500,409)], label="#mc-alerts", lx=0.5, ly=-12, exit=(1,0.5), entry=(0,0.5))
+p.edge("e3", "cw", "sns", EDGE, pts=[(700,520)], label="알람 3개 (HealthyHost<2 · DB 연결 · p95≥2s) → 이메일", lx=0.3, ly=12, exit=(0.5,1), entry=(0,0.5))
 p.edge("e6", "grafana", "slack", EDGE_D, pts=[(1500,260),(1500,390)], label="Grafana Alerting → Slack 직접", lx=0.3, ly=-12, exit=(1,0.5), entry=(0,0.3))
 p.edge("e7", "cw", "to-asg", EDGE_D, pts=[(760,160),(1305,160)], label="대상 추적 알람 → 증설·축소", lx=0.5, ly=-11, exit=(0.75,0), entry=(0.5,0))
 p.edge("e8", "trail", "s3-trail", EDGE, label="1년 · 검증", ly=-12, exit=(1,0.5), entry=(0,0.5))
 p.edge("e9", "ops", "ssm", EDGE, label="IAM · MFA", ly=-12, exit=(0,0.5), entry=(1,0.5))
 p.edge("e10", "ssm", "cwl", EDGE_D, pts=[(1280,650),(1280,600),(430,600)], label="세션 로그", lx=0.6, ly=12, exit=(0.5,0), entry=(0.75,1))
-p.edge("e11", "cwl", "lambda-notify", EDGE_D, label="구독 필터 (예약 이벤트)", lx=0, ly=0, exit=(0.25,1), entry=(0.25,0))
-p.edge("e12", "lambda-notify", "slack", EDGE, pts=[(400,860),(1560,860),(1560,440)], label="#mc-reservations 예약 알림 (수의사·시간·링크)", lx=0.2, ly=12, exit=(0.5,1), entry=(0,0.8))
-p.edge("e13", "slack", "vet", EDGE_D, label="링크 클릭 → Cognito 로그인 → 예약 확인", lx=0, ly=-12, exit=(0.5,0), entry=(0.5,1))
-for n,(x,y) in {1:(300,300),2:(610,300),3:(720,215),4:(720,540),5:(1490,375),6:(1300,120),7:(770,650),8:(1640,670),9:(470,650)}.items(): p.badge(n,x,y)
+for n,(x,y) in {1:(300,300),2:(610,300),3:(720,215),4:(720,540),5:(1490,375),6:(1300,120),7:(770,650),8:(1640,670)}.items(): p.badge(n,x,y)
 p.legend(2080, 30, 1000, "운영 · 관측 공통 — 흐름과 설정", [
  ("로그 수집 (필수 5)", "① WAF 로그 ② WEB Agent ③ WAS Agent ④ ALB 액세스(S3) ⑤ SSM 세션. VPC Flow Logs·RDS 로그는 제외(필요 시 로드맵). 로그는 항상 인스턴스 밖에"),
  ("CloudWatch 지표 · 알람", "ALB RequestCount·TargetResponseTime p95·5XX·HealthyHost, ASG 인스턴스 수, RDS CPU·DatabaseConnections, ACM DaysToExpiry. 알람 3개 + 대상 추적 알람"),
  ("Grafana 대시보드", "Amazon Managed Grafana(Identity Center 로그인, 편집자 $9/월). CloudWatch 데이터소스. 행: 진입 → ALB → EC2 → RDS. Phase 3 전/후 비교는 Time shift"),
- ("알람 → Slack (2경로)", "AWS 자체 알람: CloudWatch → SNS mc-alerts → AWS Chatbot → #mc-alerts(코드 없음). 대시보드 지표 알림: Grafana Alerting → Slack webhook 직접. 6일차 WAS 1대 중지로 수신 테스트"),
- ("Slack", "webhook URL은 Grafana Contact point에만(저장소에 남기지 않음). Chatbot은 Slack 워크스페이스 인증 후 채널에 SNS 구독"),
+ ("알람 → 이메일 (기본)", "CloudWatch 알람 3개(HealthyHost<2 · DB 연결 · p95≥2s) → SNS mc-alerts → 팀 이메일. Grafana 도입 전까지의 기본 경로. 6일차 WAS 1대 중지로 수신 테스트"),
+ ("Slack (Grafana Alerting 단일 경로)", "Slack 알림은 Grafana Alerting → Contact point(Incoming Webhook) 한 경로로 통일(9/14 결정). webhook URL은 Grafana에만 저장. Chatbot·예약 알림 Lambda는 제외"),
  ("알람 → Auto Scaling", "WAS ASG 대상 추적(대상당 요청 수·CPU)이 CloudWatch 알람으로 동작. 예약 증설과 병행"),
  ("감사", "CloudTrail 관리 이벤트 90일 무료 + 추적으로 S3 1년 보관, S3 데이터 이벤트로 의료 파일 열람 기록"),
  ("운영자 접속", "SSM Session Manager(IAM·MFA) → 세션 로그 CloudWatch Logs. Run Command로 다수 인스턴스 설정 배포, Patch Manager로 롤링 패치"),
- ("예약 알림 (업무 이벤트)", "고객 예약 등록 → WAS 로그 1줄(RESERVATION_CREATED vet·time·id) → CloudWatch Logs 구독 필터 → Lambda(20줄) → Slack #mc-reservations(수의사·시간·링크). 수의사가 링크 클릭 → Cognito OIDC 로그인 → 예약 화면. 같은 로그의 지표 필터로 예약 건수 대시보드·폭주 알람"),
-], note="Systems Manager 하나로 접속·명령·패치 처리, Bastion 없음. 예약 알림은 시스템 알람(SNS→Chatbot)과 채널을 분리(#mc-alerts / #mc-reservations).")
+], note="Systems Manager 하나로 접속·명령·패치 처리, Bastion 없음. Cognito 로그인·예약 알림 Lambda·Chatbot은 9/14 제외(발표 축과 무관).")
 mxfile.append(p.d)
 
 tree = ET.ElementTree(mxfile); ET.indent(tree, space="  ")

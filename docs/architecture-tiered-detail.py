@@ -108,7 +108,7 @@ ET.SubElement(tg, "mxGeometry", x="50", y="30", width="2000", height="83").set("
 t1 = ET.SubElement(root, "mxCell", id="title-text", value="PetClinic 3-Tier on AWS — 계층별 상세 아키텍처 (1팀 Mission Critical)",
                    style=f"text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t1, "mxGeometry", width="1600", height="42").set("as", "geometry")
-t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB 계층별 구성 + 각 계층의 운영·보안 로그  |  개인정보는 RDS · 진료 파일 저장 제외 · 예약 알림 = WAS 이벤트 로그 → CloudWatch → Lambda → Slack · 로그인 = ALB authenticate-cognito",
+t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB 계층별 구성 + 각 계층의 운영·보안 로그  |  Apache 2.4 → Internal ALB → Tomcat 9.0.121 / OpenJDK 8 → RDS MySQL 8 Multi-AZ  |  개인정보는 RDS · 로그인 없음(공개 앱) · Slack은 Grafana Alerting  |  9/14 최종",
                    style=f"text;html=1;resizable=0;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=16;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t2, "mxGeometry", x="5", y="40", width="1600", height="25").set("as", "geometry")
 t3 = ET.SubElement(root, "mxCell", id="title-separator", value="", style=f"line;strokeWidth=2;html=1;fontSize=14;strokeColor=#FF9900;{FONT}", vertex="1", parent="title-group")
@@ -141,11 +141,11 @@ text("lbl-was", "③  WAS 계층", 40, 1195, 180, 24, "#ED7100", 16)
 text("lbl-was2", "Tomcat 9 · maxThreads 튜닝<br>Internal ALB · 헬스체크 /petclinic/", 40, 1221, 180, 44, "#232F3E", 10, False)
 text("lbl-db", "④  DB 계층", 40, 1425, 180, 24, "#C925D1", 16)
 text("lbl-db2", "RDS MySQL 8 Multi-AZ<br>RDS Proxy · Secrets · KMS", 40, 1451, 180, 44, "#232F3E", 10, False)
-text("lbl-store", "예약 알림 · 감사", 40, 1725, 180, 24, "#ED7100", 16)
-text("lbl-store2", "예약 이벤트 → Lambda → Slack<br>CloudTrail 관리 이벤트 감사", 40, 1751, 180, 44, "#232F3E", 10, False)
+text("lbl-store", "감사", 40, 1725, 180, 24, "#E7157B", 16)
+text("lbl-store2", "CloudTrail 관리 이벤트<br>S3 1년 보관 · 로그 파일 검증", 40, 1751, 180, 44, "#232F3E", 10, False)
 text("lbl-ops", "운영 · 관측 공통", 40, 1925, 180, 24, "#E7157B", 16)
-text("lbl-ops2", "CloudWatch → Grafana · Slack<br>알람 → SNS → Chatbot", 40, 1951, 180, 44, "#232F3E", 10, False)
-text("lbl-store-band", "예약 알림 (업무 이벤트) · 감사 로그", 300, 1630, 520, 22, "#ED7100", 14)
+text("lbl-ops2", "CloudWatch → Grafana → Slack<br>기본 알람은 SNS 이메일", 40, 1951, 180, 44, "#232F3E", 10, False)
+text("lbl-store-band", "감사 로그", 300, 1630, 520, 22, "#E7157B", 14)
 text("lbl-ops-band", "운영 · 관측 공통 (전 계층)", 300, 1845, 400, 22, "#E7157B", 14)
 text("lbl-opscol", "계층별 운영 · 보안 로그 (오른쪽 열, 계층 행에 맞춤)", 1550, 515, 440, 24, "#E7157B", 14)
 text("lbl-row-web", "WEB 계층 로그 · 접속", 1550, 910, 200, 20, "#ED7100", 12)
@@ -166,7 +166,6 @@ service("r53", "DNS", "Amazon Route 53", "별칭 A/AAAA → CloudFront · Failov
 service("cf", "CDN · 엣지", "Amazon CloudFront", "", "cloudfront", "net", 520, 260)
 attach("cf", "waf", "WAF", "waf", "sec", "tl")
 attach("cf", "acm-cf", "ACM", "certificate_manager", "sec", "tr")
-service("cognito", "로그인", "Amazon Cognito", "", "cognito", "sec", 760, 260)
 service("s3maint", "점검 페이지 (OAC)", "Amazon S3", "", "s3", "storage", 1000, 260)
 service("s3-img", "공개 이미지 (OAC)", "Amazon S3", "", "s3", "storage", 1240, 260)
 service("cwl-waf", "WAF 로그", "CloudWatch Logs", "", "cloudwatch_logs", "integ", 1480, 260, kind="sub")
@@ -175,7 +174,7 @@ service("cwl-waf", "WAF 로그", "CloudWatch Logs", "", "cloudwatch_logs", "inte
 service("igw", "인터넷 연결", "Internet Gateway", "VPC ↔ 인터넷", "internet_gateway", "net", 840, 510, kind="sub")
 service("alb", "부하 분산 (외부)", "Public ALB", "", "application_load_balancer", "net", 840, 690, kind="sub")
 attach("alb", "acm-alb", "ACM", "certificate_manager", "sec", "tr")
-service("ialb", "부하 분산 (내부)", "Internal ALB", "8080 · tg-was · sticky(AWSALB)<br>헬스체크 /petclinic/", "application_load_balancer", "net", 840, 1170, kind="sub")
+service("ialb", "부하 분산 (내부)", "Internal ALB", "8080 · tg-was<br>헬스체크 /petclinic/", "application_load_balancer", "net", 840, 1170, kind="sub")
 service("proxy", "커넥션 관리", "RDS Proxy", "커넥션 다중화 · failover 단축<br>Require TLS", "rds_proxy", "db", 840, 1410, kind="sub")
 # NAT
 service("nat-a", "아웃바운드", "NAT Gateway", "dnf · Agent · SSM<br>인바운드 불가", "nat_gateway", "net", 380, 700, kind="sub")
@@ -184,8 +183,8 @@ service("nat-c", "아웃바운드", "NAT Gateway", "AZ당 1개<br>AZ 손실 대�
 service("web-a", "WEB", "WEB-A · Apache 2.4", "AL2023 · MPM event<br>정적 파일 직접 서빙", "ec2", "compute", 380, 935)
 service("web-c", "WEB", "WEB-C · Apache 2.4", "CloudWatch Agent<br>SSM Agent", "ec2", "compute", 1030, 935)
 # WAS
-service("was-a", "WAS", "WAS-A · Tomcat 9", "Corretto 17 · maxThreads<br>예약 이벤트 로그 1줄", "ec2", "compute", 380, 1180)
-service("was-c", "WAS", "WAS-C · Tomcat 9", "AZ당 2대 · 세션은 sticky<br>예약 이벤트 로그 → CloudWatch", "ec2", "compute", 1030, 1180)
+service("was-a", "WAS", "WAS-A · Tomcat 9", "OpenJDK 8 · Tomcat 9.0.121<br>maxThreads 튜닝", "ec2", "compute", 380, 1180)
+service("was-c", "WAS", "WAS-C · Tomcat 9", "AZ당 2대<br>한 AZ 손실 시 피크 100%", "ec2", "compute", 1030, 1180)
 # DB
 service("rds-p", "관계형 DB (주) · 개인정보", "RDS MySQL 8.0 Primary", "개인정보 저장소(owners·pets·visits)<br>Multi-AZ · KMS 암호화 · TLS", "rds", "db", 380, 1410)
 service("rds-s", "관계형 DB (대기)", "RDS Standby", "동기 복제<br>자동 failover 60~120s", "rds", "db", 1030, 1410)
@@ -194,7 +193,7 @@ service("rds-s", "관계형 DB (대기)", "RDS Standby", "동기 복제<br>자�
 service("cwl-web", "WEB 로그", "CloudWatch Logs", "/mc/web/* · Agent<br>보존 30일", "cloudwatch_logs", "integ", 1550, 935, kind="sub")
 service("s3-logs", "액세스 · 종료 로그", "Amazon S3", "mc-logs · ALB 액세스 90일<br>ASG 종료 훅 로그", "s3", "storage", 1710, 935)
 service("ssm", "운영자 접속", "SSM Session Manager", "22번 포트 없음<br>세션 로그 /mc/ssm 90일", "systems_manager_session_manager", "integ", 1870, 935, kind="sub")
-service("cwl-was", "WAS 로그", "CloudWatch Logs", "/mc/was/* · catalina · gc<br>보존 30일", "cloudwatch_logs", "integ", 1550, 1180, kind="sub")
+service("cwl-was", "WAS 로그", "CloudWatch Logs", "/mc/was catalina · access · gc<br>보존 30일", "cloudwatch_logs", "integ", 1550, 1180, kind="sub")
 service("asg", "증설 정책", "Auto Scaling", "대상 추적 · 예약 증설<br>종료 수명 주기 훅", "autoscaling", "compute", 1710, 1180)
 service("secrets", "비밀 관리", "Secrets Manager", "RDS 관리형 비밀<br>7일 자동 로테이션", "secrets_manager", "sec", 1550, 1410)
 service("kms", "암호화 키", "AWS KMS", "CMK · 버킷 키<br>S3 이미지 · RDS · Secrets", "key_management_service", "sec", 1710, 1410)
@@ -203,13 +202,11 @@ service("backup", "백업", "AWS Backup", "자동 백업 7일 · PITR<br>Phase �
 # ---------- storage / audit band ----------
 service("cloudtrail", "감사 추적", "AWS CloudTrail", "관리 이벤트 · 다중 리전<br>로그 파일 검증", "cloudtrail", "integ", 350, 1680)
 service("s3-trail", "감사 로그", "Amazon S3", "mc-cloudtrail · 1년<br>누가 무엇을 바꿨나", "s3", "storage", 570, 1680)
-service("lambda-notify", "예약 알림", "AWS Lambda", "구독 필터 RESERVATION_CREATED<br>수의사·시간 포함 Slack 메시지", "lambda", "compute", 1300, 1680)
 
 # ---------- common ops band ----------
 service("grafana", "대시보드", "Amazon Managed Grafana", "Identity Center 로그인<br>전/후 비교 대시보드", "managed_service_for_grafana", "integ", 790, 1880)
 service("cw", "지표 · 알람", "Amazon CloudWatch", "p95 · 5XX · HealthyHost<br>DB 연결 알람", "cloudwatch", "integ", 1010, 1880)
-service("sns", "알림 주제", "Amazon SNS", "mc-alerts", "sns", "integ", 1230, 1880)
-service("chatbot", "채팅 연동", "AWS Chatbot", "SNS → Slack 채널", "chatbot", "integ", 1450, 1880)
+service("sns", "알림 주제", "Amazon SNS", "mc-alerts · 이메일 구독<br>Grafana 도입 전 기본 알람", "sns", "integ", 1230, 1880)
 
 # ---------- edges ----------
 edge("e1", "users", "r53", EDGE, label="DNS 조회", lx=-0.1, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
@@ -219,7 +216,6 @@ edge("e6", "cf", "s3maint", EDGE_D, pts=[(610, 440), (1060, 440)], label="오리
 edge("e7", "cf", "igw", EDGE, pts=[(580, 464), (900, 464)], label="HTTPS only · X-Origin-Verify · 캐시 미스만 오리진", lx=-0.45, ly=-12, exit=(0.5, 1), entry=(0.5, 0))
 edge("e8", "igw", "alb", EDGE, exit=(0.5, 1), entry=(0.5, 0))
 edge("e38", "cf", "s3-img", EDGE, pts=[(628, 412), (1300, 412)], label="/images/* → S3 오리진 (OAC · 캐시 1일+) · 서버 미경유", lx=0.2, ly=12, exit=(0.9, 1), entry=(0.5, 1))
-edge("e9", "cognito", "alb", EDGE_D, pts=[(820, 470), (980, 470), (980, 750)], label="ALB 리스너 규칙 authenticate-cognito → 콜백 /oauth2/idpresponse", lx=-0.15, ly=13, exit=(0.5, 1), entry=(1, 0.5))
 edge("e10", "alb", "web-a", EDGE, pts=[(870, 858), (440, 858)], label="tg-web · /health.html 10s · 2/3", lx=0.1, ly=-12, exit=(0.25, 1), entry=(0.5, 0))
 edge("e11", "alb", "web-c", EDGE, pts=[(930, 858), (1090, 858)], exit=(0.75, 1), entry=(0.5, 0))
 edge("e12", "web-a", "ialb", EDGE, pts=[(440, 1108), (870, 1108)], label="ProxyPass /petclinic/ · ProxyPreserveHost", lx=0.1, ly=-12, exit=(0.5, 1), entry=(0.25, 0))
@@ -234,12 +230,8 @@ edge("e20", "secrets", "proxy", EDGE_D, pts=[(1610, 1595), (900, 1595)], label="
 edge("e21", "rds-s", "backup", EDGE_D, pts=[(1120, 1575), (1930, 1575)], exit=(0.75, 1), entry=(0.5, 1))
 edge("e22", "kms", "secrets", EDGE_D, exit=(0, 0.5), entry=(1, 0.5))
 edge("e26", "cloudtrail", "s3-trail", EDGE, label="1년 · 검증", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
-edge("e23", "cwl-was", "lambda-notify", EDGE_D, pts=[(1610, 1345), (1520, 1345), (1520, 1740)], label="구독 필터 · 예약 이벤트 로그", lx=0.6, ly=12, exit=(0.5, 1), entry=(1, 0.5))
-edge("e24", "lambda-notify", "slack", EDGE, pts=[(1360, 1660), (2070, 1660), (2070, 1915)], label="예약 알림 → #mc-reservations (수의사 링크 → Cognito 로그인 후 확인)", lx=0.1, ly=-12, exit=(0.5, 0), entry=(0, 0.15))
 edge("e27", "cw", "grafana", EDGE, label="지표 · 로그", lx=0, ly=-12, exit=(0, 0.5), entry=(1, 0.5))
-edge("e28", "cw", "sns", EDGE, label="알람", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
-edge("e29", "sns", "chatbot", EDGE, exit=(1, 0.5), entry=(0, 0.5))
-edge("e30", "chatbot", "slack", EDGE, label="#mc-alerts", lx=0.2, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
+edge("e28", "cw", "sns", EDGE, label="알람 3개 → 이메일 (기본)", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
 edge("e31", "grafana", "slack", EDGE_D, pts=[(850, 2035), (2060, 2035), (2060, 1983)], label="Grafana Alerting → Slack 직접", lx=-0.3, ly=12, exit=(0.5, 1), entry=(0, 0.85))
 edge("e32", "cw", "asg", EDGE_D, pts=[(1070, 1845), (2005, 1845), (2005, 1240)], label="대상 추적 알람 → 증설 · 축소", lx=-0.2, ly=-11, exit=(0.5, 0), entry=(1, 0.5))
 edge("e33", "web-c", "cwl-web", EDGE_D, label="CloudWatch Agent (전 인스턴스)", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
@@ -249,9 +241,9 @@ edge("e36", "asg", "s3-logs", EDGE_D, label="종료 훅 → 로그 sync", lx=0, 
 edge("e37", "ops", "ssm", EDGE, pts=[(2030, 929), (2030, 995)], exit=(0, 0.5), entry=(1, 0.5))
 
 # ---------- badges ----------
-for n, (x, y) in {1: (215, 300), 2: (455, 285), 3: (545, 392), 4: (780, 395), 5: (885, 825), 6: (455, 1070),
-                  7: (805, 1205), 8: (455, 1312), 9: (1165, 1500), 10: (1625, 1540), 11: (1265, 1650),
-                  12: (1165, 960), 13: (455, 1648), 14: (1030, 1850), 15: (2085, 850)}.items():
+for n, (x, y) in {1: (215, 300), 2: (455, 285), 3: (545, 392), 4: (885, 825), 5: (455, 1070),
+                  6: (805, 1205), 7: (455, 1312), 8: (1165, 1500), 9: (1625, 1540),
+                  10: (1165, 960), 11: (455, 1648), 12: (1030, 1850), 13: (2085, 850)}.items():
     badge(n, x, y)
 
 # ---------- legend ----------
@@ -259,23 +251,21 @@ LX, LY, LW, LH = 2230, 30, 650, 2130
 vertex("legend-bg", "", "verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;fillColor=light-dark(#EDF3FF,#305363);strokeColor=#6c8ebf;", LX, LY, LW, LH)
 lc = ET.SubElement(root, "mxCell", id="legend-container", value="", style="group", connectable="0", vertex="1", parent="1")
 ET.SubElement(lc, "mxGeometry", x=str(LX + 20), y=str(LY + 30), width="602", height=str(LH - 40)).set("as", "geometry")
-lt = ET.SubElement(root, "mxCell", id="legend-title", value="계층별 흐름 · 설정 · 로그  (Notion Q&amp;A 13 결론)", style=f"text;html=1;align=left;verticalAlign=top;fontSize=16;fontStyle=1;{FONT}", vertex="1", parent="legend-container")
+lt = ET.SubElement(root, "mxCell", id="legend-title", value="계층별 흐름 · 설정 · 로그  (Notion 설계 Q&amp;A 결론 · 9/14 최종)", style=f"text;html=1;align=left;verticalAlign=top;fontSize=16;fontStyle=1;{FONT}", vertex="1", parent="legend-container")
 ET.SubElement(lt, "mxGeometry", width="580", height="24").set("as", "geometry")
 steps = [
  ("① 사용자 → Route 53", "도메인 조회 후 A/AAAA 별칭이 CloudFront를 가리킴. Route 53 Failover는 단일 리전에서 불필요 → CloudFront 오리진 그룹으로 대체(리전 DR 시 로드맵)"),
  ("① CloudFront (WAF · ACM 부착)", "WAF는 별도 홉이 아니라 CloudFront에 붙은 Web ACL: 캐시 조회보다 먼저 평가하고 차단은 캐시·오리진에 도달하지 않음(관리형 3 + rate 전체 2,000/5분·예약 100/5분, 로그 → CloudWatch Logs). ACM 인증서(us-east-1, 자동 갱신)도 부착. Behavior: /resources·/images 캐시, 동적은 ALB. 보안 헤더 정책, HTTP→HTTPS"),
  ("① CloudFront Behavior 분기 → ALB / S3(OAC)", "주소로 분기: /petclinic/resources/* 는 캐시(오리진 ALB), /images/* 는 S3 mc-images 오리진(시설·수의사·후기 사진, 서버 미경유), /login·/oauth2·나머지 동적은 ALB로 캐시 없이 쿠키·쿼리 전달. ALB 오리진은 HTTPS only + X-Origin-Verify. S3 오리진은 OAC(SigV4) + 버킷 정책 SourceArn, 공개 읽기 없음. 오리진 5xx 시 S3 점검 페이지. 환자 개인 이미지(MRI 등)는 캐시하지 않고 Presigned URL로만"),
- ("① 로그인 = ALB authenticate-cognito (앱 수정 없음)", "Public ALB 443 리스너 규칙: /health.html·/ 는 공개, /petclinic/* 는 Cognito Hosted UI로 인증 후 전달(세션 8h, 콜백 /oauth2/idpresponse 는 ALB가 처리). Cognito는 디렉터리·MFA·그룹. 역할별 인가(Spring Security)는 로드맵. JMeter는 부하기 IP 우회 규칙"),
  ("② Public ALB → WEB ASG", "tg-web 헬스체크 /health.html(얕게) 10s·5s·2/3, 등록 취소 30s. WEB ASG CPU 60% 대상 추적, min 2·max 6, 두 AZ 균등"),
  ("② WEB → Internal ALB", "Apache ProxyPass /petclinic/ + ProxyPreserveHost On(Host·X-Forwarded-For 유지). MPM event 튜닝, 정적 파일 직접 서빙"),
  ("③ Internal ALB → WAS ASG", "tg-was 헬스체크 /petclinic/(슬래시 필수, 302 방지). WAS ASG 대상당 요청 수 + CPU 대상 추적, 예약 증설(이벤트 15분 전 4대), min 2·max 8, 워밍업 300s"),
  ("③→④ WAS → RDS Proxy → RDS", "JDBC sslMode=REQUIRED + 파라미터 그룹 require_secure_transport. Proxy가 커넥션 다중화(풀×서버 수 > DB 상한 방지)·failover 중 연결 유지·Require TLS"),
  ("④ RDS Multi-AZ", "개인정보(이름·전화번호·예약)의 저장소. 동기 복제 Standby(RPO 0), failover 60~120s, 엔드포인트 동일. 자동 백업 7일·PITR(5분)·Phase 전 수동 스냅샷·삭제 방지"),
  ("④ Secrets Manager + KMS", "RDS 관리형 비밀 7일 로테이션, Proxy가 직접 조회하므로 앱 무영향. KMS CMK로 S3 의료파일·RDS·Secrets 암호화, 버킷 키로 비용 절감"),
- ("예약 알림 (업무 이벤트 → Slack)", "고객이 예약을 등록하면 WAS가 구조화 로그 한 줄(RESERVATION_CREATED vet=… time=…)을 남김 → CloudWatch Logs /mc/was/events → 구독 필터 → Lambda(20줄)가 Slack #mc-reservations에 수의사·시간·링크 전송. 수의사가 링크를 열면 Cognito OIDC 로그인 후 예약 확인. 같은 로그의 지표 필터로 예약 건수 대시보드"),
  ("계층별 로그 (필수 5 중 4)", "WEB·WAS: CloudWatch Agent → /mc/web·/mc/was 30일. ALB 액세스 로그 → S3 mc-logs 90일. WAF 로그 → CloudWatch Logs. ASG 종료 훅으로 마지막 로그 S3 sync. VPC Flow Logs·RDS 로그는 제외"),
  ("감사 로그", "CloudTrail 추적(관리 이벤트 · 다중 리전 · 로그 파일 검증) → S3 mc-cloudtrail 1년. 누가 SG·RDS·ASG를 바꿨나. 진료 파일 저장을 뺐으므로 S3 데이터 이벤트는 불필요"),
- ("관측 · 알림 (공통)", "CloudWatch 지표·로그 → Amazon Managed Grafana(Identity Center) 대시보드, Grafana Alerting → Slack 직접. AWS 자체 알람은 SNS → AWS Chatbot → Slack. 알람이 ASG 증설 트리거"),
+ ("관측 · 알림 (공통)", "CloudWatch 지표·로그 → Amazon Managed Grafana(Identity Center) 대시보드. Slack 알림은 Grafana Alerting → Slack webhook 한 경로. CloudWatch 알람 3개(HealthyHost·p95·DB 연결)는 SNS 이메일로 기본 통보. 대상 추적 알람이 ASG 증설 트리거"),
  ("② ③ 운영자 접속", "Bastion·22번 포트 없음. SSM Session Manager(IAM 인증), 세션 로그 → CloudWatch Logs /mc/ssm 90일, DB 접속은 포트 포워딩. NAT는 아웃바운드(dnf·Agent·SSM)용이라 별개로 필요"),
 ]
 y = 36
@@ -289,7 +279,7 @@ for i, (title, desc) in enumerate(steps, 1):
     d = ET.SubElement(root, "mxCell", id=f"step-{i}-desc-legend", value=val, style=f"text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;{FONT}", vertex="1", parent=f"step-{i}-legend")
     ET.SubElement(d, "mxGeometry", x="52", width="548", height="100").set("as", "geometry")
     y += 106
-note = ET.SubElement(root, "mxCell", id="legend-note", value='<i><span style="color: light-dark(rgb(0,0,0), rgb(255,255,255));">모서리 작은 아이콘(WAF · ACM)은 호스트에 부착된 기능이며 트래픽 경로가 아님. 아이콘 설명은 범례로 이동. NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인은 ALB 인증 액션(앱 수정 없음). 예약 이벤트 로그·Lambda 알림은 앱 코드 1줄 추가가 전제. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.</span></i>', style=f"text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;{FONT}", vertex="1", parent="legend-container")
+note = ET.SubElement(root, "mxCell", id="legend-note", value='<i><span style="color: light-dark(rgb(0,0,0), rgb(255,255,255));">모서리 작은 아이콘(WAF · ACM)은 호스트에 부착된 기능이며 트래픽 경로가 아님. 아이콘 설명은 범례로 이동. NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인·예약 알림 Lambda·Chatbot은 9/14 제외(발표 축과 무관). Slack은 Grafana Alerting 한 경로. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.</span></i>', style=f"text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;{FONT}", vertex="1", parent="legend-container")
 ET.SubElement(note, "mxGeometry", x="0", y=str(y + 6), width="600", height="44").set("as", "geometry")
 y += 60
 lsg = ET.SubElement(root, "mxCell", id="legend-line-styles-group", value="", style=f"group;{FONT}fillColor=light-dark(#F5F5F5,#29393B);strokeColor=#666666;", vertex="1", parent="legend-container")
