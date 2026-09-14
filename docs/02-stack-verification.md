@@ -5,7 +5,7 @@
 | 트랙 | 역할 | OS | JDK | Tomcat | PetClinic 브랜치 |
 |---|---|---|---|---|---|
 | **A. Blue (Phase 1 리허설)** | 제공된 구버전을 그대로 올림 = "현재 환경" | **Amazon Linux 2** | Corretto 11 | 9.0.53 | `main` |
-| **B. Green (Phase 2 리허설)** | 업그레이드 스택 | **Amazon Linux 2023** | Corretto 17 | 9.0.121 | `chore/stack-update-2026` |
+| **B. Green (Phase 2 리허설)** | 업그레이드 스택 | **Amazon Linux 2023** | OpenJDK 8 (Corretto 빌드) | 9.0.121 | `chore/stack-update-2026` |
 
 끝나면 아래 **기록표**를 트랙별로 채운다. 둘 다 DB는 주말용 RDS 하나를 같이 쓴다.
 
@@ -87,22 +87,22 @@ EOF
 sudo systemctl enable --now httpd && curl -s localhost/petclinic/vets.json | head -c 100
 ```
 
-## B. Green — Amazon Linux 2023 + Corretto 17 + Tomcat 9.0.121 + `chore/stack-update-2026`
+## B. Green — Amazon Linux 2023 + OpenJDK 8 (java-1.8.0-amazon-corretto) + Tomcat 9.0.121 + `test`
 
 트랙 A와 같고 다른 줄만:
 
 ```bash
-sudo dnf install -y java-17-amazon-corretto-headless git unzip mariadb105
+sudo dnf install -y java-1.8.0-amazon-corretto-devel git unzip mariadb105
 java -version                                   # 17.x
 cd /tmp && curl -fLO https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.121/bin/apache-tomcat-9.0.121.tar.gz
 sudo mkdir -p /opt/tomcat && sudo tar xzf apache-tomcat-9.0.121.tar.gz -C /opt/tomcat --strip-components=1
 # useradd / rm webapps / chown 동일
-cd ~ && git clone -b chore/stack-update-2026 https://github.com/bsespin-multi-cloud-5-aws-1/petclinic-aws-3tier.git
+cd ~ && git clone -b test https://github.com/bsespin-multi-cloud-5-aws-1/petclinic-aws-3tier.git
 cd petclinic-aws-3tier && ./mvnw -q package -P MySQL -DskipTests     # Maven 3.9.16 자동 다운로드
 unzip -l target/petclinic.war | grep -E 'spring-webmvc|hibernate-core|mysql-connector'   # 5.3.39 / 5.6.15 / 8.4.0
 ```
 
-systemd 유닛의 `JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64`. 나머지 동일.
+systemd 유닛의 `JAVA_HOME=/usr/lib/jvm/java-1.8.0-amazon-corretto.x86_64`. 나머지 동일.
 
 DB 직접 확인(AL2023 클라이언트는 MySQL 8 인증 지원):
 

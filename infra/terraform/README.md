@@ -79,7 +79,7 @@ terraform validate
 
 1. `terraform.tfvars.example` → `terraform.tfvars` (AMI ID 2개, 도메인, Owner, origin_verify_secret)
 2. Route 53 호스팅 존이 이미 있어야 함(`hosted_zone_name`)
-3. 골든 AMI: WEB(httpd · CloudWatch Agent 설정), WAS(Corretto 17 · Tomcat 9.0.121 · petclinic.war · aws cli · jq · CloudWatch Agent)
+3. 골든 AMI: WEB(httpd · CloudWatch Agent 설정), WAS(OpenJDK 8 = java-1.8.0-amazon-corretto · Tomcat 9.0.121 · petclinic.war · aws cli · jq · CloudWatch Agent)
 4. Secrets `mc/slack-webhook-reservations` 값은 apply 후 콘솔에서 수동 입력
 5. AWS Chatbot: 콘솔에서 Slack 워크스페이스 연결 후 `slack_team_id` · 채널 ID 입력
 6. 원격 상태(S3 + DynamoDB) 활성화 후 `terraform plan`

@@ -14,7 +14,7 @@
     <properties>
 
         <!-- Generic properties -->
-        <java.version>17</java.version>
+        <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -30,7 +30,7 @@
         <webjars-bootstrap.version>3.3.6</webjars-bootstrap.version>
         <webjars-jquery-ui.version>1.12.1</webjars-jquery-ui.version>
         <webjars-jquery.version>3.5.1</webjars-jquery.version>
-        <wro4j.version>1.10.1</wro4j.version>
+        <wro4j.version>1.8.0</wro4j.version> <!-- 1.9+는 Java 9 필요 (Java 8 유지) -->
 
         <!-- Java EE / Java SE dependencies -->
         <tomcat.version>9.0.121</tomcat.version>

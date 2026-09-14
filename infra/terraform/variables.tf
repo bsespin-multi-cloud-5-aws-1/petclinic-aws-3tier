@@ -81,7 +81,7 @@ variable "web_ami_id" {
 }
 
 variable "was_ami_id" {
-  description = "WAS 골든 AMI. 비우면 AL2023 최신 AMI + user_data 부트스트랩(git clone · mvnw 빌드, 기동 5~8분)"
+  description = "WAS 골든 AMI. 비우면 AL2023 최신 AMI + user_data 부트스트랩(OpenJDK 8 · Tomcat 9.0.121 · git clone · mvnw 빌드, 기동 5~8분)"
   type        = string
   default     = ""
 }
@@ -93,7 +93,7 @@ variable "app_repo_url" {
 }
 
 variable "app_repo_branch" {
-  description = "빌드할 브랜치 (Green 스택: Java 17 · Spring 5.3.39 · Tomcat 9.0.121)"
+  description = "빌드할 브랜치 (Green 스택: OpenJDK 8 · Spring 5.3.39 · Tomcat 9.0.121)"
   type        = string
   default     = "test"
 }

@@ -1,5 +1,6 @@
 #!/bin/bash
-# WAS (Tomcat) 부팅 스크립트. 골든 AMI가 아니면 Corretto 17 · Tomcat 9.0.121 · WAR 빌드까지 수행 (AL2023, 5~8분)
+# WAS (Tomcat) 부팅 스크립트. 골든 AMI가 아니면 OpenJDK 8(Amazon Corretto 빌드) · Tomcat 9.0.121 · WAR 빌드까지 수행 (AL2023, 5~8분)
+# 요구사항 "Tomcat / OpenJDK": AL2023 표준 저장소의 java-1.8.0-amazon-corretto = OpenJDK 8 코드의 AWS 패키징 (java -version → openjdk 1.8.0)
 set -uo pipefail
 exec > >(tee -a /var/log/mc-userdata.log) 2>&1
 REGION="${region}"
@@ -17,7 +18,7 @@ DB_PASS_XML=$(printf '%s' "$DB_PASS" | python3 -c 'import sys,html; print(html.e
 JDBC_URL="jdbc:mysql://${rds_proxy_endpoint}:3306/${db_name}?useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Seoul&amp;sslMode=REQUIRED"
 
 if [ ! -x /opt/tomcat/bin/catalina.sh ]; then
-  dnf install -y java-17-amazon-corretto-headless git unzip jq amazon-cloudwatch-agent
+  dnf install -y java-1.8.0-amazon-corretto-devel git unzip jq amazon-cloudwatch-agent
   cd /tmp && curl -fLO "https://dlcdn.apache.org/tomcat/tomcat-9/v$TOMCAT_VER/bin/apache-tomcat-$TOMCAT_VER.tar.gz" \
     || curl -fLO "https://archive.apache.org/dist/tomcat/tomcat-9/v$TOMCAT_VER/bin/apache-tomcat-$TOMCAT_VER.tar.gz"
   mkdir -p /opt/tomcat && tar xzf "apache-tomcat-$TOMCAT_VER.tar.gz" -C /opt/tomcat --strip-components=1
@@ -37,7 +38,7 @@ After=network.target
 Type=simple
 User=tomcat
 Group=tomcat
-Environment=JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64
+Environment=JAVA_HOME=/usr/lib/jvm/java-1.8.0-amazon-corretto.x86_64
 Environment=CATALINA_HOME=/opt/tomcat
 ExecStart=/opt/tomcat/bin/catalina.sh run
 ExecStop=/usr/local/bin/mc-sync-logs.sh

@@ -22,7 +22,7 @@
                                                                                           * = Phase 3(7~8일차)에 추가
 ```
 
-Phase 1(Blue) = 제공본 그대로(AL2·Corretto 11·Tomcat 9.0.53·Spring 5.3.9) → Phase 2(Green) = AL2023·Corretto 17·Tomcat 9.0.121·Spring 5.3.39 를 Blue/Green으로 전환 → Phase 3 = 트래픽 과부하 대응
+Phase 1(Blue) = 제공본 그대로(AL2·Corretto 11·Tomcat 9.0.53·Spring 5.3.9) → Phase 2(Green) = AL2023·OpenJDK 8(Corretto 빌드)·Tomcat 9.0.121·Spring 5.3.39 를 Blue/Green으로 전환 → Phase 3 = 트래픽 과부하 대응
 
 - 리전 `ap-northeast-2`, AZ `2a`·`2c`
 - WEB/WAS는 private subnet, 퍼블릭 IP 없음. 관리 접속은 **SSM Session Manager**(22번 포트 안 엶). **Bastion 없음(확정)** — 슬라이드 예시에는 있으나 SSM으로 대체, 근거는 발표에 한 줄
@@ -56,7 +56,7 @@ Phase 1(Blue) = 제공본 그대로(AL2·Corretto 11·Tomcat 9.0.53·Spring 5.3.
 | 계층 | 사양 | 기본 대수 → 보강 후 |
 |---|---|---|
 | WEB | Phase 1 AL2 → Phase 2 AL2023, t3.small, Apache 2.4 | AZ당 1 → ASG min 2 / max 6 |
-| WAS | Phase 1 AL2·Corretto 11·Tomcat 9.0.53 → Phase 2 AL2023·Corretto 17·Tomcat 9.0.121, t3.medium | AZ당 1 → ASG min 2 / max 8, 이벤트 전 예약 4 |
+| WAS | Phase 1 AL2·Corretto 11·Tomcat 9.0.53 → Phase 2 AL2023·OpenJDK 8·Tomcat 9.0.121, t3.medium | AZ당 1 → ASG min 2 / max 8, 이벤트 전 예약 4 |
 | DB | RDS MySQL 8.0, db.t3.small, 20GB gp3, 암호화, **Multi-AZ 생성 시부터**(슬라이드 기본 구성) | + RDS Proxy(Phase 3) |
 | 부하 발생기 | t3.medium, public-a, JMeter | 1 |
 
