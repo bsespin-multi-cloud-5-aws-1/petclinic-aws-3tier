@@ -116,7 +116,7 @@ ET.SubElement(t3, "mxGeometry", x="5", y="70", width="1990", height="10").set("a
 
 # ---------- groups ----------
 vertex("aws-cloud", "AWS Cloud", STY["cloud"], 230, 140, 1820, 2000)
-vertex("band-entry", "①  네트워크 진입 계층 · 글로벌 엣지 (Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3 OAC · Cognito는 ALB 인증)",
+vertex("band-entry", "①  네트워크 진입 계층 · 글로벌 엣지 (Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3 OAC · X-Origin-Verify로 오리진 보호)",
        f"rounded=0;fillColor=none;dashed=1;strokeColor=#8C4FFF;verticalAlign=top;align=left;spacingLeft=10;fontColor=#8C4FFF;fontStyle=1;fontSize=14;whiteSpace=wrap;html=1;container=0;pointerEvents=0;{FONT}",
        250, 165, 1780, 300)
 vertex("region", "ap-northeast-2 (서울)", STY["region"], 260, 500, 1760, 1580)
@@ -138,7 +138,7 @@ vertex("sub-db-c", "프라이빗 DB-C · 10.0.31.0/24 (인터넷 경로 없음)"
 text("lbl-web", "②  WEB 계층", 40, 950, 180, 24, "#ED7100", 16)
 text("lbl-web2", "Apache 2.4 · MPM 튜닝<br>Public ALB · 헬스체크 /health.html", 40, 976, 180, 44, "#232F3E", 10, False)
 text("lbl-was", "③  WAS 계층", 40, 1195, 180, 24, "#ED7100", 16)
-text("lbl-was2", "Tomcat 9 · maxThreads 튜닝<br>Internal ALB · 헬스체크 /petclinic/", 40, 1221, 180, 44, "#232F3E", 10, False)
+text("lbl-was2", "Tomcat 9 · maxThreads 튜닝<br>헬스체크 /petclinic/ · 연동 점검 /test.jsp", 40, 1221, 180, 44, "#232F3E", 10, False)
 text("lbl-db", "④  DB 계층", 40, 1425, 180, 24, "#C925D1", 16)
 text("lbl-db2", "RDS MySQL 8 Multi-AZ<br>RDS Proxy · Secrets · KMS", 40, 1451, 180, 44, "#232F3E", 10, False)
 text("lbl-store", "감사", 40, 1725, 180, 24, "#E7157B", 16)
@@ -183,7 +183,7 @@ service("nat-c", "아웃바운드", "NAT Gateway", "AZ당 1개<br>AZ 손실 대�
 service("web-a", "WEB", "WEB-A · Apache 2.4", "AL2023 · MPM event<br>정적 파일 직접 서빙", "ec2", "compute", 380, 935)
 service("web-c", "WEB", "WEB-C · Apache 2.4", "CloudWatch Agent<br>SSM Agent", "ec2", "compute", 1030, 935)
 # WAS
-service("was-a", "WAS", "WAS-A · Tomcat 9", "OpenJDK 8 · Tomcat 9.0.121<br>maxThreads 튜닝", "ec2", "compute", 380, 1180)
+service("was-a", "WAS", "WAS-A · Tomcat 9", "OpenJDK 8 · Tomcat 9.0.121<br>maxThreads 튜닝 · /test.jsp 연동 점검", "ec2", "compute", 380, 1180)
 service("was-c", "WAS", "WAS-C · Tomcat 9", "AZ당 2대<br>한 AZ 손실 시 피크 100%", "ec2", "compute", 1030, 1180)
 # DB
 service("rds-p", "관계형 DB (주) · 개인정보", "RDS MySQL 8.0 Primary", "개인정보 저장소(owners·pets·visits)<br>Multi-AZ · KMS 암호화 · TLS", "rds", "db", 380, 1410)

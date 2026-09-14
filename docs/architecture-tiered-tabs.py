@@ -104,7 +104,7 @@ mxfile.append(full)
 
 # ================= tab 2: 진입 계층 =================
 p = Page("1. 네트워크 진입 계층 · 글로벌 엣지", "tab-entry", 2300, 1000)
-p.title("① 네트워크 진입 계층 · 글로벌 엣지", "사용자 → Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3(OAC) · Cognito는 ALB 인증 · WAF 로그", 2200)
+p.title("① 네트워크 진입 계층 · 글로벌 엣지", "사용자 → Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3(OAC) · X-Origin-Verify로 오리진 보호 · WAF 로그", 2200)
 p.vertex("cloud", "AWS Cloud (글로벌 엣지 · us-east-1)", STY["cloud"], 260, 150, 1330, 760)
 p.actor("users", "사용자 (의료진·환자)", 60, 330)
 p.service("r53", "DNS", "Amazon Route 53", "별칭 A/AAAA → CloudFront<br>Failover 없음(오리진 그룹으로 대체)", "route_53", "net", 320, 320)
@@ -187,7 +187,7 @@ p.vertex("was-a-sub", "프라이빗 WAS-A · 10.0.20.0/24", STY["priv"], 310, 41
 p.vertex("was-c-sub", "프라이빗 WAS-C · 10.0.21.0/24", STY["priv"], 1100, 410, 440, 280)
 p.stub("from-web", "② WEB 계층에서<br>Apache ProxyPass /petclinic/", 60, 300)
 p.service("ialb", "부하 분산 (내부)", "Internal ALB", "8080 · tg-was<br>헬스체크 /petclinic/", "application_load_balancer", "net", 860, 240, kind="sub")
-p.service("was-a", "WAS", "WAS-A · Tomcat 9.0.121", "OpenJDK 8 · Tomcat 9.0.121<br>maxThreads·acceptCount 튜닝", "ec2", "compute", 350, 470)
+p.service("was-a", "WAS", "WAS-A · Tomcat 9.0.121", "OpenJDK 8 · Tomcat 9.0.121<br>maxThreads·acceptCount 튜닝<br>/test.jsp: 헤더·DB 연동 점검", "ec2", "compute", 350, 470)
 p.service("was-c", "WAS", "WAS-C · Tomcat 9.0.121", "AZ당 2대<br>한 AZ 손실 시 피크 100%", "ec2", "compute", 1140, 470)
 p.stub("to-db", "→ ④ DB 계층<br>RDS Proxy 3306 · JDBC sslMode=REQUIRED", 840, 780, 200, 70)
 p.service("cwl-was", "WAS 로그", "CloudWatch Logs", "/mc/was catalina·access·gc<br>보존 30일", "cloudwatch_logs", "integ", 1680, 280, kind="sub")
@@ -208,9 +208,10 @@ p.legend(2080, 30, 1000, "WAS 계층 · 흐름과 설정", [
  ("Internal ALB (깊게)", "tg-was 헬스체크 /petclinic/(슬래시 필수, 302 방지) 10s·2/3, 등록 취소 30s. PetClinic은 stateless라 sticky 불필요"),
  ("Tomcat 튜닝", "maxThreads·acceptCount 상향, connectionTimeout 단축, JVM -Xms=-Xmx. 커넥션 풀 크기 = maxThreads와 DB 상한 사이"),
  ("WAS → RDS Proxy", "JDBC sslMode=REQUIRED, 풀 validationQuery. 8대로 늘어도 Proxy가 DB 연결 상한을 지킴(④ 탭)"),
+ ("연동 점검 /test.jsp", "WAR에 포함. WAS 호스트·OpenJDK 버전·X-Forwarded-For/Proto·Via 헤더·vets 행 수·Ssl_cipher 출력 → WEB→WAS 전달과 WAS→Proxy→RDS TLS 연동을 한 화면에서 확인"),
  ("로그", "Agent → /mc/was catalina·access·gc 30일. 종료 수명 주기 훅(300s)으로 마지막 로그·덤프를 S3 mc-logs/was에 sync 후 종료"),
  ("증설", "대상당 요청 수 + CPU 대상 추적, 예약 증설(영상 공개 15분 전 4대), min 2·max 8, AZ당 2대. 알람은 ⑤ CloudWatch에서"),
-], note="Redis(Spring Session)는 로드맵: 축소·전환 중 로그인 유지가 필요할 때. 현재는 sticky + 재로그인 허용.")
+], note="Redis(Spring Session)는 로드맵. 로그인이 없으므로 세션 유지 요구 없음. DB 자격증명은 빌드 시점 주입(Secrets Manager → mvnw -Djdbc.*), 명령줄·setenv.sh에 평문 없음.")
 mxfile.append(p.d)
 
 # ================= tab 5: DB 계층 · 확장 =================

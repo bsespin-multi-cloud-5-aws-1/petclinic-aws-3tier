@@ -19,7 +19,7 @@
         <mxCell id="aws-cloud" value="AWS Cloud" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;strokeColor=#232F3E;fillColor=light-dark(#232F3E0D,#232F3E0D);fillStyle=auto;verticalAlign=top;align=left;spacingLeft=30;fontColor=#232F3E;dashed=0;container=0;pointerEvents=0;collapsible=0;recursiveResize=0;fontSize=14;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="1">
           <mxGeometry x="230" y="140" width="1820" height="2000" as="geometry" />
         </mxCell>
-        <mxCell id="band-entry" value="①  네트워크 진입 계층 · 글로벌 엣지 (Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3 OAC · Cognito는 ALB 인증)" style="rounded=0;fillColor=none;dashed=1;strokeColor=#8C4FFF;verticalAlign=top;align=left;spacingLeft=10;fontColor=#8C4FFF;fontStyle=1;fontSize=14;whiteSpace=wrap;html=1;container=0;pointerEvents=0;fontFamily=Helvetica;" vertex="1" parent="1">
+        <mxCell id="band-entry" value="①  네트워크 진입 계층 · 글로벌 엣지 (Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3 OAC · X-Origin-Verify로 오리진 보호)" style="rounded=0;fillColor=none;dashed=1;strokeColor=#8C4FFF;verticalAlign=top;align=left;spacingLeft=10;fontColor=#8C4FFF;fontStyle=1;fontSize=14;whiteSpace=wrap;html=1;container=0;pointerEvents=0;fontFamily=Helvetica;" vertex="1" parent="1">
           <mxGeometry x="250" y="165" width="1780" height="300" as="geometry" />
         </mxCell>
         <mxCell id="region" value="ap-northeast-2 (서울)" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];outlineConnect=0;gradientColor=none;html=1;whiteSpace=wrap;fontSize=12;fontStyle=0;shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_region;strokeColor=#00A4A6;fillColor=light-dark(#0C7B7D0D,#0C7B7D0D);fillStyle=auto;verticalAlign=top;align=left;spacingLeft=30;fontColor=#00A4A6;dashed=1;container=0;pointerEvents=0;collapsible=0;recursiveResize=0;fontSize=14;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="1">
@@ -73,7 +73,7 @@
         <mxCell id="lbl-was" value="③  WAS 계층" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#ED7100;fontFamily=Helvetica;" vertex="1" parent="1">
           <mxGeometry x="40" y="1195" width="180" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="lbl-was2" value="Tomcat 9 · maxThreads 튜닝&lt;br&gt;Internal ALB · 헬스체크 /petclinic/" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=0;fontColor=#232F3E;fontFamily=Helvetica;" vertex="1" parent="1">
+        <mxCell id="lbl-was2" value="Tomcat 9 · maxThreads 튜닝&lt;br&gt;헬스체크 /petclinic/ · 연동 점검 /test.jsp" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontStyle=0;fontColor=#232F3E;fontFamily=Helvetica;" vertex="1" parent="1">
           <mxGeometry x="40" y="1221" width="180" height="44" as="geometry" />
         </mxCell>
         <mxCell id="lbl-db" value="④  DB 계층" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#C925D1;fontFamily=Helvetica;" vertex="1" parent="1">
