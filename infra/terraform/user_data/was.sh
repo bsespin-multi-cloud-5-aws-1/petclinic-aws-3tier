@@ -5,6 +5,14 @@ exec > >(tee -a /var/log/mc-userdata.log) 2>&1
 REGION="${region}"
 TOMCAT_VER="9.0.121"
 
+# DB 자격증명은 Secrets Manager(RDS 관리형)에서 조회 → 빌드 시점에 Maven 리소스 필터링으로 주입
+# (pom의 MySQL 프로필이 datasource-config.xml까지 필터링하므로 런타임 -Djdbc.* 오버라이드는 동작하지 않음)
+dnf install -y jq >/dev/null 2>&1 || true
+DB_SECRET=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${db_secret_arn}" --query SecretString --output text)
+DB_USER=$(echo "$DB_SECRET" | jq -r .username)
+DB_PASS=$(echo "$DB_SECRET" | jq -r .password)
+JDBC_URL="jdbc:mysql://${rds_proxy_endpoint}:3306/${db_name}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&sslMode=REQUIRED"
+
 if [ ! -x /opt/tomcat/bin/catalina.sh ]; then
   dnf install -y java-17-amazon-corretto-headless git unzip jq amazon-cloudwatch-agent
   cd /tmp && curl -fLO "https://dlcdn.apache.org/tomcat/tomcat-9/v$TOMCAT_VER/bin/apache-tomcat-$TOMCAT_VER.tar.gz" \
@@ -13,7 +21,10 @@ if [ ! -x /opt/tomcat/bin/catalina.sh ]; then
   id tomcat >/dev/null 2>&1 || useradd -r -m -d /opt/tomcat -s /sbin/nologin tomcat
   rm -rf /opt/tomcat/webapps/*
   cd /opt && git clone -b "${repo_branch}" "${repo_url}" petclinic-src
-  cd /opt/petclinic-src && ./mvnw -q package -P MySQL -DskipTests && cp target/petclinic.war /opt/tomcat/webapps/ || echo "BUILD FAILED: petclinic.war not deployed"
+  cd /opt/petclinic-src && ./mvnw -q package -P MySQL -DskipTests \
+    "-Djdbc.url=$JDBC_URL" "-Djdbc.username=$DB_USER" "-Djdbc.password=$DB_PASS" \
+    && cp target/petclinic.war /opt/tomcat/webapps/ || echo "BUILD FAILED: petclinic.war not deployed"
+  rm -rf /opt/petclinic-src/target/classes /opt/petclinic-src/target/petclinic   # 평문 자격증명이 든 필터링 결과 제거
   chown -R tomcat:tomcat /opt/tomcat
   cat > /etc/systemd/system/tomcat.service <<UNIT
 [Unit]
@@ -34,13 +45,10 @@ UNIT
   systemctl daemon-reload
 fi
 
-DB_SECRET=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${db_secret_arn}" --query SecretString --output text)
-DB_USER=$(echo "$DB_SECRET" | jq -r .username)
-DB_PASS=$(echo "$DB_SECRET" | jq -r .password)
 
-# catalina.sh는 CATALINA_OPTS를 eval하므로 값 안에 작은따옴표를 넣지 않는다 (& 는 큰따옴표 안이라 안전)
-cat > /opt/tomcat/bin/setenv.sh <<SETENV
-export CATALINA_OPTS="\$CATALINA_OPTS -Xms512m -Xmx1g -Djdbc.url=jdbc:mysql://${rds_proxy_endpoint}:3306/${db_name}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&sslMode=REQUIRED -Djdbc.username=$DB_USER -Djdbc.password=$DB_PASS"
+# JVM 옵션만 (DB 자격증명은 WAR 안에 주입됨 → 명령줄·ps에 노출 없음)
+cat > /opt/tomcat/bin/setenv.sh <<'SETENV'
+export CATALINA_OPTS="$CATALINA_OPTS -Xms512m -Xmx1g"
 SETENV
 chown tomcat:tomcat /opt/tomcat/bin/setenv.sh && chmod 750 /opt/tomcat/bin/setenv.sh
 
