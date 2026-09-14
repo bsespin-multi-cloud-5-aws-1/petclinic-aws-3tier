@@ -28,6 +28,8 @@ if [ ! -x /opt/tomcat/bin/catalina.sh ]; then
   cd /opt/petclinic-src && ./mvnw -q package -P MySQL -DskipTests \
     "-Djdbc.url=$JDBC_URL" "-Djdbc.username=$DB_USER" "-Djdbc.password=$DB_PASS_XML" \
     && cp target/petclinic.war /opt/tomcat/webapps/ || echo "BUILD FAILED: petclinic.war not deployed"
+  # 요구사항 검증용 test.jsp(WEB-WAS-DB 연동·헤더 전달 확인)는 src/main/webapp/test.jsp 로 WAR에 포함됨 → /petclinic/test.jsp
+  unzip -l /opt/tomcat/webapps/petclinic.war | grep -q ' test.jsp$' && echo "test.jsp packaged" || echo "WARN: test.jsp missing in WAR"
   rm -rf /opt/petclinic-src/target/classes /opt/petclinic-src/target/petclinic   # 평문 자격증명이 든 필터링 결과 제거
   chown -R tomcat:tomcat /opt/tomcat
   cat > /etc/systemd/system/tomcat.service <<UNIT
