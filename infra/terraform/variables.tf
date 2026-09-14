@@ -93,8 +93,9 @@ variable "app_repo_url" {
 }
 
 variable "app_repo_branch" {
-  type    = string
-  default = "chore/stack-update-2026"
+  description = "빌드할 브랜치 (Green 스택: Java 17 · Spring 5.3.39 · Tomcat 9.0.121)"
+  type        = string
+  default     = "test"
 }
 
 variable "web_instance_type" {

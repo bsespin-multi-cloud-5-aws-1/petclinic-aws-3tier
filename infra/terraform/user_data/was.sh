@@ -38,15 +38,11 @@ fi
 DB_SECRET=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${db_secret_arn}" --query SecretString --output text)
 DB_USER=$(echo "$DB_SECRET" | jq -r .username)
 DB_PASS=$(echo "$DB_SECRET" | jq -r .password)
-OAUTH=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${oauth_secret_id}" --query SecretString --output text)
 
 cat > /opt/tomcat/bin/setenv.sh <<SETENV
 export CATALINA_OPTS="\$CATALINA_OPTS -Xms512m -Xmx1g \
  -Djdbc.url='jdbc:mysql://${rds_proxy_endpoint}:3306/${db_name}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul&sslMode=REQUIRED' \
- -Djdbc.username=$DB_USER -Djdbc.password=$DB_PASS \
- -Doauth.cognito.client-id=$(echo "$OAUTH" | jq -r .client_id) \
- -Doauth.cognito.client-secret=$(echo "$OAUTH" | jq -r .client_secret) \
- -Doauth.cognito.issuer-uri=$(echo "$OAUTH" | jq -r .issuer_uri)"
+ -Djdbc.username=$DB_USER -Djdbc.password=$DB_PASS"
 SETENV
 chown tomcat:tomcat /opt/tomcat/bin/setenv.sh && chmod 750 /opt/tomcat/bin/setenv.sh
 
@@ -58,7 +54,7 @@ aws s3 sync /opt/tomcat/logs "s3://${logs_bucket}/was/\$IID/" --region "$REGION"
 SYNC
 chmod +x /usr/local/bin/mc-sync-logs.sh
 
-cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<CW
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CW'
 {"metrics":{"append_dimensions":{"AutoScalingGroupName":"$${aws:AutoScalingGroupName}","InstanceId":"$${aws:InstanceId}"},
  "metrics_collected":{"mem":{"measurement":["mem_used_percent"]},"disk":{"measurement":["used_percent"],"resources":["/"]}}},
  "logs":{"logs_collected":{"files":{"collect_list":[

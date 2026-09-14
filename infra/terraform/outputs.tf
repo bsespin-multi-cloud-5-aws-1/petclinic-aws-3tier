@@ -22,8 +22,8 @@ output "rds_master_secret_arn" {
   value = aws_db_instance.main.master_user_secret[0].secret_arn
 }
 
-output "cognito_issuer_uri" {
-  value = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
+output "cognito_user_pool_id" {
+  value = aws_cognito_user_pool.main.id
 }
 
 output "cognito_hosted_ui" {

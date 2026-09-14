@@ -1,4 +1,4 @@
-# ---------- Cognito = OIDC IdP (앱의 Spring Security OAuth2 Client가 사용) ----------
+# ---------- Cognito = IdP. 로그인은 Public ALB authenticate-cognito 액션 (앱 수정 없음) ----------
 resource "aws_cognito_user_pool" "main" {
   name = "${local.p}-users"
 
@@ -60,7 +60,7 @@ resource "aws_cognito_user_pool_client" "petclinic" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
   supported_identity_providers         = ["COGNITO"]
-  callback_urls                        = ["https://${var.domain_name}${local.app_context}/login/oauth2/code/cognito"]
+  callback_urls                        = ["https://${var.domain_name}/oauth2/idpresponse"]
   logout_urls                          = ["https://${var.domain_name}${local.app_context}/"]
   explicit_auth_flows                  = ["ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_USER_SRP_AUTH"]
   prevent_user_existence_errors        = "ENABLED"
@@ -75,19 +75,3 @@ resource "aws_cognito_user_pool_client" "petclinic" {
   }
 }
 
-# 앱이 부팅 시 읽는 OIDC 설정 (setenv.sh → -Doauth.cognito.*)
-resource "aws_secretsmanager_secret" "oauth_cognito" {
-  name       = "${local.p}/oauth-cognito"
-  kms_key_id = aws_kms_key.main.arn
-  tags       = merge(local.tier_tag.was, { Name = "${local.p}/oauth-cognito" })
-}
-
-resource "aws_secretsmanager_secret_version" "oauth_cognito" {
-  secret_id = aws_secretsmanager_secret.oauth_cognito.id
-  secret_string = jsonencode({
-    client_id     = aws_cognito_user_pool_client.petclinic.id
-    client_secret = aws_cognito_user_pool_client.petclinic.client_secret
-    issuer_uri    = "https://cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
-    pool_id       = aws_cognito_user_pool.main.id
-  })
-}

@@ -21,7 +21,7 @@ setsebool -P httpd_can_network_connect 1 || true
 systemctl enable --now httpd
 
 # CloudWatch Agent: access/error → ${log_group_prefix}/access, /error
-cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<CW
+cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CW'
 {"metrics":{"append_dimensions":{"AutoScalingGroupName":"$${aws:AutoScalingGroupName}","InstanceId":"$${aws:InstanceId}"},
  "metrics_collected":{"mem":{"measurement":["mem_used_percent"]},"disk":{"measurement":["used_percent"],"resources":["/"]}}},
  "logs":{"logs_collected":{"files":{"collect_list":[

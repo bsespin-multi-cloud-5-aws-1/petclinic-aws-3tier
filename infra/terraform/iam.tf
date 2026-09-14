@@ -32,7 +32,7 @@ data "aws_iam_policy_document" "ec2_inline" {
   statement {
     sid       = "ReadAppSecrets"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.oauth_cognito.arn, aws_secretsmanager_secret.slack_webhook.arn]
+    resources = [aws_secretsmanager_secret.slack_webhook.arn, aws_db_instance.main.master_user_secret[0].secret_arn]
   }
   statement {
     sid       = "KmsForSecrets"

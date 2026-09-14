@@ -65,7 +65,6 @@ resource "aws_launch_template" "was" {
     repo_url           = var.app_repo_url
     repo_branch        = var.app_repo_branch
     db_secret_arn      = aws_db_instance.main.master_user_secret[0].secret_arn
-    oauth_secret_id    = aws_secretsmanager_secret.oauth_cognito.name
     region             = var.region
     logs_bucket        = aws_s3_bucket.logs.bucket
     log_group_prefix   = "/mc/was"
