@@ -37,8 +37,7 @@
 <h2>2. 요청 전달 (WEB → Internal ALB → WAS 헤더)</h2>
 <table>
 <tr><th>클라이언트 → ALB 공인 IP (X-Forwarded-For)</th><td><%= h(request.getHeader("X-Forwarded-For")) %></td></tr>
-<tr><th>X-Forwarded-Proto</th><td><%= h(request.getHeader("X-Forwarded-Proto")) %> (Internal ALB가 http로 덮어씀)</td></tr>
-<tr><th>CloudFront-Forwarded-Proto</th><td><%= h(request.getHeader("CloudFront-Forwarded-Proto")) %> (사용자 → CloudFront 구간)</td></tr>
+<tr><th>X-Forwarded-Proto</th><td><%= h(request.getHeader("X-Forwarded-Proto")) %> (Internal ALB 8080 구간이라 http · 사용자 구간은 CloudFront HTTPS)</td></tr>
 <tr><th>Host (ProxyPreserveHost)</th><td><%= h(request.getHeader("Host")) %></td></tr>
 <tr><th>CloudFront 경유 (Via)</th><td><%= h(request.getHeader("Via")) %></td></tr>
 <tr><th>WAS가 본 원격 주소</th><td><%= h(request.getRemoteAddr()) %> (Apache/ALB 사설 IP)</td></tr>
