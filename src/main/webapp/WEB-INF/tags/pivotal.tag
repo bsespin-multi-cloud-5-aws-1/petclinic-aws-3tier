@@ -1,10 +1,3 @@
+<%@ tag pageEncoding="UTF-8" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
-
-<br/>
-<br/>
-<div class="container">
-    <div class="row">
-        <div class="col-12 text-center"><img src="<spring:url value="/resources/images/spring-pivotal-logo.png" htmlEscape="true" />"
-                                             alt="Sponsored by Pivotal"/></div>
-    </div>
-</div>
+<%-- 이전: Pivotal 로고. 크레딧은 푸터(footer.tag)로 이동 --%>
