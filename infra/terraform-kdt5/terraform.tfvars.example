@@ -1,0 +1,14 @@
+# cp terraform.tfvars.example terraform.tfvars 후 값 채우기 (terraform.tfvars 는 .gitignore)
+owner            = "홍길동"
+domain_name      = "petclinic.mission-critical.site"
+hosted_zone_name = "mission-critical.site"
+
+# openssl rand -hex 24
+origin_verify_secret = "change-me-32-chars-minimum"
+
+loadgen_cidrs  = []            # JMeter 발생기 IP, 예: ["1.2.3.4/32"]
+alert_emails   = []            # 예: ["ops@example.com"]
+enable_grafana = false
+
+# 콘솔 구축본 이름이 바뀌면 여기서 덮어씀 (기본값은 2026-09-15 kdt5 확인값)
+# existing = { ... }
