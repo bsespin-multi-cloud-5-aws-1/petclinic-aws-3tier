@@ -26,9 +26,9 @@ locals {
       { file_path = "/var/log/httpd/error_log", log_group_name = "/mc/web/error" },
     ]
     was = [
-      { file_path = "${var.was_tomcat_home}/logs/catalina.out", log_group_name = "/mc/was/catalina" },
-      { file_path = "${var.was_tomcat_home}/logs/localhost_access_log.*.txt", log_group_name = "/mc/was/access" },
-      { file_path = "${var.was_tomcat_home}/logs/gc.log", log_group_name = "/mc/was/gc" },
+      { file_path = "${local.was_tomcat_home}/logs/catalina.out", log_group_name = "/mc/was/catalina" },
+      { file_path = "${local.was_tomcat_home}/logs/localhost_access_log.*.txt", log_group_name = "/mc/was/access" },
+      { file_path = "${local.was_tomcat_home}/logs/gc.log", log_group_name = "/mc/was/gc" },
     ]
   }
 }
@@ -86,8 +86,8 @@ resource "aws_cloudwatch_metric_alarm" "was_unhealthy" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
   ok_actions          = [aws_sns_topic.alerts.arn]
   dimensions = {
-    LoadBalancer = data.aws_lb.internal.arn_suffix
-    TargetGroup  = data.aws_lb_target_group.was.arn_suffix
+    LoadBalancer = local.internal_alb_arn_suffix
+    TargetGroup  = local.tg_was_arn_suffix
   }
   tags = local.tier_tag.ops
 }
@@ -104,7 +104,7 @@ resource "aws_cloudwatch_metric_alarm" "alb_p95" {
   alarm_actions       = [aws_sns_topic.alerts.arn]
   ok_actions          = [aws_sns_topic.alerts.arn]
   dimensions = {
-    LoadBalancer = data.aws_lb.public.arn_suffix
+    LoadBalancer = local.public_alb_arn_suffix
   }
   tags = local.tier_tag.ops
 }

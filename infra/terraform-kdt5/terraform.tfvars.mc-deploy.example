@@ -1,0 +1,33 @@
+# mc-deploy(빈 계정) 용 예시 — cp terraform.tfvars.mc-deploy.example terraform.tfvars
+aws_profile = "mc-deploy-tf"   # ~/.aws/config: credential_process = aws configure export-credentials --profile mc-deploy --format process
+owner       = "홍길동"
+create_base = true             # VPC·SG·IAM·ALB·WEB ×2·WAS ×2 를 modules/base 로 생성, RDS 도 신규
+
+domain_name      = "petclinic.mission-critical.site"
+hosted_zone_name = "mission-critical.site"
+origin_verify_secret = "change-me-32-chars-minimum"   # openssl rand -hex 24
+
+base = {
+  app_repo_branch      = "main"   # Blue. Phase 2 = "test" + tomcat_version = "9.0.121"
+  tomcat_version       = "9.0.53"
+  public_http_listener = false    # NS 위임 전 ALB DNS 로 직접 확인하려면 true (확인 후 false 로 되돌려 apply)
+}
+
+# 새 RDS: 8.4(8.0 은 표준 지원 종료) · 20GB · 실습이라 삭제 방지 끔
+db = {
+  engine_version        = "8.4.11"
+  instance_class        = "db.t3.small"
+  allocated_storage     = 20
+  max_allocated_storage = 100
+  multi_az              = true
+  backup_window         = "19:00-19:30"        # 04:00 KST
+  maintenance_window    = "sun:20:00-sun:20:30"
+  backup_retention_days = 7
+  deletion_protection   = false
+  skip_final_snapshot   = true
+  apply_immediately     = true
+}
+
+loadgen_cidrs  = []
+alert_emails   = []
+enable_grafana = false

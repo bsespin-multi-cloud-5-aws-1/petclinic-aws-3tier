@@ -239,7 +239,7 @@ resource "aws_cloudfront_distribution" "main" {
 
   # 오리진 1: 기존 Public ALB(test-Public-ALB) — HTTPS only + 검증 헤더 (443 리스너는 alb.tf 가 추가)
   origin {
-    domain_name = data.aws_lb.public.dns_name
+    domain_name = local.public_alb_dns
     origin_id   = local.cf_origin_alb
 
     custom_origin_config {

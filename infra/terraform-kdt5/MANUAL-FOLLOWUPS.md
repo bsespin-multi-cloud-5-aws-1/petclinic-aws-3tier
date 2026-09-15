@@ -1,5 +1,7 @@
 # 수동 후속 ⓜ1~7 — 코드가 건드리지 않는 기존 리소스(WEB·WAS·ALB·RDS 재부팅)에서 콘솔로 할 일
 
+> `create_base = true`(mc-deploy 등 빈 계정) 모드에서는 **ⓜ1 만** 해당 — ⓜ2~7 은 modules/base 의 user_data·리소스가 처리한다.
+
 `terraform apply` 뒤 `terraform output manual_followups` 와 같은 목록. 도면: `docs/architecture-kdt5-terraform.drawio` 의 노란 배지.
 순서가 중요한 것: **ⓜ1 은 apply 도중**(ACM DNS 검증이 NS 위임을 기다림), **ⓜ5 → ⓜ7 순서**(TLS 강제 재부팅 전에 WAS 가 Proxy·TLS 로 붙어 있어야 함), **ⓜ6 은 CloudFront 로 접속 확인 뒤**.
 

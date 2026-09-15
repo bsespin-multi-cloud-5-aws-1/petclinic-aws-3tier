@@ -36,7 +36,43 @@ variable "env" {
   default = "lab"
 }
 
-# ---------- 콘솔로 이미 만든 리소스 (WEB · WAS · VPC · ALB · RDS) — 이름만 받아 data 로 참조, 수정 안 함 ----------
+# ---------- 모드 전환: kdt5(구축본 참조) vs mc-deploy(기반 계층까지 생성) ----------
+variable "create_base" {
+  description = <<-EOT
+    false = kdt5 모드: VPC·ALB·SG·IAM·WEB·WAS 는 콘솔 구축본을 data 로 읽고 RDS(database-1)는 import.
+    true  = mc-deploy 모드(빈 계정): modules/base 가 VPC·SG 체인·IAM·ALB·WEB ×2·WAS ×2 를 만들고 RDS 도 새로 생성. var.existing 은 무시.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "base" {
+  description = "create_base=true 일 때 기반 계층 값"
+  type = object({
+    azs      = optional(list(string), ["ap-northeast-2a", "ap-northeast-2c"])
+    vpc_cidr = optional(string, "10.0.0.0/16")
+    subnet_cidrs = optional(object({
+      public = list(string)
+      web    = list(string)
+      was    = list(string)
+      db     = list(string)
+      }), {
+      public = ["10.0.0.0/24", "10.0.1.0/24"]
+      web    = ["10.0.10.0/24", "10.0.11.0/24"]
+      was    = ["10.0.20.0/24", "10.0.21.0/24"]
+      db     = ["10.0.30.0/24", "10.0.31.0/24"]
+    })
+    web_instance_type    = optional(string, "t3.small")
+    was_instance_type    = optional(string, "t3.medium")
+    app_repo_url         = optional(string, "https://github.com/bsespin-multi-cloud-5-aws-1/petclinic-aws-3tier.git")
+    app_repo_branch      = optional(string, "main") # Blue = main. Phase 2 = test
+    tomcat_version       = optional(string, "9.0.53")
+    public_http_listener = optional(bool, false) # NS 위임 전 ALB DNS 로 직접 확인할 때만 true
+  })
+  default = {}
+}
+
+# ---------- 콘솔로 이미 만든 리소스 (WEB · WAS · VPC · ALB · RDS) — create_base=false 일 때만 사용 ----------
 variable "existing" {
   description = "kdt5 계정에 콘솔로 구축된 리소스 이름. 이 코드는 이들을 만들거나 바꾸지 않고 참조만 한다 (RDS 만 import 로 편입)"
   type = object({
@@ -116,30 +152,25 @@ variable "loadgen_cidrs" {
   default     = []
 }
 
-# ---------- ④ DB 계층: 콘솔로 만든 database-1 의 현재 값 + 도면대로 보강할 값 ----------
+# ---------- ④ DB 계층 ----------
+# kdt5 모드: database-1 의 콘솔 확인값(import 후 plan 차이 0) + 보강값. mc-deploy 모드: 새 RDS 사양 (tfvars 예시 참고)
 variable "db" {
-  description = "database-1 현재 설정(콘솔 확인값 · import 후 plan 차이 0 이 되도록) 과 보강값"
   type = object({
-    engine_version        = string
-    instance_class        = string
-    allocated_storage     = number
-    max_allocated_storage = number
-    backup_window         = string
-    maintenance_window    = string
-    # ---- 보강 (도면 ④: PITR · 삭제 방지 · TLS 강제) ----
-    backup_retention_days = number
-    deletion_protection   = bool
+    engine_version        = optional(string, "8.0.44") # kdt5 database-1. 새로 만들 땐 8.4.x (8.0 표준 지원 종료 2026-07-31)
+    instance_class        = optional(string, "db.t3.small")
+    allocated_storage     = optional(number, 200)
+    max_allocated_storage = optional(number, 1000)
+    multi_az              = optional(bool, true)
+    backup_window         = optional(string, "13:45-14:15")
+    maintenance_window    = optional(string, "mon:13:01-mon:13:31")
+    ca_cert_identifier    = optional(string) # kdt5 = rds-ca-rsa2048-g1. null 이면 리전 기본값
+    # ---- 도면 ④ 보강: PITR · 삭제 방지 · TLS 강제(파라미터 그룹) ----
+    backup_retention_days = optional(number, 7)
+    deletion_protection   = optional(bool, true)
+    skip_final_snapshot   = optional(bool, false)
+    apply_immediately     = optional(bool, false) # kdt5: 파라미터 그룹 교체 재부팅을 유지관리 창으로 미룸
   })
-  default = {
-    engine_version        = "8.0.44" # 8.0 표준 지원 종료(2026-07-31). 8.4 는 메이저 업그레이드(README)
-    instance_class        = "db.t3.small"
-    allocated_storage     = 200
-    max_allocated_storage = 1000
-    backup_window         = "13:45-14:15"
-    maintenance_window    = "mon:13:01-mon:13:31"
-    backup_retention_days = 7
-    deletion_protection   = true
-  }
+  default = {}
 }
 
 # ---------- ⑤ 운영 계층 ----------
@@ -161,7 +192,7 @@ variable "log_retention_days" {
 }
 
 variable "was_tomcat_home" {
-  description = "CloudWatch Agent 설정(SSM 파라미터)에 넣을 WAS Tomcat 경로. kdt5 WAS-test-a 는 ec2-user 홈에 수동 설치"
+  description = "CloudWatch Agent 설정(SSM 파라미터)에 넣을 WAS Tomcat 경로. 빈 값이면 kdt5 = /home/ec2-user/tomcat(수동 설치), create_base = /opt/tomcat"
   type        = string
-  default     = "/home/ec2-user/tomcat"
+  default     = ""
 }

@@ -1,7 +1,7 @@
 # ---------- ④ DB 계층: 기존 database-1 (import) · 파라미터 그룹 · RDS Proxy · AWS Backup ----------
 # 기본 파라미터 그룹(default.mysql8.0)은 수정 불가 → 사본. require_secure_transport 는 도면 ④ "JDBC sslMode=REQUIRED + 서버 TLS 강제"
 resource "aws_db_parameter_group" "main" {
-  name   = "${local.p}-${replace(local.db_family, ".", "")}"
+  name   = "${local.p}-${replace(local.db_family, ".", "")}" # mc-mysql80 / mc-mysql84
   family = local.db_family
 
   parameter {
@@ -20,9 +20,10 @@ resource "aws_db_parameter_group" "main" {
   tags = merge(local.tier_tag.db, { Name = "${local.p}-${replace(local.db_family, ".", "")}" })
 }
 
-# 콘솔로 만든 database-1 을 imports.tf 로 편입. 아래 값은 2026-09-15 콘솔 확인값 — 바꾸면 plan 에 차이가 뜬다
+# kdt5 모드: 콘솔로 만든 database-1 을 imports.tf 로 편입 (var.db 기본값 = 2026-09-15 콘솔 확인값 — 바꾸면 plan 에 차이).
+# create_base 모드: 같은 리소스가 mc-petclinic 으로 새로 생성 (tfvars 로 8.4 · 20GB 등 지정)
 resource "aws_db_instance" "main" {
-  identifier     = var.existing.db_identifier
+  identifier     = local.db_identifier
   engine         = "mysql"
   engine_version = var.db.engine_version
   instance_class = var.db.instance_class
@@ -34,16 +35,16 @@ resource "aws_db_instance" "main" {
   allocated_storage     = var.db.allocated_storage
   max_allocated_storage = var.db.max_allocated_storage
   storage_type          = "gp3"
-  storage_encrypted     = true # aws/rds 기본 키 (kms_key_id 생략 = 현재 값 유지)
+  storage_encrypted     = true # aws/rds 기본 키
 
-  multi_az               = true
-  db_subnet_group_name   = var.existing.db_subnet_group_name
-  vpc_security_group_ids = [data.aws_security_group.db.id]
+  multi_az               = var.db.multi_az
+  db_subnet_group_name   = local.db_subnet_group_name
+  vpc_security_group_ids = [local.sg_db_id]
   publicly_accessible    = false
   port                   = 3306
   network_type           = "IPV4"
-  ca_cert_identifier     = "rds-ca-rsa2048-g1"
-  option_group_name      = "default:mysql-8-0"
+  ca_cert_identifier     = var.db.ca_cert_identifier
+  option_group_name      = "default:mysql-${replace(local.db_major_minor, ".", "-")}"
 
   backup_window                   = var.db.backup_window
   maintenance_window              = var.db.maintenance_window
@@ -52,16 +53,16 @@ resource "aws_db_instance" "main" {
   performance_insights_enabled    = false # db.t3.small(MySQL) 미지원
   monitoring_interval             = 0
 
-  # ---- 도면 ④ 대로 보강: import 후 첫 plan 에 이 항목만 바뀌어야 정상 ----
-  parameter_group_name      = aws_db_parameter_group.main.name # TLS 강제 · utf8mb4 (재부팅 필요 → 점검 시간에)
-  backup_retention_period   = var.db.backup_retention_days     # 0 → 7 (PITR 5분 활성)
-  deletion_protection       = var.db.deletion_protection       # false → true
+  # ---- 도면 ④ 보강: kdt5 import 후 첫 plan 에 이 항목만 바뀌어야 정상 ----
+  parameter_group_name      = aws_db_parameter_group.main.name # TLS 강제 · utf8mb4 (기존 DB 는 재부팅 필요)
+  backup_retention_period   = var.db.backup_retention_days     # kdt5: 0 → 7 (PITR 5분 활성)
+  deletion_protection       = var.db.deletion_protection
   copy_tags_to_snapshot     = true
-  apply_immediately         = false # 파라미터 그룹 교체는 다음 유지관리 창(월 13:01 UTC)에 재부팅. 바로 적용하려면 true
-  skip_final_snapshot       = false
-  final_snapshot_identifier = "${var.existing.db_identifier}-final"
+  apply_immediately         = var.db.apply_immediately
+  skip_final_snapshot       = var.db.skip_final_snapshot
+  final_snapshot_identifier = var.db.skip_final_snapshot ? null : "${local.db_identifier}-final"
 
-  tags = merge(local.tier_tag.db, { Name = var.existing.db_identifier, Data = "pii" })
+  tags = merge(local.tier_tag.db, { Name = local.db_identifier, Data = "pii" })
 }
 
 # ---------- RDS Proxy (커넥션 다중화 · failover 중 연결 유지 · Require TLS · 비밀 직접 조회 → 앱 무영향) ----------

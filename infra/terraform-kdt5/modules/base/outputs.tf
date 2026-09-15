@@ -1,0 +1,19 @@
+output "vpc_id" { value = aws_vpc.main.id }
+output "public_subnet_ids" { value = aws_subnet.public[*].id }
+output "db_subnet_ids" { value = aws_subnet.db[*].id }
+output "db_subnet_group_name" { value = aws_db_subnet_group.main.name }
+
+output "public_alb_arn" { value = aws_lb.public.arn }
+output "public_alb_dns" { value = aws_lb.public.dns_name }
+output "public_alb_arn_suffix" { value = aws_lb.public.arn_suffix }
+output "internal_alb_arn_suffix" { value = aws_lb.internal.arn_suffix }
+output "tg_web_arn" { value = aws_lb_target_group.web.arn }
+output "tg_was_arn_suffix" { value = aws_lb_target_group.was.arn_suffix }
+
+output "sg_alb_public_id" { value = aws_security_group.alb_public.id }
+output "sg_was_id" { value = aws_security_group.was.id }
+output "sg_db_id" { value = aws_security_group.rds.id }
+
+output "ec2_role_id" { value = aws_iam_role.ec2.id }
+output "web_instance_ids" { value = aws_instance.web[*].id }
+output "was_instance_ids" { value = aws_instance.was[*].id }

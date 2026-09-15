@@ -1,5 +1,5 @@
-# ---------- 기존 mc-ec2-role 에 인라인 정책만 추가 (SSM Core · CW Agent 는 이미 부착) ----------
-# 주의: kdt5 인스턴스(WEB ASG · WAS-test-a)에는 인스턴스 프로파일이 아직 안 붙어 있음 → 콘솔 후속 (README)
+# ---------- EC2 역할 인라인 정책 (kdt5: 기존 mc-ec2-role 에 · create_base: 모듈 역할에). SSM Core · CW Agent 는 부착돼 있음 ----------
+# 주의: kdt5 인스턴스(WEB ASG · WAS-test-a)에는 인스턴스 프로파일이 아직 안 붙어 있음 → 콘솔 후속 (ⓜ3)
 data "aws_iam_policy_document" "ec2_inline" {
   statement {
     sid       = "ReadRdsSecret" # WAS 빌드 시 -Djdbc.* 주입용
@@ -30,7 +30,7 @@ data "aws_iam_policy_document" "ec2_inline" {
 
 resource "aws_iam_role_policy" "ec2_inline" {
   name   = "${local.p}-ec2-inline"
-  role   = data.aws_iam_role.ec2.id
+  role   = local.ec2_role_id
   policy = data.aws_iam_policy_document.ec2_inline.json
 }
 

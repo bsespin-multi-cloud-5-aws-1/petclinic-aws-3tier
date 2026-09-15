@@ -33,9 +33,17 @@ output "buckets" {
   value = local.buckets
 }
 
+output "public_alb_dns" {
+  value = local.public_alb_dns
+}
+
+output "mode" {
+  value = var.create_base ? "create_base (기반 계층 모듈 생성 · 예: mc-deploy)" : "kdt5 (구축본 참조 · database-1 import)"
+}
+
 output "manual_followups" {
-  description = "코드가 건드리지 않는 기존 리소스(WEB·WAS·ALB)에서 콘솔로 해야 할 후속 작업"
-  value = [
+  description = "kdt5 모드: 코드가 건드리지 않는 기존 리소스(WEB·WAS·ALB)에서 콘솔로 해야 할 후속. create_base 모드는 ⓜ1 만 해당(나머지는 코드가 처리)"
+  value = var.create_base ? ["1. 가비아 네임서버 → route53_name_servers 4개로 교체 (apply 중 ACM 검증이 이걸 기다림)"] : [
     "1. 가비아 네임서버 → route53_name_servers 4개로 교체 (ACM DNS 검증·A 레코드가 그 뒤에 유효)",
     "2. 기존 ALB 두 개: 속성 → 액세스 로그 켜기 → s3://${local.buckets.logs}/alb/public, /alb/internal",
     "3. WEB ASG 시작 템플릿(web) · WAS-test-a: IAM 인스턴스 프로파일 mc-ec2-role 부착 → SSM 접속·CW Agent 동작",

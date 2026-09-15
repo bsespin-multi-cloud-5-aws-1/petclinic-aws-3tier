@@ -1,0 +1,27 @@
+# ---------- create_base=true (mc-deploy 같은 빈 계정): 기반 계층을 모듈로 생성 ----------
+# kdt5 에서는 count=0 → 아무것도 만들지 않고 existing.tf 의 data 를 쓴다
+module "base" {
+  count  = var.create_base ? 1 : 0
+  source = "./modules/base"
+
+  name_prefix  = local.p
+  region       = var.region
+  azs          = var.base.azs
+  vpc_cidr     = var.base.vpc_cidr
+  subnet_cidrs = var.base.subnet_cidrs
+  tier_tag     = local.tier_tag
+  app_context  = local.app_context
+
+  web_instance_type    = var.base.web_instance_type
+  was_instance_type    = var.base.was_instance_type
+  app_repo_url         = var.base.app_repo_url
+  app_repo_branch      = var.base.app_repo_branch
+  tomcat_version       = var.base.tomcat_version
+  public_http_listener = var.base.public_http_listener
+
+  access_logs_bucket   = aws_s3_bucket_policy.logs.bucket # 정책 적용 후 ALB 생성
+  db_secret_arn        = aws_db_instance.main.master_user_secret[0].secret_arn
+  db_name              = "petclinic"
+  jdbc_host            = aws_db_proxy.main.endpoint # WAS 는 Proxy 가 생긴 뒤 부팅 → TLS 로 접속
+  cwagent_param_prefix = "/mc/cwagent"
+}

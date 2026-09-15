@@ -1,7 +1,7 @@
-# ---------- ② 기존 Public ALB(test-Public-ALB)에 443 리스너 추가 — ALB·WEB ASG·대상 그룹 자체는 그대로 ----------
+# ---------- ② Public ALB 에 443 리스너 (kdt5: 기존 test-Public-ALB 에 추가 · create_base: 모듈 ALB 에) ----------
 # 기존 80 리스너(HTTP → Targetgroup-web)는 손대지 않음. CloudFront 전환 뒤 콘솔에서 삭제 (README 후속)
 resource "aws_lb_listener" "public_https" {
-  load_balancer_arn = data.aws_lb.public.arn
+  load_balancer_arn = local.public_alb_arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
@@ -27,7 +27,7 @@ resource "aws_lb_listener_rule" "origin_verify" {
 
   action {
     type             = "forward"
-    target_group_arn = data.aws_lb_target_group.web.arn
+    target_group_arn = local.tg_web_arn
   }
 
   condition {
