@@ -125,7 +125,7 @@ p.legend(1640, 30, 900, "진입 계층 · 흐름과 설정", [
  ("사용자 → Route 53", "hospital.example.com A/AAAA 별칭 → CloudFront. Route 53 Failover 없음(단일 리전). 리전 DR 시 로드맵"),
  ("CloudFront (WAF · ACM 부착)", "WAF는 별도 홉이 아니라 CloudFront에 붙은 Web ACL. 캐시 조회보다 먼저 평가하고 차단은 캐시·오리진 미도달(관리형 3 + rate 2, Count→Block, 로그 → CloudWatch Logs). ACM(us-east-1, 자동 갱신)도 부착. 정적은 엣지 캐시, 동적은 캐시 없이 ALB"),
  ("CloudFront → ALB", "Origin HTTPS only(ALB 443 + 서울 ACM), X-Origin-Verify 헤더로 우회 차단, SG는 CloudFront 접두사 목록만. 보안 헤더는 Response Headers Policy(HSTS·CSP·nosniff)"),
- ("CloudFront → S3 (OAC)", "S3는 점검 페이지 버킷 하나만(오리진 5xx → custom error response). OAC(SigV4) + 버킷 정책 SourceArn 조건, 공개 읽기 없음. 공개 이미지 버킷은 9/15 제거 — 사진·영상은 WAR resources/에 두고 /petclinic/resources/* 캐시가 담당"),
+ ("CloudFront → S3 (OAC)", "S3는 점검 페이지 버킷 하나만(오리진 5xx → custom error response). OAC(SigV4) + 버킷 정책 SourceArn 조건, 공개 읽기 없음. 사진·영상 등 정적 파일은 WAR resources/에 두고 /petclinic/resources/* 캐시가 담당"),
 ], note="모서리 작은 아이콘(WAF · ACM)은 CloudFront에 부착된 기능이며 트래픽 경로가 아님. 이 탭의 로그: WAF 로그(CloudWatch Logs, 30일).")
 mxfile.append(p.d)
 
@@ -280,11 +280,11 @@ p.legend(2080, 30, 1000, "운영 · 관측 공통 — 흐름과 설정", [
  ("CloudWatch 지표 · 알람", "ALB RequestCount·TargetResponseTime p95·5XX·HealthyHost, ASG 인스턴스 수, RDS CPU·DatabaseConnections, ACM DaysToExpiry. 알람 3개 + 대상 추적 알람"),
  ("Grafana 대시보드", "Amazon Managed Grafana(Identity Center 로그인, 편집자 $9/월). CloudWatch 데이터소스. 행: 진입 → ALB → EC2 → RDS. Phase 3 전/후 비교는 Time shift"),
  ("알람 → 이메일 (기본)", "CloudWatch 알람 3개(HealthyHost<2 · DB 연결 · p95≥2s) → SNS mc-alerts → 팀 이메일. Grafana 도입 전까지의 기본 경로. 6일차 WAS 1대 중지로 수신 테스트"),
- ("Slack (Grafana Alerting 단일 경로)", "Slack 알림은 Grafana Alerting → Contact point(Incoming Webhook) 한 경로로 통일(9/14 결정). webhook URL은 Grafana에만 저장. Chatbot·예약 알림 Lambda는 제외"),
+ ("Slack (Grafana Alerting 단일 경로)", "Slack 알림은 Grafana Alerting → Contact point(Incoming Webhook) 한 경로. webhook URL은 Grafana에만 저장"),
  ("알람 → Auto Scaling", "WAS ASG 대상 추적(대상당 요청 수·CPU)이 CloudWatch 알람으로 동작. 예약 증설과 병행"),
  ("감사", "CloudTrail 관리 이벤트 90일 무료 + 추적으로 S3 1년 보관, S3 데이터 이벤트로 의료 파일 열람 기록"),
  ("운영자 접속", "SSM Session Manager(IAM·MFA) → 세션 로그 CloudWatch Logs. Run Command로 다수 인스턴스 설정 배포, Patch Manager로 롤링 패치"),
-], note="Systems Manager 하나로 접속·명령·패치 처리, Bastion 없음. Cognito 로그인·예약 알림 Lambda·Chatbot·공개 이미지 S3는 제외(발표 축과 무관, 9/15).")
+], note="Systems Manager 하나로 접속·명령·패치 처리, Bastion 없음.")
 mxfile.append(p.d)
 
 tree = ET.ElementTree(mxfile); ET.indent(tree, space="  ")

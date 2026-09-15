@@ -277,7 +277,7 @@ for i, (title, desc) in enumerate(steps, 1):
     d = ET.SubElement(root, "mxCell", id=f"step-{i}-desc-legend", value=val, style=f"text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;{FONT}", vertex="1", parent=f"step-{i}-legend")
     ET.SubElement(d, "mxGeometry", x="52", width="548", height="100").set("as", "geometry")
     y += 106
-note = ET.SubElement(root, "mxCell", id="legend-note", value='<i><span style="color: light-dark(rgb(0,0,0), rgb(255,255,255));">모서리 작은 아이콘(WAF · ACM)은 호스트에 부착된 기능이며 트래픽 경로가 아님. 아이콘 설명은 범례로 이동. NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인(Cognito)·예약 알림 Lambda·Chatbot·공개 이미지 S3 버킷은 제외(9/15). Slack은 Grafana Alerting 한 경로. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.</span></i>', style=f"text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;{FONT}", vertex="1", parent="legend-container")
+note = ET.SubElement(root, "mxCell", id="legend-note", value='<i><span style="color: light-dark(rgb(0,0,0), rgb(255,255,255));">모서리 작은 아이콘(WAF · ACM)은 호스트에 부착된 기능이며 트래픽 경로가 아님. 아이콘 설명은 범례로 이동. NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS, 알림은 Grafana Alerting 한 경로. 개인정보는 RDS에만 저장.</span></i>', style=f"text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;{FONT}", vertex="1", parent="legend-container")
 ET.SubElement(note, "mxGeometry", x="0", y=str(y + 6), width="600", height="44").set("as", "geometry")
 y += 60
 lsg = ET.SubElement(root, "mxCell", id="legend-line-styles-group", value="", style=f"group;{FONT}fillColor=light-dark(#F5F5F5,#29393B);strokeColor=#666666;", vertex="1", parent="legend-container")
