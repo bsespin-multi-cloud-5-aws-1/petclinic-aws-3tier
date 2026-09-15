@@ -12,7 +12,7 @@
 | 신규 ① | Route 53 존 · ACM ×2(us-east-1·서울) · WAF(관리형 3 + rate 2) · CloudFront(Behavior 3 · 5xx→점검 페이지) · S3 점검 페이지(OAC) · **기존 Public ALB 에 443 리스너 + X-Origin-Verify 규칙** · alb-public-sg 에 CloudFront 프리픽스 443 규칙 | `edge.tf` `alb.tf` `security.tf` |
 | 신규 ④ | RDS Proxy(TLS·Secrets 인증) + SG · petclinic-db-sg 에 Proxy 3306 규칙 · AWS Backup 볼트/계획 | `rds.tf` `security.tf` |
 | 신규 ⑤ | KMS CMK · S3 로그/CloudTrail 버킷 · CloudWatch Logs 6 · CW Agent 설정(SSM 파라미터) · 알람 3 → SNS · CloudTrail · SSM 세션 설정 · Grafana(선택) · mc-ec2-role 인라인 정책 | `kms_s3.tf` `observability.tf` `iam.tf` |
-| 수동 후속 | 가비아 NS · ALB 액세스 로그 · 인스턴스 프로파일 부착 · CW Agent 설치 · WAS JDBC → Proxy 재빌드 · 80 리스너/0.0.0.0/0 정리 | output `manual_followups` |
+| 수동 후속 | 가비아 NS · ALB 액세스 로그 · 인스턴스 프로파일 부착 · CW Agent 설치 · WAS JDBC → Proxy 재빌드 · 80 리스너/0.0.0.0/0 정리 · RDS 재부팅 | output `manual_followups` · [MANUAL-FOLLOWUPS.md](MANUAL-FOLLOWUPS.md) · 도면 `docs/architecture-kdt5-terraform.drawio` |
 
 왜 WEB·WAS 를 코드로 안 만드나: 팀이 콘솔로 AMI(`web-appache`)·ASG(`web-test`)·WAS 를 이미 만들었고 "WEB·WAS 는 그대로" 결정. Terraform 이 이를 다시 만들면 두 벌이 되거나 교체된다. 대신 **경계(ALB 리스너 · SG 규칙 · IAM 인라인 · 알람 차원)** 만 코드가 붙인다.
 
