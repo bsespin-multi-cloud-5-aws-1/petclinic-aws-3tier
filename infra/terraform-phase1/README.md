@@ -8,11 +8,17 @@ kdt5 계정(723165663216)에 콘솔로 만든 3-Tier(WEB·WAS)를 **그대로 �
 | 네트워크 | VPC 10.0.0.0/16 · 서브넷 8 · IGW · NAT AZ당 1 · 라우팅 4(DB는 local만) | `test-vpc` 동일 CIDR. DB 라우팅만 수정 |
 | 보안 | SG 체인 alb-public → web → alb-internal → was → rds, 22번 없음 | `was-instance-sg` 8080 0.0.0.0/0 등 정리 |
 | IAM | `mc-ec2-role`(SSM · CW Agent · 비밀 읽기) | 역할만 있고 미부착이던 것을 부착 |
-| WEB | AL2023 t3.small ×2, Apache 2.4 · ProxyPass → Internal ALB · health.html | `WEB-test-a` + AZ-C |
+| WEB | AL2023 t3.small ×2, Apache 2.4 · 자체 index.html 없음(`/` → 302 `/petclinic/`) · ProxyPass → Internal ALB · health.html | `WEB-test-a`(index.html 삭제) + AZ-C |
 | Internal ALB | 8080 → tg-was(/petclinic/) | `alb-internal-test`(리스너 80) → 8080 통일 |
 | WAS | AL2023 t3.medium ×2, OpenJDK 8 · Tomcat 9.0.53 · `main` MySQL 프로필 빌드 시 주입 · systemd | `WAS-test-a`(t3.micro · 9.0.121 · H2 · 수동 기동) |
 | Public ALB | 80 → tg-web(/health.html) | `test-Public-ALB` |
-| RDS | MySQL 8.4 · db.t3.small · Multi-AZ · 관리형 비밀 · 파라미터 그룹 | 미구축 |
+| RDS | MySQL 8.4 · db.t3.small · Multi-AZ · 관리형 비밀 · 파라미터 그룹 · WAS 가 빌드 시 접속정보 주입 → 기동 시 schema/data.sql 자동 적용 | 미구축 |
+
+## 첫 화면과 DB 연결이 흐르는 길
+1. 사용자 `http://<public_alb_dns>/` → Apache `RewriteRule ^/$ /petclinic/ [R=302]` → 브라우저가 `/petclinic/` 재요청 → Internal ALB → Tomcat → Spring `welcome.jsp`. Apache 는 `health.html` 만 직접 응답.
+2. WAS user_data: Secrets Manager(`rds!db-…`) 에서 계정 조회 → `mvnw -P MySQL -Djdbc.url/username/password` 로 WAR 빌드(`datasource-config.xml` 이 Maven 필터링되므로 빌드 시점 주입이 유일한 방법) → Tomcat 기동.
+3. 앱 기동 시 `jdbc:initialize-database` 가 `db/mysql/schema.sql`·`data.sql` 을 RDS 에 실행 → `vets`·`owners`·`pets`·`visits` 테이블과 샘플 데이터 생성. user_data 끝에서 `mysql -e "SELECT COUNT(*) FROM vets…"` 로 확인(`/var/log/mc-userdata.log`).
+4. 연결 조건: SG `mc-sg-rds` 3306 ← `mc-sg-was` 만 · DB 서브넷 라우팅 local 만 · IAM 인라인 정책(secretsmanager:GetSecretValue + kms:Decrypt ViaService).
 
 ## 검증(적용 없이)
 ```bash

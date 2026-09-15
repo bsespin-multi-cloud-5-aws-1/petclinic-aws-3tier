@@ -6,7 +6,7 @@ exec > >(tee -a /var/log/mc-userdata.log) 2>&1
 REGION="${region}"
 TOMCAT_VER="${tomcat_version}"
 
-dnf install -y java-1.8.0-amazon-corretto-devel git unzip jq
+dnf install -y java-1.8.0-amazon-corretto-devel git unzip jq mariadb105   # mariadb105 = mysql CLI(연결 확인용)
 
 # ---- DB 자격증명: Secrets Manager(RDS 관리형) → 빌드 시점 주입 ----
 # pom 의 MySQL 프로필이 datasource-config.xml 까지 Maven 필터링하므로 런타임 -Djdbc.* 는 무시됨 → mvnw -Djdbc.* 로 빌드 시 주입
@@ -15,7 +15,17 @@ DB_USER=$(echo "$DB_SECRET" | jq -r .username)
 DB_PASS=$(echo "$DB_SECRET" | jq -r .password)
 # 값이 XML 속성에 들어가므로 & < > " 이스케이프 (RDS 관리형 비밀번호엔 특수문자가 꼭 있음)
 DB_PASS_XML=$(printf '%s' "$DB_PASS" | python3 -c 'import sys,html; print(html.escape(sys.stdin.read(), quote=True), end="")')
+# useSSL 미지정 = 8.0.19 드라이버 기본 PREFERRED → RDS 와 TLS 협상. caching_sha2_password(MySQL 8.4 기본)는 TLS 위에서 동작
 JDBC_URL="jdbc:mysql://${db_endpoint}:3306/${db_name}?useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Seoul"
+
+# ---- RDS 연결 대기: SG(was→rds 3306)·DB 라우팅 문제면 여기서 멈춤 → 로그로 원인 분리 ----
+for i in $(seq 1 30); do
+  timeout 3 bash -c "echo > /dev/tcp/${db_endpoint}/3306" 2>/dev/null && { echo "RDS reachable (${db_endpoint}:3306)"; break; }
+  echo "waiting RDS ${db_endpoint}:3306 ($i/30)"; sleep 10
+done
+# 계정으로 실제 로그인 + DB 존재 확인 (schema.sql 은 앱 기동 시 Spring initialize-database 가 실행 → 테이블은 아직 없어도 정상)
+mysql -h "${db_endpoint}" -u "$DB_USER" -p"$DB_PASS" -e "SELECT VERSION() AS mysql_version; SHOW DATABASES LIKE '${db_name}';" \
+  || echo "MYSQL LOGIN FAILED: 비밀/SG 확인"
 
 # ---- Tomcat (Blue = 9.0.53 은 archive 에만 있음) ----
 cd /tmp && curl -fLO "https://dlcdn.apache.org/tomcat/tomcat-9/v$TOMCAT_VER/bin/apache-tomcat-$TOMCAT_VER.tar.gz" \
@@ -59,3 +69,8 @@ systemctl daemon-reload && systemctl enable --now tomcat
 sleep 25
 curl -s -o /dev/null -w "petclinic %%{http_code}\n" "http://localhost:8080${app_context}/"
 curl -s "http://localhost:8080${app_context}/vets.json" | head -c 120; echo
+# DB 기능 확인: 앱 기동으로 schema.sql·data.sql 이 MySQL 에 적용됐는지 (H2 인메모리가 아닌 RDS 에 테이블·데이터 존재)
+mysql -h "${db_endpoint}" -u "$DB_USER" -p"$DB_PASS" "${db_name}" \
+  -e "SELECT 'vets' t, COUNT(*) n FROM vets UNION ALL SELECT 'owners', COUNT(*) FROM owners UNION ALL SELECT 'pets', COUNT(*) FROM pets;" \
+  || echo "DB CHECK FAILED: 앱이 RDS 에 스키마를 만들지 못함 → /opt/tomcat/logs/catalina.out 확인"
+unset DB_PASS DB_PASS_XML DB_SECRET
