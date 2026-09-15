@@ -101,9 +101,10 @@ resource "aws_db_proxy_target" "main" {
 
 # ---------- 백업: AWS Backup 일일 계획 (자동 백업 7일과 별도로 도쿄 복사는 로드맵) ----------
 resource "aws_backup_vault" "main" {
-  name        = "${local.p}-backup-vault"
-  kms_key_arn = aws_kms_key.main.arn
-  tags        = merge(local.tier_tag.db, { Name = "${local.p}-backup-vault" })
+  name          = "${local.p}-backup-vault"
+  force_destroy = true # destroy 시 복구 지점까지 삭제 (프로젝트 정리용)
+  kms_key_arn   = aws_kms_key.main.arn
+  tags          = merge(local.tier_tag.db, { Name = "${local.p}-backup-vault" })
 }
 
 resource "aws_backup_plan" "rds" {

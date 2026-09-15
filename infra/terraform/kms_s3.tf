@@ -58,23 +58,27 @@ locals {
 
 # ---------- 공개 이미지 버킷 (CloudFront OAC로만 읽기) ----------
 resource "aws_s3_bucket" "images" {
-  bucket = local.buckets.images.name
-  tags   = merge(local.tier_tag.edge, { Name = local.buckets.images.name })
+  bucket        = local.buckets.images.name
+  force_destroy = true # destroy 시 객체까지 삭제 (프로젝트 정리용)
+  tags          = merge(local.tier_tag.edge, { Name = local.buckets.images.name })
 }
 
 resource "aws_s3_bucket" "maintenance" {
-  bucket = local.buckets.maintenance.name
-  tags   = merge(local.tier_tag.edge, { Name = local.buckets.maintenance.name })
+  bucket        = local.buckets.maintenance.name
+  force_destroy = true # destroy 시 객체까지 삭제 (프로젝트 정리용)
+  tags          = merge(local.tier_tag.edge, { Name = local.buckets.maintenance.name })
 }
 
 resource "aws_s3_bucket" "logs" {
-  bucket = local.buckets.logs.name
-  tags   = merge(local.tier_tag.ops, { Name = local.buckets.logs.name })
+  bucket        = local.buckets.logs.name
+  force_destroy = true # destroy 시 객체까지 삭제 (프로젝트 정리용)
+  tags          = merge(local.tier_tag.ops, { Name = local.buckets.logs.name })
 }
 
 resource "aws_s3_bucket" "cloudtrail" {
-  bucket = local.buckets.cloudtrail.name
-  tags   = merge(local.tier_tag.ops, { Name = local.buckets.cloudtrail.name })
+  bucket        = local.buckets.cloudtrail.name
+  force_destroy = true # destroy 시 객체까지 삭제 (프로젝트 정리용)
+  tags          = merge(local.tier_tag.ops, { Name = local.buckets.cloudtrail.name })
 }
 
 locals {
