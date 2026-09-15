@@ -1,0 +1,6 @@
+aws_profile              = "kdt5-tf" # credential_process 프로파일 (README 참조)
+owner                    = "Junseok Pak"
+public_alb_ingress_cidrs = ["0.0.0.0/0"] # Blue 동안 팀 IP만 쓰려면 ["x.x.x.x/32", ...]
+app_repo_branch          = "main"        # Green 스테이징: "test"
+tomcat_version           = "9.0.53"      # Green: "9.0.121"
+create_bastion           = false
