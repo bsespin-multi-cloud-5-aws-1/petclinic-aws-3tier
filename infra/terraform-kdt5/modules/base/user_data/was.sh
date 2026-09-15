@@ -24,8 +24,11 @@ for i in $(seq 1 30); do
   timeout 3 bash -c "echo > /dev/tcp/${jdbc_host}/3306" 2>/dev/null && { echo "DB endpoint reachable (${jdbc_host}:3306)"; break; }
   echo "waiting ${jdbc_host}:3306 ($i/30)"; sleep 10
 done
-mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" -e "SELECT VERSION() AS mysql_version; SHOW DATABASES LIKE '${db_name}';" \
-  || echo "MYSQL LOGIN FAILED: 비밀/SG/Proxy 확인"
+# TCP 가 열려도 RDS Proxy 대상(target) 이 AVAILABLE 되기까지 몇 분 걸림 → 실제 로그인 성공까지 대기 (안 하면 앱이 Communications link failure 로 기동 실패)
+for i in $(seq 1 30); do
+  mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" -e "SELECT VERSION() AS mysql_version; SHOW DATABASES LIKE '${db_name}';" && { echo "DB login OK ($i)"; break; }
+  echo "DB login retry $i/30"; sleep 10
+done
 
 # ---- Tomcat ----
 cd /tmp && curl -fLO "https://dlcdn.apache.org/tomcat/tomcat-9/v$TOMCAT_VER/bin/apache-tomcat-$TOMCAT_VER.tar.gz" \
