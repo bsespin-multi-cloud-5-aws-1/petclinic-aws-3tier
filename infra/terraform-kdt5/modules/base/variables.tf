@@ -16,6 +16,12 @@ variable "app_repo_url" { type = string }
 variable "app_repo_branch" { type = string }
 variable "tomcat_version" { type = string }
 
+variable "web_index_branch" {
+  description = "Apache 첫 화면으로 쓸 WAR index.html 을 가져올 브랜치. 비면 app_repo_branch (main 에는 index.html 이 없어 302 폴백)"
+  type        = string
+  default     = ""
+}
+
 variable "public_http_listener" {
   description = "Public ALB 에 80 리스너(HTTP → tg-web)도 만들지. 설계는 CloudFront → 443 만이라 기본 false. NS 위임 전 ALB DNS 로 직접 확인할 때만 true"
   type        = bool

@@ -68,6 +68,7 @@ variable "base" {
     app_repo_branch      = optional(string, "main") # Blue = main. Phase 2 = test
     tomcat_version       = optional(string, "9.0.53")
     public_http_listener = optional(bool, false) # NS 위임 전 ALB DNS 로 직접 확인할 때만 true
+    web_index_branch     = optional(string, "")  # Apache 첫 화면 = 이 브랜치의 src/main/webapp/index.html. 비면 app_repo_branch
   })
   default = {}
 }

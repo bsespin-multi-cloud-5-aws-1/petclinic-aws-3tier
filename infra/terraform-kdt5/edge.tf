@@ -290,6 +290,19 @@ resource "aws_cloudfront_distribution" "main" {
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
+  # Behavior 1-b: WAR 의 images/* (index.html 의 hero.mp4 · 포스터) 도 캐시
+  ordered_cache_behavior {
+    path_pattern               = "${local.app_context}/images/*"
+    target_origin_id           = local.cf_origin_group
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
+  }
+
   # Behavior 2: 점검 페이지 객체 → S3 (custom_error_response 가 참조)
   ordered_cache_behavior {
     path_pattern           = "/maintenance.html"

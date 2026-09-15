@@ -24,6 +24,9 @@ resource "aws_instance" "web" {
     app_context      = var.app_context
     region           = var.region
     cwagent_param    = "${var.cwagent_param_prefix}/web"
+    repo_url         = var.app_repo_url
+    repo_branch      = var.app_repo_branch
+    index_branch     = var.web_index_branch
   })
   user_data_replace_on_change = true
 

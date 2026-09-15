@@ -18,6 +18,7 @@ module "base" {
   app_repo_branch      = var.base.app_repo_branch
   tomcat_version       = var.base.tomcat_version
   public_http_listener = var.base.public_http_listener
+  web_index_branch     = var.base.web_index_branch
 
   access_logs_bucket   = aws_s3_bucket_policy.logs.bucket # 정책 적용 후 ALB 생성
   db_secret_arn        = aws_db_instance.main.master_user_secret[0].secret_arn

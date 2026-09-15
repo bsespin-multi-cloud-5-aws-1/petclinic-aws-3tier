@@ -14,7 +14,7 @@
 | plan 결과 (2026-09-15 확인) | `1 to import, 67 to add, 1 to change` (database-1 in-place: parameter_group · backup 7 · deletion_protection · copy_tags · tags) | `127 to add` (module.base 59 + 68) |
 | tfvars 예시 | `terraform.tfvars.example` | `terraform.tfvars.mc-deploy.example` |
 
-create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw -P MySQL -Djdbc.*` 빌드 → 도면 ④ 경로가 처음부터 적용. CloudWatch Agent 도 SSM 파라미터(`/mc/cwagent/web|was`)로 설정. Apache 는 index.html 없이 `/` → 302 `/petclinic/` (X-Forwarded-Proto 가 https 면 https 절대 URL).
+create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw -P MySQL -Djdbc.*` 빌드 → 도면 ④ 경로가 처음부터 적용. CloudWatch Agent 도 SSM 파라미터(`/mc/cwagent/web|was`)로 설정. Apache 첫 화면은 `base.web_index_branch` 브랜치의 `src/main/webapp/index.html` 을 복사해 직접 서빙(자산·앱 링크는 `/petclinic/…` 절대 경로로 치환, `/petclinic/images/*` 도 CloudFront 캐시). 그 브랜치에 index.html 이 없으면(main=Blue) `/` → 302 `/petclinic/` 폴백.
 설계 경로가 CloudFront → 443 이라 Public ALB 80 리스너는 기본 없음 — NS 위임 전 ALB DNS 로 직접 확인하려면 `base.public_http_listener = true`.
 
 ## 무엇을 건드리고 무엇을 안 건드리나

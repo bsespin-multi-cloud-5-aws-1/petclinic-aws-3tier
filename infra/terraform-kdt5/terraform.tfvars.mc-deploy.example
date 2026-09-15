@@ -11,6 +11,7 @@ base = {
   app_repo_branch      = "main"   # Blue. Phase 2 = "test" + tomcat_version = "9.0.121"
   tomcat_version       = "9.0.53"
   public_http_listener = false    # NS 위임 전 ALB DNS 로 직접 확인하려면 true (확인 후 false 로 되돌려 apply)
+  web_index_branch     = "test"   # Apache 첫 화면 = test 브랜치 WAR 의 index.html (main 엔 없음)
 }
 
 # 새 RDS: 8.4(8.0 은 표준 지원 종료) · 20GB · 실습이라 삭제 방지 끔
