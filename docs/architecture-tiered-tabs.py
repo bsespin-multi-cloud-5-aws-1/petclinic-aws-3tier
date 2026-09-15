@@ -104,7 +104,7 @@ mxfile.append(full)
 
 # ================= tab 2: 진입 계층 =================
 p = Page("1. 네트워크 진입 계층 · 글로벌 엣지", "tab-entry", 2300, 1000)
-p.title("① 네트워크 진입 계층 · 글로벌 엣지", "사용자 → Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3(OAC) · X-Origin-Verify로 오리진 보호 · WAF 로그", 2200)
+p.title("① 네트워크 진입 계층 · 글로벌 엣지", "사용자 → Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3 점검 페이지(OAC) · X-Origin-Verify로 오리진 보호 · WAF 로그", 2200)
 p.vertex("cloud", "AWS Cloud (글로벌 엣지 · us-east-1)", STY["cloud"], 260, 150, 1330, 760)
 p.actor("users", "사용자 (의료진·환자)", 60, 330)
 p.service("r53", "DNS", "Amazon Route 53", "별칭 A/AAAA → CloudFront<br>Failover 없음(오리진 그룹으로 대체)", "route_53", "net", 320, 320)
@@ -112,22 +112,20 @@ p.service("cf", "CDN · 엣지", "Amazon CloudFront", "", "cloudfront", "net", 6
 p.attach("cf", "waf", "WAF", "waf", "sec", "tl")
 p.attach("cf", "acm", "ACM", "certificate_manager", "sec", "tr")
 p.service("cwl-waf", "WAF 로그", "CloudWatch Logs", "", "cloudwatch_logs", "integ", 600, 150, kind="sub")
-p.service("s3-img", "공개 이미지", "Amazon S3", "mc-images · OAC<br>시설·수의사·후기 사진", "s3", "storage", 880, 620)
 p.service("s3maint", "점검 페이지", "Amazon S3", "오리진 그룹 secondary · OAC<br>버킷 정책 SourceArn", "s3", "storage", 1160, 620)
 p.stub("to-web", "→ ② WEB 계층<br>IGW → Public ALB 443 (ACM 서울)", 1360, 345)
 p.edge("e1", "users", "r53", EDGE, label="DNS 조회", ly=-12, exit=(1,0.5), entry=(0,0.5))
 p.edge("e2", "r53", "cf", EDGE, label="별칭", ly=-12, exit=(1,0.5), entry=(0,0.5))
 p.edge("e5", "cf", "cwl-waf", EDGE_D, label="WAF 로그 · 차단", lx=0, ly=0, exit=(0.5,0), entry=(0.5,1))
 p.edge("e6", "cf", "to-web", EDGE, label="동적 · 로그인 · /resources 캐시 미스 → ALB (HTTPS only · X-Origin-Verify)", lx=0.05, ly=-12, exit=(1,0.5), entry=(0,0.5))
-p.edge("e7", "cf", "s3-img", EDGE, pts=[(660,600),(940,600)], label="/images/* → S3 오리진 (OAC · 캐시 1일+ · 서버 미경유)", lx=0.2, ly=12, exit=(0.5,1), entry=(0.5,0))
 p.edge("e8", "cf", "s3maint", EDGE_D, pts=[(700,560),(1220,560)], label="오리진 5xx → 점검 페이지", lx=0.3, ly=-11, exit=(0.85,1), entry=(0.5,0))
 for n,(x,y) in {1:(215,340),2:(500,300),3:(1330,300),4:(880,545)}.items(): p.badge(n,x,y)
-p.text("beh", "CloudFront 내부 처리 순서: WAF Web ACL 평가 → 캐시 조회 → Behavior (주소로 분기)<br>1) /petclinic/resources/* → ALB · CachingOptimized 1일<br>2) /images/* → S3 mc-images(OAC) · 캐시 1일+<br>3) 기본(/*, 로그인 콜백 /oauth2/idpresponse 포함) → ALB · CachingDisabled · AllViewer", 300, 790, 760, 90, "#8C4FFF", 11, False)
+p.text("beh", "CloudFront 내부 처리 순서: WAF Web ACL 평가 → 캐시 조회 → Behavior (주소로 분기)<br>1) /petclinic/resources/* → ALB · CachingOptimized 1일<br>2) /maintenance.html → S3 점검 버킷(OAC)<br>3) 기본(/*) → ALB · CachingDisabled · AllViewer", 300, 790, 760, 90, "#8C4FFF", 11, False)
 p.legend(1640, 30, 900, "진입 계층 · 흐름과 설정", [
  ("사용자 → Route 53", "hospital.example.com A/AAAA 별칭 → CloudFront. Route 53 Failover 없음(단일 리전). 리전 DR 시 로드맵"),
  ("CloudFront (WAF · ACM 부착)", "WAF는 별도 홉이 아니라 CloudFront에 붙은 Web ACL. 캐시 조회보다 먼저 평가하고 차단은 캐시·오리진 미도달(관리형 3 + rate 2, Count→Block, 로그 → CloudWatch Logs). ACM(us-east-1, 자동 갱신)도 부착. 정적은 엣지 캐시, 동적은 캐시 없이 ALB"),
  ("CloudFront → ALB", "Origin HTTPS only(ALB 443 + 서울 ACM), X-Origin-Verify 헤더로 우회 차단, SG는 CloudFront 접두사 목록만. 보안 헤더는 Response Headers Policy(HSTS·CSP·nosniff)"),
- ("CloudFront → S3 (OAC)", "/images/*는 mc-images 버킷을 직접 읽어 서버 미경유. 오리진 5xx면 점검 페이지 버킷. 둘 다 OAC(SigV4) + 버킷 정책 SourceArn 조건, 공개 읽기 없음. 환자 개인 이미지는 캐시 안 함(Presigned URL)"),
+ ("CloudFront → S3 (OAC)", "S3는 점검 페이지 버킷 하나만(오리진 5xx → custom error response). OAC(SigV4) + 버킷 정책 SourceArn 조건, 공개 읽기 없음. 공개 이미지 버킷은 9/15 제거 — 사진·영상은 WAR resources/에 두고 /petclinic/resources/* 캐시가 담당"),
 ], note="모서리 작은 아이콘(WAF · ACM)은 CloudFront에 부착된 기능이며 트래픽 경로가 아님. 이 탭의 로그: WAF 로그(CloudWatch Logs, 30일).")
 mxfile.append(p.d)
 
@@ -286,7 +284,7 @@ p.legend(2080, 30, 1000, "운영 · 관측 공통 — 흐름과 설정", [
  ("알람 → Auto Scaling", "WAS ASG 대상 추적(대상당 요청 수·CPU)이 CloudWatch 알람으로 동작. 예약 증설과 병행"),
  ("감사", "CloudTrail 관리 이벤트 90일 무료 + 추적으로 S3 1년 보관, S3 데이터 이벤트로 의료 파일 열람 기록"),
  ("운영자 접속", "SSM Session Manager(IAM·MFA) → 세션 로그 CloudWatch Logs. Run Command로 다수 인스턴스 설정 배포, Patch Manager로 롤링 패치"),
-], note="Systems Manager 하나로 접속·명령·패치 처리, Bastion 없음. Cognito 로그인·예약 알림 Lambda·Chatbot은 9/14 제외(발표 축과 무관).")
+], note="Systems Manager 하나로 접속·명령·패치 처리, Bastion 없음. Cognito 로그인·예약 알림 Lambda·Chatbot·공개 이미지 S3는 제외(발표 축과 무관, 9/15).")
 mxfile.append(p.d)
 
 tree = ET.ElementTree(mxfile); ET.indent(tree, space="  ")

@@ -224,7 +224,6 @@ resource "aws_cloudfront_origin_access_control" "s3" {
 
 locals {
   cf_origin_alb         = "alb-public"
-  cf_origin_images      = "s3-images"
   cf_origin_maintenance = "s3-maintenance"
   cf_origin_group       = "alb-with-maintenance-failover"
 }
@@ -232,7 +231,7 @@ locals {
 resource "aws_cloudfront_distribution" "main" {
   enabled         = true
   is_ipv6_enabled = true
-  comment         = "${local.p} petclinic (Behavior 분기: 정적 캐시 / 이미지 S3 / 동적·로그인 ALB)"
+  comment         = "${local.p} petclinic (Behavior 분기: 정적 캐시 / 점검 페이지 S3 / 동적 ALB)"
   aliases         = [var.domain_name]
   price_class     = "PriceClass_200"
   web_acl_id      = aws_wafv2_web_acl.main.arn
@@ -258,14 +257,8 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # 오리진 2: 공개 이미지 S3 (OAC)
-  origin {
-    domain_name              = aws_s3_bucket.images.bucket_regional_domain_name
-    origin_id                = local.cf_origin_images
-    origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
-  }
-
-  # 오리진 3: 점검 페이지 S3 (OAC) — 오리진 그룹 secondary
+  # 오리진 2: 점검 페이지 S3 (OAC) — 오리진 그룹 secondary
+  # (공개 이미지 S3 오리진 · /images/* Behavior는 9/15 제거 — 이미지는 WAR resources/ + /petclinic/resources/* 캐시)
   origin {
     domain_name              = aws_s3_bucket.maintenance.bucket_regional_domain_name
     origin_id                = local.cf_origin_maintenance
@@ -307,18 +300,6 @@ resource "aws_cloudfront_distribution" "main" {
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
     cache_policy_id        = data.aws_cloudfront_cache_policy.optimized.id
-  }
-
-  # Behavior 2: 공개 이미지 → S3 (서버 미경유)
-  ordered_cache_behavior {
-    path_pattern               = "/images/*"
-    target_origin_id           = local.cf_origin_images
-    viewer_protocol_policy     = "redirect-to-https"
-    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
-    cached_methods             = ["GET", "HEAD"]
-    compress                   = true
-    cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
-    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
   # Behavior 3 (기본): 동적 → ALB 직접 · 캐시 없음 (POST 허용 → 오리진 그룹 불가, 점검 페이지는 custom_error_response로)

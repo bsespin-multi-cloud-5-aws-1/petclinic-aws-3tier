@@ -14,7 +14,7 @@
 | Internal ALB | `internal-mc-alb-internal-526016631.ap-northeast-2.elb.amazonaws.com` (8080, sticky) |
 | RDS Proxy | `mc-rds-proxy.proxy-c7ku4mw88shn.ap-northeast-2.rds.amazonaws.com` |
 | Cognito | 풀 `ap-northeast-2_WiGQeZwfg`, Hosted UI `mc-hospital-528821350786.auth.ap-northeast-2.amazoncognito.com` |
-| 버킷 | `mc-images-…` · `mc-maintenance-…` · `mc-logs-…` · `mc-cloudtrail-…` (접미사 = 계정 ID) |
+| 버킷 | `mc-maintenance-…` · `mc-logs-…` · `mc-cloudtrail-…` (접미사 = 계정 ID) |
 | SNS | `mc-alerts` (이메일·Chatbot 구독은 tfvars에서 추가) |
 | Lambda | `mc-notify-reservation` (Slack webhook 값은 Secrets `mc/slack-webhook-reservations`에 수동 입력) |
 
@@ -56,7 +56,7 @@ Terraform AWS 프로바이더는 `aws login` 세션을 직접 읽지 못한다 �
 | `compute.tf` `user_data/` | ② ③ | 시작 템플릿(IMDSv2), ASG WEB(CPU 60%) · WAS(대상당 요청 수 + CPU + 예약 증설 + 종료 훅) |
 | `rds.tf` | ④ DB | RDS MySQL 8.0 Multi-AZ(관리형 비밀 · `require_secure_transport`), RDS Proxy(Require TLS), AWS Backup 일일 |
 | `cognito.tf` | ① / ③ | 사용자 풀 · 그룹 vets/admins · 앱 클라이언트 · OIDC 설정 Secrets |
-| `kms_s3.tf` | 공통 | CMK, 버킷 4개(images · maintenance · logs · cloudtrail), OAC 버킷 정책, Lifecycle |
+| `kms_s3.tf` | 공통 | CMK, 버킷 3개(maintenance · logs · cloudtrail), OAC 버킷 정책, Lifecycle |
 | `observability.tf` `lambda/` | ⑤ 운영 | 로그 그룹, 알람 3 + 예약 폭주, SNS → Chatbot, 예약 알림 Lambda(구독 필터), CloudTrail, SSM 세션 설정, Managed Grafana(선택) |
 | `network.tf` `security.tf` `iam.tf` | 기반 | VPC · 서브넷 8 · NAT 2 · 라우팅, SG 체인, EC2/RDS Proxy 역할 |
 

@@ -108,7 +108,7 @@ ET.SubElement(tg, "mxGeometry", x="50", y="30", width="2000", height="83").set("
 t1 = ET.SubElement(root, "mxCell", id="title-text", value="PetClinic 3-Tier on AWS — 계층별 상세 아키텍처 (1팀 Mission Critical)",
                    style=f"text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t1, "mxGeometry", width="1600", height="42").set("as", "geometry")
-t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB 계층별 구성 + 각 계층의 운영·보안 로그  |  Apache 2.4 → Internal ALB → Tomcat 9.0.121 / OpenJDK 8 → RDS MySQL 8 Multi-AZ  |  개인정보는 RDS · 로그인 없음(공개 앱) · Slack은 Grafana Alerting  |  9/14 최종",
+t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB 계층별 구성 + 각 계층의 운영·보안 로그  |  Apache 2.4 → Internal ALB → Tomcat 9.0.121 / OpenJDK 8 → RDS MySQL 8 Multi-AZ  |  개인정보는 RDS · 로그인 없음(공개 앱) · Slack은 Grafana Alerting · 이미지 버킷 없음  |  9/15 최종",
                    style=f"text;html=1;resizable=0;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=16;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t2, "mxGeometry", x="5", y="40", width="1600", height="25").set("as", "geometry")
 t3 = ET.SubElement(root, "mxCell", id="title-separator", value="", style=f"line;strokeWidth=2;html=1;fontSize=14;strokeColor=#FF9900;{FONT}", vertex="1", parent="title-group")
@@ -116,7 +116,7 @@ ET.SubElement(t3, "mxGeometry", x="5", y="70", width="1990", height="10").set("a
 
 # ---------- groups ----------
 vertex("aws-cloud", "AWS Cloud", STY["cloud"], 230, 140, 1820, 2000)
-vertex("band-entry", "①  네트워크 진입 계층 · 글로벌 엣지 (Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3 OAC · X-Origin-Verify로 오리진 보호)",
+vertex("band-entry", "①  네트워크 진입 계층 · 글로벌 엣지 (Route 53 → CloudFront [WAF Web ACL · ACM 부착] → ALB / S3 점검 페이지 OAC · X-Origin-Verify로 오리진 보호)",
        f"rounded=0;fillColor=none;dashed=1;strokeColor=#8C4FFF;verticalAlign=top;align=left;spacingLeft=10;fontColor=#8C4FFF;fontStyle=1;fontSize=14;whiteSpace=wrap;html=1;container=0;pointerEvents=0;{FONT}",
        250, 165, 1780, 300)
 vertex("region", "ap-northeast-2 (서울)", STY["region"], 260, 500, 1760, 1580)
@@ -167,7 +167,6 @@ service("cf", "CDN · 엣지", "Amazon CloudFront", "", "cloudfront", "net", 520
 attach("cf", "waf", "WAF", "waf", "sec", "tl")
 attach("cf", "acm-cf", "ACM", "certificate_manager", "sec", "tr")
 service("s3maint", "점검 페이지 (OAC)", "Amazon S3", "", "s3", "storage", 1000, 260)
-service("s3-img", "공개 이미지 (OAC)", "Amazon S3", "", "s3", "storage", 1240, 260)
 service("cwl-waf", "WAF 로그", "CloudWatch Logs", "", "cloudwatch_logs", "integ", 1480, 260, kind="sub")
 
 # ---------- VPC · middle lane ----------
@@ -196,7 +195,7 @@ service("ssm", "운영자 접속", "SSM Session Manager", "22번 포트 없음<b
 service("cwl-was", "WAS 로그", "CloudWatch Logs", "/mc/was catalina · access · gc<br>보존 30일", "cloudwatch_logs", "integ", 1550, 1180, kind="sub")
 service("asg", "증설 정책", "Auto Scaling", "대상 추적 · 예약 증설<br>종료 수명 주기 훅", "autoscaling", "compute", 1710, 1180)
 service("secrets", "비밀 관리", "Secrets Manager", "RDS 관리형 비밀<br>7일 자동 로테이션", "secrets_manager", "sec", 1550, 1410)
-service("kms", "암호화 키", "AWS KMS", "CMK · 버킷 키<br>S3 이미지 · RDS · Secrets", "key_management_service", "sec", 1710, 1410)
+service("kms", "암호화 키", "AWS KMS", "CMK · 버킷 키<br>S3 점검·로그 · RDS · Secrets", "key_management_service", "sec", 1710, 1410)
 service("backup", "백업", "AWS Backup", "자동 백업 7일 · PITR<br>Phase 전 스냅샷 (Standby)", "backup", "storage", 1870, 1410)
 
 # ---------- storage / audit band ----------
@@ -215,7 +214,6 @@ edge("e5", "cf", "cwl-waf", EDGE_D, pts=[(580, 228), (1540, 228)], label="WAF �
 edge("e6", "cf", "s3maint", EDGE_D, pts=[(610, 440), (1060, 440)], label="오리진 실패(5xx·타임아웃) → 점검 페이지 (OAC SigV4 서명)", lx=-0.1, ly=12, exit=(0.75, 1), entry=(0.5, 1))
 edge("e7", "cf", "igw", EDGE, pts=[(580, 464), (900, 464)], label="HTTPS only · X-Origin-Verify · 캐시 미스만 오리진", lx=-0.45, ly=-12, exit=(0.5, 1), entry=(0.5, 0))
 edge("e8", "igw", "alb", EDGE, exit=(0.5, 1), entry=(0.5, 0))
-edge("e38", "cf", "s3-img", EDGE, pts=[(628, 412), (1300, 412)], label="/images/* → S3 오리진 (OAC · 캐시 1일+) · 서버 미경유", lx=0.2, ly=12, exit=(0.9, 1), entry=(0.5, 1))
 edge("e10", "alb", "web-a", EDGE, pts=[(870, 858), (440, 858)], label="tg-web · /health.html 10s · 2/3", lx=0.1, ly=-12, exit=(0.25, 1), entry=(0.5, 0))
 edge("e11", "alb", "web-c", EDGE, pts=[(930, 858), (1090, 858)], exit=(0.75, 1), entry=(0.5, 0))
 edge("e12", "web-a", "ialb", EDGE, pts=[(440, 1108), (870, 1108)], label="ProxyPass /petclinic/ · ProxyPreserveHost", lx=0.1, ly=-12, exit=(0.5, 1), entry=(0.25, 0))
@@ -256,7 +254,7 @@ ET.SubElement(lt, "mxGeometry", width="580", height="24").set("as", "geometry")
 steps = [
  ("① 사용자 → Route 53", "도메인 조회 후 A/AAAA 별칭이 CloudFront를 가리킴. Route 53 Failover는 단일 리전에서 불필요 → CloudFront 오리진 그룹으로 대체(리전 DR 시 로드맵)"),
  ("① CloudFront (WAF · ACM 부착)", "WAF는 별도 홉이 아니라 CloudFront에 붙은 Web ACL: 캐시 조회보다 먼저 평가하고 차단은 캐시·오리진에 도달하지 않음(관리형 3 + rate 전체 2,000/5분·예약 100/5분, 로그 → CloudWatch Logs). ACM 인증서(us-east-1, 자동 갱신)도 부착. Behavior: /resources·/images 캐시, 동적은 ALB. 보안 헤더 정책, HTTP→HTTPS"),
- ("① CloudFront Behavior 분기 → ALB / S3(OAC)", "주소로 분기: /petclinic/resources/* 는 캐시(오리진 ALB), /images/* 는 S3 mc-images 오리진(시설·수의사·후기 사진, 서버 미경유), /login·/oauth2·나머지 동적은 ALB로 캐시 없이 쿠키·쿼리 전달. ALB 오리진은 HTTPS only + X-Origin-Verify. S3 오리진은 OAC(SigV4) + 버킷 정책 SourceArn, 공개 읽기 없음. 오리진 5xx 시 S3 점검 페이지. 환자 개인 이미지(MRI 등)는 캐시하지 않고 Presigned URL로만"),
+ ("① CloudFront Behavior 분기 → ALB / S3(OAC)", "주소로 분기: /petclinic/resources/* 는 캐시(오리진 ALB · AllViewer로 Host 전달), 나머지 동적은 ALB로 캐시 없이 쿠키·쿼리 전달. ALB 오리진은 HTTPS only + X-Origin-Verify. S3는 점검 페이지 버킷 하나만 — OAC(SigV4) + 버킷 정책 SourceArn, 공개 읽기 없음. 오리진 5xx 시 custom error response로 점검 페이지. 이미지는 WAR resources/에 포함(별도 이미지 버킷 없음, 9/15)"),
  ("② Public ALB → WEB ASG", "tg-web 헬스체크 /health.html(얕게) 10s·5s·2/3, 등록 취소 30s. WEB ASG CPU 60% 대상 추적, min 2·max 6, 두 AZ 균등"),
  ("② WEB → Internal ALB", "Apache ProxyPass /petclinic/ + ProxyPreserveHost On(Host·X-Forwarded-For 유지). MPM event 튜닝, 정적 파일 직접 서빙"),
  ("③ Internal ALB → WAS ASG", "tg-was 헬스체크 /petclinic/(슬래시 필수, 302 방지). WAS ASG 대상당 요청 수 + CPU 대상 추적, 예약 증설(이벤트 15분 전 4대), min 2·max 8, 워밍업 300s"),
@@ -279,7 +277,7 @@ for i, (title, desc) in enumerate(steps, 1):
     d = ET.SubElement(root, "mxCell", id=f"step-{i}-desc-legend", value=val, style=f"text;html=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=13;labelBackgroundColor=none;whiteSpace=wrap;{FONT}", vertex="1", parent=f"step-{i}-legend")
     ET.SubElement(d, "mxGeometry", x="52", width="548", height="100").set("as", "geometry")
     y += 106
-note = ET.SubElement(root, "mxCell", id="legend-note", value='<i><span style="color: light-dark(rgb(0,0,0), rgb(255,255,255));">모서리 작은 아이콘(WAF · ACM)은 호스트에 부착된 기능이며 트래픽 경로가 아님. 아이콘 설명은 범례로 이동. NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인·예약 알림 Lambda·Chatbot은 9/14 제외(발표 축과 무관). Slack은 Grafana Alerting 한 경로. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.</span></i>', style=f"text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;{FONT}", vertex="1", parent="legend-container")
+note = ET.SubElement(root, "mxCell", id="legend-note", value='<i><span style="color: light-dark(rgb(0,0,0), rgb(255,255,255));">모서리 작은 아이콘(WAF · ACM)은 호스트에 부착된 기능이며 트래픽 경로가 아님. 아이콘 설명은 범례로 이동. NAT Gateway·IGW는 흐름 번호 없이 표시. Slack은 외부 SaaS. 로그인(Cognito)·예약 알림 Lambda·Chatbot·공개 이미지 S3 버킷은 제외(9/15). Slack은 Grafana Alerting 한 경로. 진료 파일 S3 저장·Object Lock Compliance·Macie는 시나리오에서 제외(개인정보는 RDS). Redis(ElastiCache)는 로드맵.</span></i>', style=f"text;html=1;align=left;verticalAlign=top;fontSize=12;whiteSpace=wrap;{FONT}", vertex="1", parent="legend-container")
 ET.SubElement(note, "mxGeometry", x="0", y=str(y + 6), width="600", height="44").set("as", "geometry")
 y += 60
 lsg = ET.SubElement(root, "mxCell", id="legend-line-styles-group", value="", style=f"group;{FONT}fillColor=light-dark(#F5F5F5,#29393B);strokeColor=#666666;", vertex="1", parent="legend-container")

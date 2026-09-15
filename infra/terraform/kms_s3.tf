@@ -49,20 +49,14 @@ resource "aws_kms_alias" "main" {
 # ---------- 공통 버킷 설정 헬퍼 ----------
 locals {
   buckets = {
-    images      = { name = "${local.p}-images-${data.aws_caller_identity.current.account_id}", tier = "edge" }
     maintenance = { name = "${local.p}-maintenance-${data.aws_caller_identity.current.account_id}", tier = "edge" }
     logs        = { name = "${local.p}-logs-${data.aws_caller_identity.current.account_id}", tier = "ops" }
     cloudtrail  = { name = "${local.p}-cloudtrail-${data.aws_caller_identity.current.account_id}", tier = "ops" }
   }
 }
 
-# ---------- 공개 이미지 버킷 (CloudFront OAC로만 읽기) ----------
-resource "aws_s3_bucket" "images" {
-  bucket        = local.buckets.images.name
-  force_destroy = true # destroy 시 객체까지 삭제 (프로젝트 정리용)
-  tags          = merge(local.tier_tag.edge, { Name = local.buckets.images.name })
-}
-
+# ---------- 점검 페이지 버킷 (CloudFront OAC로만 읽기) ----------
+# 공개 이미지 버킷(mc-images · 수의사/후기 사진)은 9/15 제거 — 정적 이미지는 WAR resources/ 로 통합, /petclinic/resources/* CloudFront 캐시가 담당
 resource "aws_s3_bucket" "maintenance" {
   bucket        = local.buckets.maintenance.name
   force_destroy = true # destroy 시 객체까지 삭제 (프로젝트 정리용)
@@ -83,7 +77,6 @@ resource "aws_s3_bucket" "cloudtrail" {
 
 locals {
   all_buckets = {
-    images      = aws_s3_bucket.images
     maintenance = aws_s3_bucket.maintenance
     logs        = aws_s3_bucket.logs
     cloudtrail  = aws_s3_bucket.cloudtrail
@@ -107,9 +100,9 @@ resource "aws_s3_bucket_versioning" "all" {
   }
 }
 
-# 이미지·점검 페이지: SSE-KMS + 버킷 키. 로그 버킷은 전송 서비스 호환을 위해 SSE-S3
+# 점검 페이지·CloudTrail: SSE-KMS + 버킷 키. 로그 버킷은 전송 서비스 호환을 위해 SSE-S3
 resource "aws_s3_bucket_server_side_encryption_configuration" "kms" {
-  for_each = { images = aws_s3_bucket.images, maintenance = aws_s3_bucket.maintenance, cloudtrail = aws_s3_bucket.cloudtrail }
+  for_each = { maintenance = aws_s3_bucket.maintenance, cloudtrail = aws_s3_bucket.cloudtrail }
   bucket   = each.value.id
   rule {
     apply_server_side_encryption_by_default {
@@ -179,9 +172,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail" {
 }
 
 # ---------- 버킷 정책 ----------
-# 이미지 · 점검 페이지: CloudFront OAC(SigV4) + SourceArn 조건. 공개 읽기 없음
+# 점검 페이지: CloudFront OAC(SigV4) + SourceArn 조건. 공개 읽기 없음
 data "aws_iam_policy_document" "oac_bucket" {
-  for_each = { images = aws_s3_bucket.images, maintenance = aws_s3_bucket.maintenance }
+  for_each = { maintenance = aws_s3_bucket.maintenance }
   statement {
     sid       = "AllowCloudFrontOAC"
     actions   = ["s3:GetObject"]
@@ -214,7 +207,7 @@ data "aws_iam_policy_document" "oac_bucket" {
 }
 
 resource "aws_s3_bucket_policy" "oac" {
-  for_each = { images = aws_s3_bucket.images, maintenance = aws_s3_bucket.maintenance }
+  for_each = { maintenance = aws_s3_bucket.maintenance }
   bucket   = each.value.id
   policy   = data.aws_iam_policy_document.oac_bucket[each.key].json
 }
