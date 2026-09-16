@@ -1,6 +1,7 @@
 # 멘토링 질문지 — "왜?"를 트레이드오프 · 비용 · 운영 부담 관점으로 (2026-09-16)
 
 > 각 항목: **우리 선택 → 트레이드오프 → 비용(서울 온디맨드 · 월 · 데이터 전송 제외 · 대략) → 운영 부담 → 멘토께 드릴 질문**.
+> 질문의 용어가 낯설면 먼저 `notion-concepts-glossary.md`(개념 정리)를 읽을 것.
 > 현재 mc-deploy As-Built 기준(`docs/architecture-mc-deploy-asbuilt.png`). 월 총액 대략 **$330~380** (EC2 4대 ~$90 · NAT 2 ~$86 · ALB 2 ~$40 · RDS Multi-AZ ~$80 · Proxy ~$22 · WAF ~$11 · 로그·비밀·KMS·Backup ~$10 · CloudFront 프리 티어).
 
 ## 1. CloudFront 캐시 키 · WAF rate-based rule
