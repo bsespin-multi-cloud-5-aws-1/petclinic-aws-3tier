@@ -58,5 +58,5 @@ curl -s -o /dev/null -w "%{http_code}\n" https://petclinic.mission-critical.site
 curl -s -o /dev/null -w "%{http_code} x-cache=%header{x-cache}\n" https://petclinic.mission-critical.site/petclinic/resources/css/petclinic.css   # Hit
 curl -s https://petclinic.mission-critical.site/petclinic/vets.json | head -c 120                                  # DB 데이터
 curl -sk -m 8 -o /dev/null -w "%{http_code}\n" https://mc-alb-public-485062926.ap-northeast-2.elb.amazonaws.com/  # 타임아웃 = 차단
-aws ssm start-session --target i-015607ed29d17ce84 --profile mc-deploy       # WAS 접속 → grep vets /var/log/mc-userdata.log
+aws ssm start-session --target i-0629cd519085394a3 --profile mc-deploy       # WAS 접속 → grep vets /var/log/mc-userdata.log
 ```
