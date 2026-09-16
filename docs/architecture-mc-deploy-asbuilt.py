@@ -72,7 +72,7 @@ class D:
 
 
 d = D("mc-deploy As-Built (2026-09-16)", 2820, 1420)
-d.text("title", "현재 아키텍처 As-Built — mc-deploy(528821350786) · infra/terraform-kdt5 create_base=true · 2026-09-16 apply 완료 (127 리소스)", 40, 20, 2400, 40, size=26, bold=True)
+d.text("title", "현재 아키텍처 As-Built — mc-deploy(528821350786) · infra/terraform-kdt5 create_base=true · 2026-09-16 apply 완료 (127 리소스) · 롤링 교체 후", 40, 20, 2400, 40, size=26, bold=True)
 d.text("subtitle", "사용자 → Route 53 → CloudFront(WAF) → Public ALB :443(X-Origin-Verify) → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.53 · OpenJDK 8 · PetClinic main ×2 → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ  |  검증: / 302 → /petclinic/ 200 · vets 6 / owners 10 / pets 13 · CloudFront css Hit · ALB 직접 접근 차단",
        40, 60, 2500, 30, size=13, color="#555555")
 d.v("cloud", "AWS Cloud · 528821350786 (mc-deploy) · Terraform state: infra/terraform-kdt5/terraform.tfstate", STY["cloud"], 40, 110, 2740, 1250)
@@ -83,10 +83,10 @@ d.v("user", "사용자<br>https://petclinic.mission-critical.site/", f"sketch=0;
 d.svc("r53", "Route 53", "mission-critical.site · Z0299891BL9WGKOA2LW9<br>A/AAAA alias → CloudFront<br>NS 4개 가비아 위임 완료", "route_53", "net", 250, 180, w=150)
 d.svc("acm", "ACM ×2 (ISSUED)", "cloudfront: us-east-1<br>alb: 서울(443 리스너)<br>DNS 검증 21분", "certificate_manager", "sec", 410, 180, w=130)
 d.svc("waf", "WAF v2 mc-web-acl", "관리형 3(IpReputation·Common·KnownBadInputs)<br>rate-all 2000/5분 · rate-booking 100/5분(/visits/new)<br>allow-loadgen(비어 있음) · 로그 → aws-waf-logs-mc", "waf", "sec", 100, 340, w=200, h=140)
-d.svc("cf", "CloudFront E2PWXW3LUYTDEE", "d2p7som2iuyba.cloudfront.net · PriceClass_200<br>Behavior: /petclinic/resources/* 캐시(Hit 확인) · /maintenance.html S3 · * 동적(캐시 없음)<br>5xx → 503 점검 페이지 · 오리진 그룹 failover", "cloudfront", "net", 320, 340, w=210, h=140)
+d.svc("cf", "CloudFront E2PWXW3LUYTDEE", "d2p7som2iuyba.cloudfront.net · PriceClass_200<br>Behavior: /petclinic/resources/* · /petclinic/images/* 캐시 · /maintenance.html S3 · * 동적(캐시 없음)<br>5xx → 503 점검 페이지 · 오리진 그룹 failover", "cloudfront", "net", 320, 340, w=210, h=140)
 d.svc("s3-maint", "S3 점검 페이지", "mc-maintenance-528821350786<br>maintenance.html · OAC 전용", "simple_storage_service", "stor", 100, 500, w=200, h=110)
 d.svc("kms", "KMS alias/mc-cmk", "S3(점검·CloudTrail) · SNS · Logs · Backup<br>RDS·비밀은 AWS 관리형 키", "key_management_service", "sec", 320, 500, w=210, h=110)
-d.note("edge-how", "<b>정적 · 동적 분리 (현재 조치)</b><br>• 정적 <code>/petclinic/resources/*</code>: CloudFront CachingOptimized(기본 1일) + compress → 캐시 미스만 오리진(AllViewer 로 Host 전달) · 첫 요청 Miss → 이후 Hit 확인<br>• 동적 <code>*</code>: CachingDisabled + AllViewer(쿠키·쿼리 그대로) → 매번 ALB<br>• ALB 는 정적/동적 구분 없이 Apache ×2 로 라운드로빈 → Apache 는 /petclinic/ 전부 Internal ALB 로 프록시 · /health.html 만 직접<br>• WAF 는 캐시 조회보다 먼저 평가 → 차단은 오리진 미도달", 100, 640, 430, 170)
+d.note("edge-how", "<b>정적 · 동적 분리 (현재 조치)</b><br>• 정적 <code>/petclinic/resources/*</code> · <code>/petclinic/images/*</code>(hero.mp4): CloudFront CachingOptimized(기본 1일) + compress → 캐시 미스만 오리진(AllViewer 로 Host 전달) · 첫 요청 Miss → 이후 Hit 확인<br>• 동적 <code>*</code>: CachingDisabled + AllViewer(쿠키·쿼리 그대로) → 매번 ALB<br>• ALB 는 정적/동적 구분 없이 Apache ×2 로 라운드로빈 → Apache 는 /petclinic/ 전부 Internal ALB 로 프록시 · /health.html 만 직접<br>• WAF 는 캐시 조회보다 먼저 평가 → 차단은 오리진 미도달", 100, 640, 430, 170)
 d.note("edge-sec", "<b>오리진 보호</b> Public ALB SG 인바운드 = CloudFront origin-facing 프리픽스 443 만 · 리스너 기본 403 · 규칙10: X-Origin-Verify 헤더 일치 → mc-tg-web. 80 리스너 없음. ALB DNS 직접 curl → 타임아웃(차단) 확인", 100, 830, 430, 110)
 d.note("edge-out", "<b>outputs</b> app_url · cloudfront_domain d2p7som2iuyba.cloudfront.net · public_alb_dns mc-alb-public-485062926.ap-northeast-2.elb.amazonaws.com · rds_proxy_endpoint · was_jdbc_url · rds_master_secret_arn(rds!db-ffb62b33…) · sns_alerts_topic_arn", 100, 960, 430, 120)
 
@@ -106,12 +106,12 @@ d.svc("nat-a", "NAT Gateway", "mc-nat-a · EIP<br>dnf · git · Maven · SSM 아
 d.svc("alb-pub", "Public ALB mc-alb-public", "internet-facing · :443 HTTPS(ACM) · 기본 403<br>규칙 X-Origin-Verify → mc-tg-web :80 /health.html 10s·2/3<br>SG mc-sg-alb-public 443 ← CloudFront 프리픽스 · 액세스 로그 → S3 mc-logs/alb/public", "application_load_balancer", "net", 1180, 285, w=360, h=125)
 d.svc("nat-c", "NAT Gateway", "mc-nat-c · EIP", "nat_gateway", "net", 1935, 285, w=170)
 d.v("web-tier", "WEB ×2 (EC2 고정 · ASG 없음 — 이 코드는 EC2 2대. ASG·AMI 는 infra/terraform 또는 Golden AMI 단계)", "fillColor=none;strokeColor=#ED7100;dashed=1;dashPattern=8 4;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=11;fontColor=#ED7100;whiteSpace=wrap;html=1;" + FONT, 650, 470, 1440, 135)
-d.svc("web-a", "mc-web-a (Apache 2.4)", "i-0943153f3089c0c7e · 10.0.10.198 · t3.small · AL2023<br>index.html 없음 · / → 302 /petclinic/ · /health.html 만 직접<br>ProxyPass /petclinic/ → Internal ALB · CW Agent(/mc/web)", "ec2", "compute", 670, 490, w=330, h=110)
-d.svc("web-c", "mc-web-c (Apache 2.4)", "i-0b24d4f73a280d4c6 · 10.0.11.44 · t3.small<br>SG mc-sg-web 80 ← sg-alb-public · SSM Online", "ec2", "compute", 1760, 490, w=310, h=110)
+d.svc("web-a", "mc-web-a (Apache 2.4)", "i-07c47fe19180736cb · t3.small · AL2023<br><b>index.html = test 브랜치 WAR 의 index.html 복사</b>(자산·링크 /petclinic/ 치환) · / 200<br>ProxyPass /petclinic/ → Internal ALB · /health.html · CW Agent(/mc/web)", "ec2", "compute", 670, 490, w=330, h=110)
+d.svc("web-c", "mc-web-c (Apache 2.4)", "i-071f9b1676227f1fe · t3.small · 같은 user_data<br>SG mc-sg-web 80 ← sg-alb-public · SSM Online", "ec2", "compute", 1760, 490, w=310, h=110)
 d.v("was-tier", "WAS ×2 (EC2 고정)", "fillColor=none;strokeColor=#ED7100;dashed=1;dashPattern=8 4;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=11;fontColor=#ED7100;whiteSpace=wrap;html=1;" + FONT, 650, 650, 1440, 145)
-d.svc("was-a", "mc-was-a (Tomcat 9.0.53 · OpenJDK 8)", "i-00389853e6802dc84 · 10.0.20.104 · t3.medium<br>PetClinic main · mvnw -P MySQL -Djdbc.url=Proxy(TLS) 빌드 · systemd<br>CW Agent(/mc/was catalina·access·gc) · SG mc-sg-was 8080 ← sg-alb-internal", "ec2", "compute", 670, 670, w=340, h=120)
+d.svc("was-a", "mc-was-a (Tomcat 9.0.53 · OpenJDK 8)", "i-015607ed29d17ce84 · t3.medium<br>PetClinic main · mvnw -P MySQL -Djdbc.url=Proxy(TLS) 빌드 · systemd<br>CW Agent(/mc/was catalina·access·gc) · SG mc-sg-was 8080 ← sg-alb-internal", "ec2", "compute", 670, 670, w=340, h=120)
 d.svc("alb-int", "Internal ALB mc-alb-internal", "internal · :8080 → mc-tg-was :8080 /petclinic/ 10s·2/3<br>SG mc-sg-alb-internal 8080 ← sg-web · 액세스 로그 → S3 mc-logs/alb/internal", "application_load_balancer", "net", 1180, 670, w=360, h=120)
-d.svc("was-c", "mc-was-c (Tomcat 9.0.53 · OpenJDK 8)", "i-0f4a4994481f85bab · 10.0.21.31 · t3.medium<br>(첫 부팅 때 Proxy 준비 전 기동 → 재시작으로 복구 · was.sh 보강 b8c5aa1)", "ec2", "compute", 1760, 670, w=310, h=120)
+d.svc("was-c", "mc-was-c (Tomcat 9.0.53 · OpenJDK 8)", "i-0423a0c0bca014c9b · t3.medium<br>was.sh 보강(b8c5aa1): Proxy 로그인 성공까지 대기 후 기동", "ec2", "compute", 1760, 670, w=310, h=120)
 d.svc("proxy", "RDS Proxy mc-rds-proxy", "mc-rds-proxy.proxy-c7ku4mw88shn.ap-northeast-2.rds.amazonaws.com<br>require_tls · SECRETS 인증(mc-rds-proxy-role) · 대상 AVAILABLE<br>SG mc-sg-rds-proxy 3306 ← sg-was · DB 서브넷 ×2", "rds_proxy", "db", 670, 835, w=340, h=125)
 d.svc("pg", "파라미터 그룹 mc-mysql84", "family mysql8.4<br>require_secure_transport=1<br>utf8mb4 · utf8mb4_unicode_ci", "rds", "db", 1030, 835, w=190, h=125)
 d.svc("rds", "RDS mc-petclinic (Standby 2c)", "MySQL 8.4.11 · db.t3.small · Multi-AZ · 20→100GB gp3 · 암호화<br>db petclinic · admin · 관리형 비밀 rds!db-ffb62b33… · 백업 7일<br>이 AZ(2a) = Secondary", "rds", "db", 670, 975, w=340, h=120)
