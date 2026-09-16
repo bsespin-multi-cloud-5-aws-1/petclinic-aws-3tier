@@ -290,7 +290,20 @@ resource "aws_cloudfront_distribution" "main" {
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
-  # Behavior 1-b: WAR 의 images/* (index.html 의 hero.mp4 · 포스터) 도 캐시
+  # Behavior 1-c: Apache 가 직접 서빙하는 랜딩 페이지 자산(/static/* = index 브랜치의 resources/·images/) 캐시
+  ordered_cache_behavior {
+    path_pattern               = "/static/*"
+    target_origin_id           = local.cf_origin_group
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
+  }
+
+  # Behavior 1-b: WAR 의 images/* (test 브랜치 WAR 를 올렸을 때 hero.mp4 · 포스터) 도 캐시
   ordered_cache_behavior {
     path_pattern               = "${local.app_context}/images/*"
     target_origin_id           = local.cf_origin_group
