@@ -58,6 +58,7 @@ resource "aws_acm_certificate_validation" "alb" {
 
 # ---------- WAF (CLOUDFRONT 범위 · us-east-1) — 별도 홉이 아니라 CloudFront 에 부착된 Web ACL ----------
 resource "aws_cloudwatch_log_group" "waf" {
+  count             = var.enable_waf ? 1 : 0
   provider          = aws.us_east_1
   name              = "aws-waf-logs-${local.p}"
   retention_in_days = var.log_retention_days
@@ -65,6 +66,7 @@ resource "aws_cloudwatch_log_group" "waf" {
 }
 
 resource "aws_wafv2_ip_set" "loadgen" {
+  count              = var.enable_waf ? 1 : 0
   provider           = aws.us_east_1
   name               = "${local.p}-loadgen"
   scope              = "CLOUDFRONT"
@@ -74,6 +76,7 @@ resource "aws_wafv2_ip_set" "loadgen" {
 }
 
 resource "aws_wafv2_web_acl" "main" {
+  count    = var.enable_waf ? 1 : 0
   provider = aws.us_east_1
   name     = "${local.p}-web-acl"
   scope    = "CLOUDFRONT"
@@ -91,7 +94,7 @@ resource "aws_wafv2_web_acl" "main" {
     }
     statement {
       ip_set_reference_statement {
-        arn = aws_wafv2_ip_set.loadgen.arn
+        arn = aws_wafv2_ip_set.loadgen[0].arn
       }
     }
     visibility_config {
@@ -193,9 +196,10 @@ resource "aws_wafv2_web_acl" "main" {
 }
 
 resource "aws_wafv2_web_acl_logging_configuration" "main" {
+  count                   = var.enable_waf ? 1 : 0
   provider                = aws.us_east_1
-  resource_arn            = aws_wafv2_web_acl.main.arn
-  log_destination_configs = [aws_cloudwatch_log_group.waf.arn]
+  resource_arn            = aws_wafv2_web_acl.main[0].arn
+  log_destination_configs = [aws_cloudwatch_log_group.waf[0].arn]
 }
 
 # ---------- CloudFront ----------
@@ -234,7 +238,7 @@ resource "aws_cloudfront_distribution" "main" {
   comment         = "${local.p} petclinic (Behavior 분기: 정적 캐시 / 점검 페이지 S3 / 동적 ALB)"
   aliases         = [var.domain_name]
   price_class     = "PriceClass_200"
-  web_acl_id      = aws_wafv2_web_acl.main.arn
+  web_acl_id      = var.enable_waf ? aws_wafv2_web_acl.main[0].arn : null
   http_version    = "http2and3"
 
   # 오리진 1: 기존 Public ALB(test-Public-ALB) — HTTPS only + 검증 헤더 (443 리스너는 alb.tf 가 추가)

@@ -30,6 +30,10 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 
 왜 WEB·WAS 를 코드로 안 만드나: 팀이 콘솔로 AMI(`web-appache`)·ASG(`web-test`)·WAS 를 이미 만들었고 "WEB·WAS 는 그대로" 결정. Terraform 이 이를 다시 만들면 두 벌이 되거나 교체된다. 대신 **경계(ALB 리스너 · SG 규칙 · IAM 인라인 · 알람 차원)** 만 코드가 붙인다.
 
+## 9/16 멘토링 반영
+- `enable_waf`(기본 false): WAF 제거 결정. CloudFront·Shield Standard 는 유지. 다시 켜면 관리형 3종 + rate 2 규칙이 그대로 붙음.
+- ASG·Bastion 옵션·EFS 설계는 `docs/notion-mentoring-followup.md` 참고(순차 반영 예정).
+
 ## 검증 (적용 없이)
 ```bash
 cd infra/terraform-kdt5

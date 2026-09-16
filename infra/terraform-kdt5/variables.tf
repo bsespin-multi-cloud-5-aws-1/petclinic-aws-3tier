@@ -135,6 +135,12 @@ variable "origin_verify_secret" {
   sensitive   = true
 }
 
+variable "enable_waf" {
+  description = "CloudFront 에 WAF Web ACL 부착. 9/16 멘토링 결정: 소규모 팀이 규칙 튜닝·오탐을 운영하기 어려워 기본 false (CloudFront·Shield Standard 는 유지)"
+  type        = bool
+  default     = false
+}
+
 variable "waf_rate_limit_all" {
   description = "WAF rate-based: IP당 5분 요청 상한(전체)"
   type        = number
