@@ -5,7 +5,7 @@
 
 ## 0. 한눈에
 ```
-브라우저 ─DNS─▶ Route 53 ─▶ CloudFront [WAF] ─HTTPS+X-Origin-Verify─▶ Public ALB :443 ─▶ Apache ×2 ─ProxyPass─▶ Internal ALB :8080 ─▶ Tomcat ×2 ─JDBC TLS─▶ RDS Proxy ─▶ RDS MySQL 8.4 (Multi-AZ)
+브라우저 ─DNS─▶ Route 53 ─▶ CloudFront [WAF] ─HTTPS+X-Origin-Verify─▶ Public ALB :443 ─▶ Apache ×2 ─ProxyPass─▶ Internal ALB :8080 ─▶ Tomcat 9.0.121 ×2 ─JDBC TLS─▶ RDS Proxy ─▶ RDS MySQL 8.4 (Multi-AZ)
                                   │                                                                                     ▲
                                   └─ /petclinic/resources/* 는 캐시 Hit 면 여기서 끝 (오리진 미도달)                        └─ 부팅 시 Secrets Manager 에서 비밀 조회 → WAR 빌드
 ```
@@ -16,7 +16,7 @@
 | DNS | `petclinic.mission-critical.site` A/AAAA alias → `d2p7som2iuyba.cloudfront.net` (존 Z0299891BL9WGKOA2LW9, 가비아 NS 위임) | 도메인 → CloudFront 만 공개. ALB DNS 는 노출 안 함 |
 | TLS | CloudFront 뷰어 인증서 ACM(us-east-1) · TLSv1.2_2021 · redirect-to-https | http 로 와도 https 로 |
 | WAF | `mc-web-acl`: 관리형 3종 → rate-all(IP당 5분 2,000) → rate-booking(`/visits/new` IP당 5분 100) | 캐시 조회보다 먼저 평가 → 차단은 캐시·오리진 미도달. 예약 폭주(Phase 3) 대비 |
-| Behavior | `/static/*` · `/petclinic/resources/*` · `/petclinic/images/*` → CachingOptimized(기본 1일)+compress · `/maintenance.html` → S3(OAC) · 그 외 `*` → CachingDisabled+AllViewer | 정적은 엣지에서, 동적은 매번 오리진. 쿠키·쿼리는 AllViewer 로 그대로 전달 |
+| Behavior | `/static/*` · `/images/*` · `/petclinic/resources/*` · `/petclinic/images/*` → CachingOptimized(기본 1일)+compress · `/maintenance.html` → S3(OAC) · 그 외 `*` → CachingDisabled+AllViewer | 정적은 엣지에서, 동적은 매번 오리진. 쿠키·쿼리는 AllViewer 로 그대로 전달 |
 | 장애 | ALB 5xx(502/503/504) → 503 + `/maintenance.html` (S3, 오리진 그룹 failover) | WEB·WAS 전부 죽어도 사용자는 점검 페이지 |
 
 ## 2. CloudFront → Public ALB → Apache (WEB)
@@ -34,7 +34,7 @@
 |---|---|---|
 | Internal ALB | `mc-alb-internal` internal · :8080 → `mc-tg-was` `/petclinic/` 10s·2/3 | WEB 이 WAS IP 를 몰라도 됨. WAS 증설·교체 시 WEB 무변경 |
 | SG 체인 | `mc-sg-alb-internal` 8080 ← `mc-sg-web` · `mc-sg-was` 8080 ← `mc-sg-alb-internal` | 앞 단계 SG 만 허용. 22번 없음(SSM) |
-| Tomcat | 9.0.53 · Corretto(OpenJDK) 8 · `/opt/tomcat` · systemd · `petclinic.war` (main 브랜치 = Spring 5.3.9) | Blue = 제공본 그대로 |
+| Tomcat | 9.0.121 · Corretto(OpenJDK) 8 · `/opt/tomcat` · systemd · `petclinic.war` (test 브랜치 = Spring 5.3.39 + welcome.jsp mc-hero) | Green. Blue(main·9.0.53)로 복귀는 tfvars 2줄 |
 | 정적 파일 | WAR 안 `resources/` 를 Tomcat 이 서빙 → Apache 프록시 → CloudFront 캐시 | 캐시 미스 때만 WAS 도달 |
 | 로그 | catalina.out · localhost_access_log · gc.log → `/mc/was/*` | |
 
@@ -52,7 +52,10 @@
 - CloudWatch Logs 6 그룹 · 알람 3(WAS unhealthy · ALB p95 · RDS 연결) → SNS `mc-alerts` (이메일 구독은 `alert_emails` 로 추가) · Slack 은 Grafana Alerting 한 경로
 - CloudTrail `mc-trail` → S3 `mc-cloudtrail-…` 1년 · SSM Session Manager 세션 로그 `/mc/ssm/sessions` · AWS Backup `mc-rds-daily` 04:00 KST
 
-## 6. 직접 확인하는 명령
+## 6. 정적 파일을 바꿨을 때
+CloudFront 가 `/petclinic/resources/*`·`/static/*`·`/images/*` 를 1일 캐시하므로 WAS/WEB 교체 뒤 CSS·이미지가 옛것으로 보이면 무효화: `aws cloudfront create-invalidation --distribution-id E2PWXW3LUYTDEE --paths "/petclinic/resources/*" "/static/*" "/images/*"`
+
+## 7. 직접 확인하는 명령
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" https://petclinic.mission-critical.site/                                  # 200 index.html
 curl -s -o /dev/null -w "%{http_code} x-cache=%header{x-cache}\n" https://petclinic.mission-critical.site/petclinic/resources/css/petclinic.css   # Hit
