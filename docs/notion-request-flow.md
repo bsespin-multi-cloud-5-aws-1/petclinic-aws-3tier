@@ -16,7 +16,7 @@
 | DNS | `petclinic.mission-critical.site` A/AAAA alias → `d2p7som2iuyba.cloudfront.net` (존 Z0299891BL9WGKOA2LW9, 가비아 NS 위임) | 도메인 → CloudFront 만 공개. ALB DNS 는 노출 안 함 |
 | TLS | CloudFront 뷰어 인증서 ACM(us-east-1) · TLSv1.2_2021 · redirect-to-https | http 로 와도 https 로 |
 | WAF | `mc-web-acl`: 관리형 3종 → rate-all(IP당 5분 2,000) → rate-booking(`/visits/new` IP당 5분 100) | 캐시 조회보다 먼저 평가 → 차단은 캐시·오리진 미도달. 예약 폭주(Phase 3) 대비 |
-| Behavior | `/petclinic/resources/*` · `/petclinic/images/*` → CachingOptimized(기본 1일)+compress · `/maintenance.html` → S3(OAC) · 그 외 `*` → CachingDisabled+AllViewer | 정적은 엣지에서, 동적은 매번 오리진. 쿠키·쿼리는 AllViewer 로 그대로 전달 |
+| Behavior | `/static/*` · `/petclinic/resources/*` · `/petclinic/images/*` → CachingOptimized(기본 1일)+compress · `/maintenance.html` → S3(OAC) · 그 외 `*` → CachingDisabled+AllViewer | 정적은 엣지에서, 동적은 매번 오리진. 쿠키·쿼리는 AllViewer 로 그대로 전달 |
 | 장애 | ALB 5xx(502/503/504) → 503 + `/maintenance.html` (S3, 오리진 그룹 failover) | WEB·WAS 전부 죽어도 사용자는 점검 페이지 |
 
 ## 2. CloudFront → Public ALB → Apache (WEB)
@@ -26,7 +26,7 @@
 | SG | `mc-sg-alb-public` 인바운드 = CloudFront origin-facing 프리픽스 리스트 443 만 | 1차 우회 차단(네트워크) |
 | 리스너 | 443 기본 액션 403 · 규칙10: `X-Origin-Verify` 일치 시만 `mc-tg-web` forward | 2차 우회 차단(헤더). 80 리스너 없음 |
 | 대상 그룹 | `mc-tg-web` :80 · 헬스체크 `/health.html` 10s·5s·2/3 · 등록취소 30s · 두 AZ 라운드로빈 | 얕은 헬스체크(Apache 생존만) → WAS 장애로 WEB 까지 연쇄 unhealthy 방지 |
-| Apache | `/` = WAR(test 브랜치)의 `index.html` 을 부팅 시 복사해 직접 서빙(자산·앱 링크는 `/petclinic/…` 절대 경로로 치환) · `ProxyPass /petclinic/ → Internal ALB:8080` · `ProxyPreserveHost On` · `/health.html` | 첫 화면(정적)은 WEB 이, 앱은 WAS 가. index.html 이 없는 브랜치(main)면 `/` → 302 `/petclinic/` 폴백 |
+| Apache | `/` = WAR 소스(test 브랜치)의 `index.html` + `resources/`·`images/` 를 부팅 시 `/var/www/html/{index.html,static/}` 로 복사해 직접 서빙(자산 링크 `/static/…`, 앱 링크 `/petclinic/…`) · `ProxyPass /petclinic/ → Internal ALB:8080` · `ProxyPreserveHost On` · `/health.html` | 첫 화면(정적)은 WEB 이, 앱은 WAS 가. index.html 이 없는 브랜치(main)면 `/` → 302 `/petclinic/` 폴백 |
 | 로그 | access/error → CloudWatch Agent → `/mc/web/access`·`/mc/web/error` · ALB 액세스 로그 → S3 `mc-logs/alb/public` | 인스턴스 밖에 남아야 교체 뒤에도 조회 |
 
 ## 3. Apache → Internal ALB → Tomcat (WAS)
