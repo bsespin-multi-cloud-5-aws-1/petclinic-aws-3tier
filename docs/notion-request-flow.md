@@ -43,7 +43,7 @@
 |---|---|---|
 | 비밀 | 부팅 시 admin 비밀(`rds!db-…`)로 앱 사용자 `petclinic_app` 생성(멱등) → 앱 비밀 `mc/petclinic/app-db`(교체 없음)로 빌드 | admin 은 7일 자동 교체라 WAR 에 박으면 깨짐 → 앱 전용 계정·최소 권한 |
 | 빌드 주입 | `./mvnw -P MySQL -Djdbc.url=jdbc:mysql://<proxy>:3306/petclinic?...&sslMode=REQUIRED -Djdbc.username -Djdbc.password` | `datasource-config.xml` 이 Maven 필터링되므로 빌드 시점에만 주입 가능(소스 0줄 수정) |
-| Proxy | `mc-rds-proxy.proxy-c7ku4mw88shn…` · require_tls · SECRETS 인증 · max 90% | 커넥션 다중화, failover 중 연결 유지, 비밀 교체 시 앱 무영향 |
+| Proxy | `mc-rds-proxy.proxy-c7ku4mw88shn…` · require_tls · SECRETS 인증(admin + petclinic_app) · max 90% · idle 30분(앱 풀은 testOnBorrow 로 검증) | 커넥션 다중화, failover 중 연결 유지, 비밀 교체 시 앱 무영향 |
 | RDS | `mc-petclinic` MySQL 8.4.11 · db.t3.small · Multi-AZ(Primary 2c · Standby 2a) · 파라미터 그룹 `mc-mysql84` require_secure_transport=1 · 백업 7일 | TLS 없는 연결 거부. RPO 0 |
 | 스키마 | 앱 기동 시 Spring `jdbc:initialize-database` 가 `db/mysql/schema.sql`·`data.sql` 실행 → vets 6 · owners 10 · pets 13 | DB 안에 데이터가 있음 = H2 인메모리가 아님 |
 | SG | `mc-sg-rds-proxy` 3306 ← `mc-sg-was` · `mc-sg-rds` 3306 ← `mc-sg-rds-proxy` 만 | WAS → RDS 직접 경로 없음 |
@@ -61,5 +61,5 @@ curl -s -o /dev/null -w "%{http_code}\n" https://petclinic.mission-critical.site
 curl -s -o /dev/null -w "%{http_code} x-cache=%header{x-cache}\n" https://petclinic.mission-critical.site/petclinic/resources/css/petclinic.css   # Hit
 curl -s https://petclinic.mission-critical.site/petclinic/vets.json | head -c 120                                  # DB 데이터
 curl -sk -m 8 -o /dev/null -w "%{http_code}\n" https://mc-alb-public-485062926.ap-northeast-2.elb.amazonaws.com/  # 타임아웃 = 차단
-aws ssm start-session --target i-0629cd519085394a3 --profile mc-deploy       # WAS 접속 → grep vets /var/log/mc-userdata.log
+aws ssm start-session --target i-082a98edcc9a8faf6 --profile mc-deploy       # WAS 접속 → grep vets /var/log/mc-userdata.log
 ```

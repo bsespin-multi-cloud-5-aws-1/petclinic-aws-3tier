@@ -49,7 +49,12 @@
 ## 7. Secrets Manager — 비밀 키 취급 · 전송 중 암호화
 - 비밀 = RDS 관리형 `rds!db-…`(admin). 저장: KMS(aws/secretsmanager) 암호화. 전송: Secrets Manager API 는 TLS 1.2 만(HTTPS), WAS → NAT → 엔드포인트. 접근: 인스턴스 역할 인라인 정책이 **그 비밀 ARN 하나**에만 `GetSecretValue`, KMS 는 `kms:ViaService=secretsmanager` 조건. Proxy 도 자기 역할로 조회(앱 무관).
 - 평문이 남는 곳 차단: user_data·AMI·git 에 없음, WAS 는 부팅 시 조회 → `mvnw -Djdbc.*` 빌드 → 중간 산물 삭제 → 변수 unset. DB 구간은 Proxy `require_tls` + 파라미터 `require_secure_transport=1` + JDBC `sslMode=REQUIRED`.
-- **주의(발견)**: RDS 관리형 비밀은 **7일마다 자동 교체**되는데 WAS 는 빌드 시점 비밀번호를 WAR 에 갖고 있어 교체 뒤 새 연결이 Proxy 인증에 실패한다. 해법 = **앱 전용 DB 사용자**(`petclinic_app`, 교체 없는 별도 비밀, `petclinic.*` 권한만) 를 만들고 WAS·Proxy 가 그걸 쓰게 하는 것 — 최소 권한(admin 미사용)도 함께 충족. → 별도 항목으로 처리.
+- **발견 → 조치(9/16 적용)**: RDS 관리형 admin 비밀은 **7일마다 자동 교체**(다음 9/23 09:00)되는데 WAS 는 빌드 시점 비밀번호를 WAR 에 갖고 있어 교체 뒤 Proxy 인증(SECRETS)이 실패하는 구조였음. → **앱 전용 DB 사용자 `petclinic_app`**(Secrets Manager `mc/petclinic/app-db`, 교체 없음, `petclinic.*` 권한만)을 WAS 부팅 시 admin 으로 생성(멱등)하고 WAR·Proxy 인증(2개)이 그 계정을 사용. admin 은 부팅 시 사용자 생성에만 쓰이므로 교체돼도 무영향. 최소 권한(앱이 admin 미사용)도 충족. 확인: test.jsp `jdbc.username=petclinic_app`, Proxy Auth 2개.
+
+### 7-b. 운영 중 발견 — 커넥션 풀과 RDS Proxy idle timeout
+- 증상: 30분 이상 유휴였던 WAS(was-c)가 `JDBC begin transaction failed` 로 exception.jsp 반환(HTTP 200 HTML), 재시작하면 정상.
+- 원인: Proxy `idle_client_timeout=1800s` 가 유휴 클라이언트 연결을 끊는데 앱의 tomcat-jdbc 풀에 **검증 설정이 없어** 죽은 연결을 계속 빌려줌.
+- 조치: `datasource-config.xml` 에 `testOnBorrow=true · validationQuery=SELECT 1 · validationInterval=30s · testWhileIdle · 유휴 10분 회수 · maxActive 20`(XML 설정만, Java 무수정). 교훈: Proxy/LB 뒤의 풀은 반드시 검증·회수 설정이 있어야 한다.
 
 ## 8. 기능 구현이 필요한가 — 스토리지·Lifecycle(진료 기록 · 개인정보)
 - 앱 기능 추가 없음(안 C). 개인정보(이름·전화·예약)는 **RDS 행** 으로만 존재 → 보호는 Multi-AZ·자동 백업 7일(PITR)·AWS Backup 일일 볼트·삭제 방지·저장 암호화·TLS 강제로 충족. 진료 **파일** S3 저장은 9/14 시나리오에서 제외(Object Lock·Macie 불필요).
