@@ -174,6 +174,12 @@ variable "db" {
   default = {}
 }
 
+variable "app_db_username" {
+  description = "앱 전용 DB 사용자 이름 (petclinic.* 권한만 · 교체 없는 비밀)"
+  type        = string
+  default     = "petclinic_app"
+}
+
 # ---------- ⑤ 운영 계층 ----------
 variable "alert_emails" {
   description = "SNS mc-alerts 이메일 구독 (기본 알람 경로). Slack 은 Grafana Alerting"

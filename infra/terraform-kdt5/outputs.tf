@@ -21,6 +21,11 @@ output "was_jdbc_url" {
   description = "WAS 재빌드 시 -Djdbc.url 값 (Proxy 경유 · TLS 필수). WAS 자체는 이 코드가 건드리지 않음"
 }
 
+output "app_db_secret_arn" {
+  value       = aws_secretsmanager_secret.app_db.arn
+  description = "앱 전용 DB 사용자 비밀 (WAS·Proxy 가 사용 · 교체 없음)"
+}
+
 output "rds_master_secret_arn" {
   value = aws_db_instance.main.master_user_secret[0].secret_arn
 }

@@ -65,6 +65,31 @@ resource "aws_db_instance" "main" {
   tags = merge(local.tier_tag.db, { Name = local.db_identifier, Data = "pii" })
 }
 
+# ---------- 앱 전용 DB 사용자 비밀 (교체 없음) ----------
+# 왜: RDS 관리형 admin 비밀(rds!db-…)은 7일마다 자동 교체되는데 WAS 는 빌드 시점 비밀번호를 WAR 에 갖고 있어
+# 교체 뒤 Proxy 인증(SECRETS)이 실패한다. 앱은 교체되지 않는 별도 사용자(petclinic_app · petclinic.* 권한만)로 접속 → 최소 권한도 충족.
+# 사용자 생성은 WAS 부팅 시 admin 비밀로 CREATE USER IF NOT EXISTS (멱등) — was.sh
+resource "random_password" "app_db" {
+  length           = 32
+  special          = true
+  override_special = "!#%^*()-_=+" # XML·셸·JDBC URL 에서 문제 없는 문자만
+}
+
+resource "aws_secretsmanager_secret" "app_db" {
+  name                    = "${local.p}/petclinic/app-db"
+  description             = "PetClinic 앱 전용 DB 사용자 (Proxy SECRETS 인증 · 교체 없음)"
+  recovery_window_in_days = 0 # 프로젝트 정리용. 운영이면 7~30
+  tags                    = merge(local.tier_tag.db, { Name = "${local.p}-app-db-secret" })
+}
+
+resource "aws_secretsmanager_secret_version" "app_db" {
+  secret_id = aws_secretsmanager_secret.app_db.id
+  secret_string = jsonencode({
+    username = var.app_db_username
+    password = random_password.app_db.result
+  })
+}
+
 # ---------- RDS Proxy (커넥션 다중화 · failover 중 연결 유지 · Require TLS · 비밀 직접 조회 → 앱 무영향) ----------
 resource "aws_db_proxy" "main" {
   name                   = "${local.p}-rds-proxy"
@@ -76,10 +101,17 @@ resource "aws_db_proxy" "main" {
   idle_client_timeout    = 1800
   debug_logging          = false
 
+  # admin(관리형·7일 교체) — 부팅 시 사용자 생성·운영 작업용
   auth {
     auth_scheme = "SECRETS"
     iam_auth    = "DISABLED"
     secret_arn  = aws_db_instance.main.master_user_secret[0].secret_arn
+  }
+  # 앱 사용자(교체 없음) — WAS JDBC 가 쓰는 계정
+  auth {
+    auth_scheme = "SECRETS"
+    iam_auth    = "DISABLED"
+    secret_arn  = aws_secretsmanager_secret.app_db.arn
   }
 
   tags = merge(local.tier_tag.db, { Name = "${local.p}-rds-proxy" })

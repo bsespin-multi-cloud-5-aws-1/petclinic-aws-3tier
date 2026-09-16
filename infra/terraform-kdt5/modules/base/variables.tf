@@ -37,6 +37,14 @@ variable "db_secret_arn" {
   description = "RDS 관리형 비밀 ARN (WAS 부팅 시 조회)"
   type        = string
 }
+variable "app_db_secret_arn" {
+  description = "앱 전용 DB 사용자 비밀 ARN ({username,password}) — WAS 가 이 계정으로 빌드·접속"
+  type        = string
+}
+variable "app_db_secret_ready" {
+  description = "비밀 버전 ID — 값은 안 쓰고 의존성(버전 생성 후 WAS 부팅)만 만든다"
+  type        = string
+}
 variable "db_name" { type = string }
 variable "jdbc_host" {
   description = "WAS 가 접속할 MySQL 호스트 — 루트가 RDS Proxy 엔드포인트를 넘김 (TLS 필수)"

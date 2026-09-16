@@ -13,8 +13,12 @@ for i in $(seq 1 18); do
   DB_SECRET=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${db_secret_arn}" --query SecretString --output text 2>/dev/null) && [ -n "$DB_SECRET" ] && break
   echo "secret retry $i/18"; sleep 10
 done
-DB_USER=$(echo "$DB_SECRET" | jq -r .username)
-DB_PASS=$(echo "$DB_SECRET" | jq -r .password)
+ADMIN_USER=$(echo "$DB_SECRET" | jq -r .username)
+ADMIN_PASS=$(echo "$DB_SECRET" | jq -r .password)
+# 앱 전용 사용자 비밀(교체 없음) — admin 은 7일마다 교체돼 WAR 에 박아두면 Proxy 인증이 깨짐
+APP_SECRET=$(aws secretsmanager get-secret-value --region "$REGION" --secret-id "${app_secret_arn}" --query SecretString --output text)
+DB_USER=$(echo "$APP_SECRET" | jq -r .username)
+DB_PASS=$(echo "$APP_SECRET" | jq -r .password)
 DB_PASS_XML=$(printf '%s' "$DB_PASS" | python3 -c 'import sys,html; print(html.escape(sys.stdin.read(), quote=True), end="")')
 # Proxy 는 require_tls → sslMode=REQUIRED. 파라미터 그룹 require_secure_transport 와 짝
 JDBC_URL="jdbc:mysql://${jdbc_host}:3306/${db_name}?useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Seoul&amp;sslMode=REQUIRED"
@@ -26,9 +30,15 @@ for i in $(seq 1 30); do
 done
 # TCP 가 열려도 RDS Proxy 대상(target) 이 AVAILABLE 되기까지 몇 분 걸림 → 실제 로그인 성공까지 대기 (안 하면 앱이 Communications link failure 로 기동 실패)
 for i in $(seq 1 30); do
-  mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" -e "SELECT VERSION() AS mysql_version; SHOW DATABASES LIKE '${db_name}';" && { echo "DB login OK ($i)"; break; }
+  mysql --ssl -h "${jdbc_host}" -u "$ADMIN_USER" -p"$ADMIN_PASS" -e "SELECT VERSION() AS mysql_version; SHOW DATABASES LIKE '${db_name}';" && { echo "DB login OK ($i)"; break; }
   echo "DB login retry $i/30"; sleep 10
 done
+# 앱 사용자 생성/동기화 (멱등) — petclinic.* 만. 비밀번호는 비밀 값으로 매번 맞춤
+DB_PASS_SQL=$(printf '%s' "$DB_PASS" | sed "s/'/''/g")
+mysql --ssl -h "${jdbc_host}" -u "$ADMIN_USER" -p"$ADMIN_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS_SQL'; ALTER USER '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS_SQL'; GRANT ALL PRIVILEGES ON \`${db_name}\`.* TO '$DB_USER'@'%'; FLUSH PRIVILEGES;" \
+  && echo "app user $DB_USER ready" || echo "APP USER FAILED"
+mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" -e "SELECT CURRENT_USER() AS app_login;" || echo "APP LOGIN FAILED"
+unset ADMIN_PASS DB_SECRET DB_PASS_SQL
 
 # ---- Tomcat ----
 cd /tmp && curl -fLO "https://dlcdn.apache.org/tomcat/tomcat-9/v$TOMCAT_VER/bin/apache-tomcat-$TOMCAT_VER.tar.gz" \
@@ -79,4 +89,4 @@ curl -s "http://localhost:8080${app_context}/vets.json" | head -c 120; echo
 mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" "${db_name}" \
   -e "SELECT 'vets' t, COUNT(*) n FROM vets UNION ALL SELECT 'owners', COUNT(*) FROM owners UNION ALL SELECT 'pets', COUNT(*) FROM pets;" \
   || echo "DB CHECK FAILED: 앱이 스키마를 만들지 못함 → /opt/tomcat/logs/catalina.out"
-unset DB_PASS DB_PASS_XML DB_SECRET
+unset DB_PASS DB_PASS_XML APP_SECRET

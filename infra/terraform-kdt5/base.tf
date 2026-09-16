@@ -22,6 +22,8 @@ module "base" {
 
   access_logs_bucket   = aws_s3_bucket_policy.logs.bucket # 정책 적용 후 ALB 생성
   db_secret_arn        = aws_db_instance.main.master_user_secret[0].secret_arn
+  app_db_secret_arn    = aws_secretsmanager_secret.app_db.arn # 버전이 먼저 만들어지도록
+  app_db_secret_ready  = aws_secretsmanager_secret_version.app_db.version_id
   db_name              = "petclinic"
   jdbc_host            = aws_db_proxy.main.endpoint # WAS 는 Proxy 가 생긴 뒤 부팅 → TLS 로 접속
   cwagent_param_prefix = "/mc/cwagent"

@@ -2,9 +2,9 @@
 # 주의: kdt5 인스턴스(WEB ASG · WAS-test-a)에는 인스턴스 프로파일이 아직 안 붙어 있음 → 콘솔 후속 (ⓜ3)
 data "aws_iam_policy_document" "ec2_inline" {
   statement {
-    sid       = "ReadRdsSecret" # WAS 빌드 시 -Djdbc.* 주입용
+    sid       = "ReadRdsSecrets" # admin(사용자 생성) + 앱 사용자(빌드 시 -Djdbc.* 주입)
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_db_instance.main.master_user_secret[0].secret_arn]
+    resources = [aws_db_instance.main.master_user_secret[0].secret_arn, aws_secretsmanager_secret.app_db.arn]
   }
   statement {
     sid       = "DecryptSecret"
@@ -54,7 +54,7 @@ resource "aws_iam_role" "rds_proxy" {
 data "aws_iam_policy_document" "rds_proxy_inline" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_db_instance.main.master_user_secret[0].secret_arn]
+    resources = [aws_db_instance.main.master_user_secret[0].secret_arn, aws_secretsmanager_secret.app_db.arn]
   }
   statement {
     actions   = ["kms:Decrypt"]

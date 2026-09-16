@@ -57,6 +57,7 @@ resource "aws_instance" "was" {
   user_data = templatefile("${path.module}/user_data/was.sh", {
     region         = var.region
     db_secret_arn  = var.db_secret_arn
+    app_secret_arn = var.app_db_secret_arn
     jdbc_host      = var.jdbc_host
     db_name        = var.db_name
     repo_url       = var.app_repo_url
@@ -67,5 +68,5 @@ resource "aws_instance" "was" {
   })
   user_data_replace_on_change = true
 
-  tags = merge(var.tier_tag.was, { Name = "${local.p}-was-${substr(var.azs[count.index], -1, 1)}" })
+  tags = merge(var.tier_tag.was, { AppSecretVersion = var.app_db_secret_ready }, { Name = "${local.p}-was-${substr(var.azs[count.index], -1, 1)}" })
 }
