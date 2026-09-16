@@ -15,7 +15,7 @@
 |---|---|---|
 | DNS | `petclinic.mission-critical.site` A/AAAA alias → `d2p7som2iuyba.cloudfront.net` (존 Z0299891BL9WGKOA2LW9, 가비아 NS 위임) | 도메인 → CloudFront 만 공개. ALB DNS 는 노출 안 함 |
 | TLS | CloudFront 뷰어 인증서 ACM(us-east-1) · TLSv1.2_2021 · redirect-to-https | http 로 와도 https 로 |
-| WAF | `mc-web-acl`: 관리형 3종 → rate-all(IP당 5분 2,000) → rate-booking(`/visits/new` IP당 5분 100) | 캐시 조회보다 먼저 평가 → 차단은 캐시·오리진 미도달. 예약 폭주(Phase 3) 대비 |
+| WAF | **제거(9/16 멘토링)** — `enable_waf=false`. Shield Standard 는 CloudFront 기본 포함 | 규칙 튜닝·오탐 운영 부담. 폭주 방어는 캐시 + Proxy 풀링 + ASG |
 | Behavior | `/static/*` · `/images/*` · `/petclinic/resources/*` · `/petclinic/images/*` → CachingOptimized(기본 1일)+compress · `/maintenance.html` → S3(OAC) · 그 외 `*` → CachingDisabled+AllViewer | 정적은 엣지에서, 동적은 매번 오리진. 쿠키·쿼리는 AllViewer 로 그대로 전달 |
 | 장애 | ALB 5xx(502/503/504) → 503 + `/maintenance.html` (S3, 오리진 그룹 failover) | WEB·WAS 전부 죽어도 사용자는 점검 페이지 |
 
@@ -41,7 +41,7 @@
 ## 4. Tomcat → RDS Proxy → RDS (DB)
 | 단계 | 무엇이 | 왜 |
 |---|---|---|
-| 비밀 | 부팅 시 `aws secretsmanager get-secret-value rds!db-ffb62b33…` (mc-ec2-inline 정책) | 평문 자격증명이 코드·AMI 에 없음 |
+| 비밀 | 부팅 시 admin 비밀(`rds!db-…`)로 앱 사용자 `petclinic_app` 생성(멱등) → 앱 비밀 `mc/petclinic/app-db`(교체 없음)로 빌드 | admin 은 7일 자동 교체라 WAR 에 박으면 깨짐 → 앱 전용 계정·최소 권한 |
 | 빌드 주입 | `./mvnw -P MySQL -Djdbc.url=jdbc:mysql://<proxy>:3306/petclinic?...&sslMode=REQUIRED -Djdbc.username -Djdbc.password` | `datasource-config.xml` 이 Maven 필터링되므로 빌드 시점에만 주입 가능(소스 0줄 수정) |
 | Proxy | `mc-rds-proxy.proxy-c7ku4mw88shn…` · require_tls · SECRETS 인증 · max 90% | 커넥션 다중화, failover 중 연결 유지, 비밀 교체 시 앱 무영향 |
 | RDS | `mc-petclinic` MySQL 8.4.11 · db.t3.small · Multi-AZ(Primary 2c · Standby 2a) · 파라미터 그룹 `mc-mysql84` require_secure_transport=1 · 백업 7일 | TLS 없는 연결 거부. RPO 0 |

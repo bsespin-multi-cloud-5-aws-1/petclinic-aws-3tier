@@ -73,7 +73,7 @@ class D:
 
 d = D("mc-deploy As-Built (2026-09-16)", 2820, 1420)
 d.text("title", "현재 아키텍처 As-Built — mc-deploy(528821350786) · infra/terraform-kdt5 create_base=true · 2026-09-16 apply 완료 (127 리소스) · 롤링 교체 후", 40, 20, 2400, 40, size=26, bold=True)
-d.text("subtitle", "사용자 → Route 53 → CloudFront(WAF) → Public ALB :443(X-Origin-Verify) → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.121 · OpenJDK 8 · PetClinic test(Green) ×2 → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ  |  검증: / 302 → /petclinic/ 200 · vets 6 / owners 10 / pets 13 · CloudFront css Hit · ALB 직접 접근 차단",
+d.text("subtitle", "사용자 → Route 53 → CloudFront(WAF 제거 9/16) → Public ALB :443(X-Origin-Verify) → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.121 · OpenJDK 8 · PetClinic test(Green) ×2 → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ  |  검증: / 302 → /petclinic/ 200 · vets 6 / owners 10 / pets 13 · CloudFront css Hit · ALB 직접 접근 차단",
        40, 60, 2500, 30, size=13, color="#555555")
 d.v("cloud", "AWS Cloud · 528821350786 (mc-deploy) · Terraform state: infra/terraform-kdt5/terraform.tfstate", STY["cloud"], 40, 110, 2740, 1250)
 
@@ -82,11 +82,11 @@ d.v("edge", "① 진입 계층 (edge.tf · alb.tf · security.tf)", "fillColor=n
 d.v("user", "사용자<br>https://petclinic.mission-critical.site/", f"sketch=0;outlineConnect=0;fontColor=#232F3E;fillColor=#232F3D;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=11;aspect=fixed;shape=mxgraph.aws4.users;{FONT}", 100, 190, 56, 56)
 d.svc("r53", "Route 53", "mission-critical.site · Z0299891BL9WGKOA2LW9<br>A/AAAA alias → CloudFront<br>NS 4개 가비아 위임 완료", "route_53", "net", 250, 180, w=150)
 d.svc("acm", "ACM ×2 (ISSUED)", "cloudfront: us-east-1<br>alb: 서울(443 리스너)<br>DNS 검증 21분", "certificate_manager", "sec", 410, 180, w=130)
-d.svc("waf", "WAF v2 mc-web-acl", "관리형 3(IpReputation·Common·KnownBadInputs)<br>rate-all 2000/5분 · rate-booking 100/5분(/visits/new)<br>allow-loadgen(비어 있음) · 로그 → aws-waf-logs-mc", "waf", "sec", 100, 340, w=200, h=140)
+d.svc("waf", "WAF (제거 · enable_waf=false)", "9/16 멘토링: 규칙 튜닝·오탐 운영 부담 → 제거<br>Shield Standard 는 CloudFront 에 기본 포함<br>다시 켜면 관리형 3 + rate 2 규칙", "waf", "sec", 100, 340, w=200, h=140, optional=True)
 d.svc("cf", "CloudFront E2PWXW3LUYTDEE", "d2p7som2iuyba.cloudfront.net · PriceClass_200<br>Behavior: /static/* · /images/* · /petclinic/resources/* · /petclinic/images/* 캐시(Hit) · /maintenance.html S3 · * 동적<br>5xx → 503 점검 페이지 · 오리진 그룹 failover", "cloudfront", "net", 320, 340, w=210, h=140)
 d.svc("s3-maint", "S3 점검 페이지", "mc-maintenance-528821350786<br>maintenance.html · OAC 전용", "simple_storage_service", "stor", 100, 500, w=200, h=110)
 d.svc("kms", "KMS alias/mc-cmk", "S3(점검·CloudTrail) · SNS · Logs · Backup<br>RDS·비밀은 AWS 관리형 키", "key_management_service", "sec", 320, 500, w=210, h=110)
-d.note("edge-how", "<b>정적 · 동적 분리 (현재 조치)</b><br>• 정적 <code>/static/*</code>(랜딩 자산 · Apache 파일) · <code>/petclinic/resources/*</code>(WAR): CloudFront CachingOptimized(기본 1일) + compress → 캐시 미스만 오리진(AllViewer 로 Host 전달) · 첫 요청 Miss → 이후 Hit 확인<br>• 동적 <code>*</code>: CachingDisabled + AllViewer(쿠키·쿼리 그대로) → 매번 ALB<br>• ALB 는 정적/동적 구분 없이 Apache ×2 로 라운드로빈 → Apache 는 / · /static/* · /health.html 직접, /petclinic/ 은 Internal ALB 로 프록시<br>• WAF 는 캐시 조회보다 먼저 평가 → 차단은 오리진 미도달", 100, 640, 430, 170)
+d.note("edge-how", "<b>정적 · 동적 분리 (현재 조치)</b><br>• 정적 <code>/static/*</code>(랜딩 자산 · Apache 파일) · <code>/petclinic/resources/*</code>(WAR): CloudFront CachingOptimized(기본 1일) + compress → 캐시 미스만 오리진(AllViewer 로 Host 전달) · 첫 요청 Miss → 이후 Hit 확인<br>• 동적 <code>*</code>: CachingDisabled + AllViewer(쿠키·쿼리 그대로) → 매번 ALB<br>• ALB 는 정적/동적 구분 없이 Apache ×2 로 라운드로빈 → Apache 는 / · /static/* · /health.html 직접, /petclinic/ 은 Internal ALB 로 프록시<br>• WAF 는 9/16 제거(운영 부담) — 폭주 방어는 캐시 + Proxy 풀링 + ASG", 100, 640, 430, 170)
 d.note("edge-sec", "<b>오리진 보호</b> Public ALB SG 인바운드 = CloudFront origin-facing 프리픽스 443 만 · 리스너 기본 403 · 규칙10: X-Origin-Verify 헤더 일치 → mc-tg-web. 80 리스너 없음. ALB DNS 직접 curl → 타임아웃(차단) 확인", 100, 830, 430, 110)
 d.note("edge-out", "<b>outputs</b> app_url · cloudfront_domain d2p7som2iuyba.cloudfront.net · public_alb_dns mc-alb-public-485062926.ap-northeast-2.elb.amazonaws.com · rds_proxy_endpoint · was_jdbc_url · rds_master_secret_arn(rds!db-ffb62b33…) · sns_alerts_topic_arn", 100, 960, 430, 120)
 
@@ -122,7 +122,7 @@ d.note("db-how", "<b>DB 연동 (현재)</b> WAS 부팅 → Secrets Manager 에�
 
 # ---- ⑤ Ops ----
 d.v("ops", "⑤ 운영 · 관측 (observability.tf · kms_s3.tf · iam.tf · rds.tf)", "fillColor=none;strokeColor=#E7157B;dashed=1;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;fontColor=#E7157B;whiteSpace=wrap;html=1;" + FONT, 2170, 150, 590, 1000)
-d.svc("cwlogs", "CloudWatch Logs ×6 (스트림 생성 확인)", "/mc/web/access·error · /mc/was/catalina·access·gc (30일)<br>/mc/ssm/sessions (90일) · aws-waf-logs-mc(us-east-1)", "cloudwatch", "ops", 2200, 190, w=280, h=115)
+d.svc("cwlogs", "CloudWatch Logs ×6 (스트림 생성 확인)", "/mc/web/access·error · /mc/was/catalina·access·gc (30일)<br>/mc/ssm/sessions (90일)", "cloudwatch", "ops", 2200, 190, w=280, h=115)
 d.svc("cwparam", "SSM 파라미터 CW Agent 설정", "/mc/cwagent/web · /mc/cwagent/was<br>부팅 시 fetch-config (설치는 user_data)", "systems_manager", "ops", 2495, 190, w=245, h=115)
 d.svc("alarms", "CloudWatch 알람 ×3", "mc-was-unhealthy-host(≥1, 2분)<br>mc-alb-p95-latency(&gt;2s, 3분)<br>mc-rds-connections-high(&gt;60, 3분)", "cloudwatch", "ops", 2200, 325, w=280, h=115)
 d.svc("sns", "SNS mc-alerts", "KMS · email 구독 <b>0건</b>(alert_emails 비어 있음)<br>Slack 은 Grafana Alerting 예정", "simple_notification_service", "ops", 2495, 325, w=245, h=115)
@@ -131,14 +131,14 @@ d.svc("s3-logs", "S3 mc-logs-528821350786", "alb/public · alb/internal (ALB 액
 d.svc("backup", "AWS Backup", "mc-backup-vault(KMS) · mc-rds-daily<br>daily-7d 04:00 KST → mc-petclinic", "backup", "ops", 2200, 595, w=280, h=115)
 d.svc("ssm", "SSM Session Manager", "4대 Online · 22번·키페어 없음<br>세션 로그 → /mc/ssm/sessions(KMS)", "systems_manager", "sec", 2495, 595, w=245, h=115)
 d.svc("iam", "IAM mc-ec2-role + mc-ec2-inline", "SSM Core · CW Agent · GetSecretValue(rds!db-…)<br>kms:Decrypt(ViaService) · ssm:GetParameter(/mc/cwagent/*)<br>s3:PutObject mc-logs/was|web · 프로파일 mc-ec2-profile", "identity_and_access_management", "sec", 2200, 730, w=280, h=125)
-d.svc("secrets", "Secrets Manager", "rds!db-ffb62b33-… (RDS 관리형 · 7일 교체)<br>WAS 부팅 시 조회 · Proxy 역할이 조회", "secrets_manager", "sec", 2495, 730, w=245, h=125)
+d.svc("secrets", "Secrets Manager", "rds!db-ffb62b33-…(admin · 7일 교체) + <b>mc/petclinic/app-db</b>(petclinic_app · 교체 없음)<br>WAS 는 앱 비밀로 빌드 · Proxy 인증 2개", "secrets_manager", "sec", 2495, 730, w=245, h=125)
 d.svc("grafana", "Managed Grafana (미생성)", "enable_grafana=false<br>IAM Identity Center 필요 → 켜면 mc-ops", "managed_service_for_grafana", "ops", 2200, 875, w=280, h=110, optional=True)
 d.note("ops-todo", "<b>아직 안 켠 것</b> ① alert_emails → SNS 이메일 ② enable_grafana=true(Identity Center) → CloudWatch 데이터소스 + Slack Contact point ③ loadgen_cidrs(부하 테스트 IP) — 모두 tfvars 값만 바꾸고 apply", 2495, 875, 245, 110)
 
 # ---- edges ----
 d.edge("e0", "user", "grp-r53", label="DNS", exit=(1, 0.5), entry=(0, 0.5))
 d.edge("e1", "user", "grp-cf", label="HTTPS", pts=[(128, 322), (425, 322)], exit=(0.5, 1), entry=(0.5, 0), lx=0.3)
-d.edge("e1w", "grp-waf", "grp-cf", "edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;strokeColor=#DD344C;dashed=1;" + FONT, label="web_acl_id", exit=(1, 0.3), entry=(0, 0.3), ly=-8)
+d.edge("e1w", "grp-waf", "grp-cf", "edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;strokeColor=#9E9E9E;dashed=1;" + FONT, label="(해제)", exit=(1, 0.3), entry=(0, 0.3), ly=-8)
 d.edge("e1m", "grp-cf", "grp-s3-maint", "edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeColor=#1B8B3B;dashed=1;" + FONT, label="OAC · 5xx failover", pts=[(400, 495), (200, 495)], exit=(0.35, 1), entry=(0.5, 0), lx=0.2)
 d.edge("e2", "grp-cf", "igw", label="① HTTPS 443 + X-Origin-Verify (캐시 미스·동적만)", pts=[(425, 138), (1365, 138)], exit=(0.5, 0), entry=(0.5, 0), lx=0.25)
 d.edge("e3", "igw", "grp-alb-pub", exit=(0.5, 1), entry=(0.5, 0))
