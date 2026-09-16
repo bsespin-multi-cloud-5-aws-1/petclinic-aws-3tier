@@ -25,9 +25,14 @@
     <!-- DataSource configuration for the tomcat jdbc connection pool 
     See here for more details on commons-dbcp versus tomcat-jdbc: 
     http://blog.ippon.fr/2013/03/13/improving-the-performance-of-the-spring-petclinic-sample-application-part-3-of-5/-->
+    <!-- 풀 검증(2026-09-16 추가): RDS Proxy 가 30분(idle_client_timeout) 유휴 클라이언트 연결을 끊으면 풀에 남은 죽은 연결로
+         "JDBC begin transaction failed" 가 반복됨 → 빌려줄 때 SELECT 1 로 검증(30초 간격)하고 유휴 연결은 10분 뒤 회수. 설정만 변경, Java 무수정 -->
     <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource"
           p:driverClassName="${jdbc.driverClassName}" p:url="${jdbc.url}"
-          p:username="${jdbc.username}" p:password="${jdbc.password}"/>
+          p:username="${jdbc.username}" p:password="${jdbc.password}"
+          p:testOnBorrow="true" p:validationQuery="SELECT 1" p:validationInterval="30000"
+          p:testWhileIdle="true" p:timeBetweenEvictionRunsMillis="60000" p:minEvictableIdleTimeMillis="600000"
+          p:initialSize="5" p:maxActive="20" p:maxIdle="10" p:minIdle="5"/>
 
     <!-- Database initializer. If any of the script fails, the initialization stops. -->
     <!-- As an alternative, for embedded databases see <jdbc:embedded-database/>. -->
