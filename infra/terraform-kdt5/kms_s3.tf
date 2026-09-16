@@ -81,6 +81,14 @@ locals {
   }
 }
 
+# CloudFront 표준 로그는 버킷 ACL(awslogsdelivery FULL_CONTROL)로 쓰므로 로그 버킷만 ACL 허용(BucketOwnerPreferred). 나머지는 기본(ACL 비활성)
+resource "aws_s3_bucket_ownership_controls" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "all" {
   for_each                = local.all_buckets
   bucket                  = each.value.id
@@ -127,6 +135,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
     status = "Enabled"
     filter {
       prefix = "alb/"
+    }
+    expiration {
+      days = 90
+    }
+  }
+  rule {
+    id     = "cloudfront-access-90d"
+    status = "Enabled"
+    filter {
+      prefix = "cloudfront/"
     }
     expiration {
       days = 90

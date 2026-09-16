@@ -34,6 +34,17 @@ output "sns_alerts_topic_arn" {
   value = aws_sns_topic.alerts.arn
 }
 
+output "log_locations" {
+  description = "로그 5종이 놓이는 곳 (앱·SSM = CloudWatch Logs, ALB·CloudFront·CloudTrail = S3 객체)"
+  value = {
+    app_cloudwatch = "/mc/web/* · /mc/was/*"
+    ssm_cloudwatch = "/mc/ssm/sessions"
+    alb_s3         = "s3://${local.buckets.logs}/alb/{public,internal}/"
+    cloudfront_s3  = "s3://${local.buckets.logs}/cloudfront/"
+    cloudtrail_s3  = "s3://${local.buckets.cloudtrail}/AWSLogs/"
+  }
+}
+
 output "buckets" {
   value = local.buckets
 }

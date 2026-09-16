@@ -241,6 +241,13 @@ resource "aws_cloudfront_distribution" "main" {
   web_acl_id      = var.enable_waf ? aws_wafv2_web_acl.main[0].arn : null
   http_version    = "http2and3"
 
+  # 액세스 로그 → S3 mc-logs/cloudfront/ (WAF 제거 후 엣지에서의 유일한 요청 기록). 표준 로그는 S3 만 지원, 버킷 ACL 필요(kms_s3.tf ownership_controls)
+  logging_config {
+    bucket          = aws_s3_bucket.logs.bucket_domain_name
+    prefix          = "cloudfront/"
+    include_cookies = false
+  }
+
   # 오리진 1: 기존 Public ALB(test-Public-ALB) — HTTPS only + 검증 헤더 (443 리스너는 alb.tf 가 추가)
   origin {
     domain_name = local.public_alb_dns
