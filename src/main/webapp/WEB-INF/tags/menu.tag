@@ -1,10 +1,55 @@
 <%@ tag pageEncoding="UTF-8" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
-<%@ attribute name="name" required="true" rtexprvalue="true" %>
-<a class="skip-link" href="#content">본문 바로가기</a>
-<header class="site-header" id="top"><div class="header-inner">
-<a class="brand" href="<spring:url value="/" htmlEscape="true" />" aria-label="미션 동물병원 홈"><span class="brand-mark" aria-hidden="true">m<span>+</span></span><span class="brand-name">미션 동물병원<small>MISSION ANIMAL HOSPITAL</small></span></a>
-<div class="header-right"><div class="utility-nav"><a href="<spring:url value="/" htmlEscape="true" />#visit">진료시간 · 오시는 길</a><a href="<spring:url value="/owners/find" htmlEscape="true" />">진료기록 조회 ↗</a><span>함께하는 건강한 일상</span></div>
-<button class="menu-toggle" aria-expanded="false" aria-controls="main-nav" type="button">메뉴 <span aria-hidden="true">☰</span></button>
-<nav id="main-nav" class="main-nav" aria-label="주 메뉴"><a href="<spring:url value="/" htmlEscape="true" />#about">병원 소개</a><a href="<spring:url value="/" htmlEscape="true" />#care">진료 안내</a><a href="<spring:url value="/vets" htmlEscape="true" />">수의사 소개</a><a href="<spring:url value="/owners/find" htmlEscape="true" />">보호자 · 반려동물</a><a class="button small light" href="<spring:url value="/owners/new" htmlEscape="true" />">첫 방문 등록 <span>↗</span></a></nav></div>
-</div></header>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="petclinic" tagdir="/WEB-INF/tags" %>
+<%@ attribute name="name" required="true" rtexprvalue="true"
+              description="Name of the active menu: home, owners, vets or error" %>
+
+<nav class="navbar navbar-default" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <a class="navbar-brand mc-brand" href="<spring:url value="/" htmlEscape="true" />">
+                <svg class="mc-brand-paw" viewBox="0 0 32 32" aria-hidden="true" fill="currentColor">
+                    <ellipse cx="9" cy="10" rx="3.2" ry="4"/><ellipse cx="23" cy="10" rx="3.2" ry="4"/>
+                    <ellipse cx="4.5" cy="17" rx="2.8" ry="3.6"/><ellipse cx="27.5" cy="17" rx="2.8" ry="3.6"/>
+                    <path d="M16 15c-5 0-9 4.2-9 8.3 0 2.6 1.9 4.2 4.3 4.2 1.9 0 3.1-1 4.7-1s2.8 1 4.7 1c2.4 0 4.3-1.6 4.3-4.2C25 19.2 21 15 16 15z"/>
+                </svg>미션 동물병원<small>Mission Animal Hospital</small>
+            </a>
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+                <span class="sr-only">메뉴 열기</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+        </div>
+        <div class="navbar-collapse collapse" id="main-navbar">
+            <ul class="nav navbar-nav navbar-right">
+
+                <petclinic:menuItem active="${name eq 'home'}" url="/" title="홈">
+                    <span class="glyphicon glyphicon-home" aria-hidden="true"></span>
+                    <span>홈</span>
+                </petclinic:menuItem>
+
+                <petclinic:menuItem active="${name eq 'owners'}" url="/owners/find" title="보호자·반려동물 조회">
+                    <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                    <span>보호자 조회</span>
+                </petclinic:menuItem>
+
+                <petclinic:menuItem active="${name eq 'vets'}" url="/vets" title="수의사 소개">
+                    <span class="glyphicon glyphicon-user" aria-hidden="true"></span>
+                    <span>수의사</span>
+                </petclinic:menuItem>
+
+                <petclinic:menuItem active="${name eq 'error'}" url="/oups" title="오류 페이지 테스트 (RuntimeException)">
+                    <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+                    <span>오류 테스트</span>
+                </petclinic:menuItem>
+
+                <li class="mc-nav-cta">
+                    <a href="<spring:url value="/owners/new" htmlEscape="true" />" title="보호자 등록 후 진료 예약">진료 예약</a>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</nav>

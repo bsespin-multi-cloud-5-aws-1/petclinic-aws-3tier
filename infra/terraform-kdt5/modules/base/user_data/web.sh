@@ -1,7 +1,7 @@
 #!/bin/bash
 # WEB (Apache 2.4) — 첫 화면 = WAR 의 index.html (src/main/webapp/index.html) 을 Apache 가 직접 서빙.
 # index.html 이 쓰는 자산(resources/·images/)은 같은 브랜치에서 /var/www/html/static/ 으로 복사해 Apache 가 직접 서빙(/static/* 은 CloudFront 캐시).
-# 앱 링크(preview-info.html?route=/X)는 /petclinic/X 로. WAR 에 index.html 이 없는 브랜치(main=Blue)면 / → 302 /petclinic/ 폴백.
+# 앱 링크(preview-info.html?route=/X)는 /petclinic/X 로. WAS 의 welcome.jsp 가 쓰는 /images/hero/hero.mp4 (옛 S3 경로) 는 Alias 로 같은 /static/images 를 서빙. WAR 에 index.html 이 없는 브랜치(main=Blue)면 / → 302 /petclinic/ 폴백.
 # 왜 자산도 복사하나: Blue(main) WAR 에는 리디자인 css·영상이 없어 /petclinic/resources/… 로 보내면 404. 랜딩 페이지는 앱 브랜치와 독립이어야 함.
 # /petclinic/ 만 Internal ALB 로 프록시. AL2023.
 set -uo pipefail
@@ -44,6 +44,8 @@ RewriteRule ^${app_context}$ https://%%{HTTP_HOST}${app_context}/ [R=301,L]
 RewriteRule ^${app_context}$ ${app_context}/ [R=301,L]
 ProxyPass        /health.html !
 ProxyPass        /static/ !
+ProxyPass        /images/ !
+Alias            /images/ /var/www/html/static/images/
 ProxyPass        ${app_context}/ http://${internal_alb_dns}:8080${app_context}/
 ProxyPassReverse ${app_context}/ http://${internal_alb_dns}:8080${app_context}/
 SetEnvIf Request_URI "^/health.html$" nolog

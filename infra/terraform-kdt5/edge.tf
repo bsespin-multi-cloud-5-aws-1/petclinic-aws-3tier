@@ -303,6 +303,19 @@ resource "aws_cloudfront_distribution" "main" {
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
+  # Behavior 1-d: /images/* — WAS welcome.jsp 의 배경 영상 경로(옛 S3 버킷 경로). Apache Alias → /static/images 로 서빙, 여기서 캐시
+  ordered_cache_behavior {
+    path_pattern               = "/images/*"
+    target_origin_id           = local.cf_origin_group
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
+  }
+
   # Behavior 1-b: WAR 의 images/* (test 브랜치 WAR 를 올렸을 때 hero.mp4 · 포스터) 도 캐시
   ordered_cache_behavior {
     path_pattern               = "${local.app_context}/images/*"

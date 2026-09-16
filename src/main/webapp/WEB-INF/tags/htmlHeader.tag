@@ -36,6 +36,4 @@ PetClinic :: a Spring Framework demonstration
     <link href="${jQueryUiCss}" rel="stylesheet"/>
     <spring:url value="/webjars/jquery-ui/1.12.1/jquery-ui.theme.min.css" var="jQueryUiThemeCss"/>
     <link href="${jQueryUiThemeCss}" rel="stylesheet"/>
-<spring:url value="/resources/css/mission.css" var="missionCss"/>
-<link href="${missionCss}" rel="stylesheet"/>
 </head>

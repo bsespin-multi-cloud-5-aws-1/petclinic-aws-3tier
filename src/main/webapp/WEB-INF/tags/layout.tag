@@ -10,10 +10,9 @@
 <html lang="ko">
 <petclinic:htmlHeader/>
 
-<body class="page-${pageName}">
+<body>
 <petclinic:bodyHeader menuName="${pageName}"/>
 
-<main id="content">
 <jsp:invoke fragment="hero"/>
 
 <div class="container-fluid">
@@ -23,7 +22,6 @@
 
     </div>
 </div>
-</main>
 <petclinic:footer/>
 <jsp:invoke fragment="customScript" />
 
