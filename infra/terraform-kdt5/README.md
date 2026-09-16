@@ -45,6 +45,8 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 | 2 ASG 켜기 | `enable_asg=true` (+ `web_asg`/`was_asg` min 2 · max 4 · desired 2 · CPU 60% · WAS 는 대상당 요청 300 추가) | 고정 EC2 0대 → 시작 템플릿(`$Latest`) + ASG(`mc-asg-web/was`) 생성. 템플릿을 고치면 `instance_refresh`(Rolling · 50% 유지)가 교체. WAS 종료 훅 300s: `mc-lifecycle-watch` 가 마지막 로그를 `s3://mc-logs/was/<instance-id>/` 로 sync 후 CONTINUE |
 | 2' DB 초기화 | `db_init_mode="userdata"` (ASG 권장) | Notion 'was' 의 우려(동시 부팅 시 schema 경합)에 대한 답. 우리 앱은 Spring Boot 가 아니라 XML `jdbc:initialize-database` 이고 MySQL 스크립트가 `CREATE TABLE IF NOT EXISTS`·`INSERT IGNORE` 라 **현재(app 모드)도 멱등** — 9/16 롤링 교체·동시 부팅에서 실측 문제 없음. `userdata` 는 한 단계 더: was.sh 가 앱 사용자로 `GET_LOCK('mc_db_init')` 아래에서 1회 실행하고 Spring 초기화는 `-Djdbc.initLocation`(datasource-config.xml 이 `system-properties-mode="OVERRIDE"`)으로 빈 스크립트로 돌림. Java 0줄 |
 
+**교훈(9/16 저녁 실측)**: `-target=module.base[0].aws_lb_target_group_attachment.web[0]` 처럼 인스턴스 하나만 겨냥해도 Terraform 은 의존성을 **리소스 단위**(`aws_instance.web` 전체)로 넓혀서 4대를 한 번에 교체했다(약 3분 WEB · 6분 WAS 동안 서비스 중단). 고정 EC2 를 롤링하려면 `-target` 이 아니라 **한 대씩 `terraform taint`/`-replace="module.base[0].aws_instance.web[0]"` 로 교체**해야 한다. 또 count 로 바뀐 리소스(예: `aws_ssm_document.session_prefs`)가 plan 에 있으면 `-target` 세트에 그것도 넣어야 한다.
+
 주의: `user_data_replace_on_change = true` 라 was.sh 템플릿이 바뀌면 고정 EC2 는 **교체**된다(템플릿 기본 렌더링은 byte-identical 하게 유지 — `enable_asg`·`baked`·`db_init_mode` 블록은 켤 때만 나옴). 교체는 AZ-a → AZ-c 순으로 `-target` 롤링.
 
 ## 운영자 접속 = Bastion (팀 결정 9/16 저녁 · SSM Session Manager 는 안 씀)
