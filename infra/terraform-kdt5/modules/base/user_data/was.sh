@@ -37,7 +37,12 @@ done
 DB_PASS_SQL=$(printf '%s' "$DB_PASS" | sed "s/'/''/g")
 mysql --ssl -h "${jdbc_host}" -u "$ADMIN_USER" -p"$ADMIN_PASS" -e "CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS_SQL'; ALTER USER '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS_SQL'; GRANT ALL PRIVILEGES ON \`${db_name}\`.* TO '$DB_USER'@'%'; FLUSH PRIVILEGES;" \
   && echo "app user $DB_USER ready" || echo "APP USER FAILED"
-mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" -e "SELECT CURRENT_USER() AS app_login;" || echo "APP LOGIN FAILED"
+# 앱 사용자로 Proxy 경유 로그인이 될 때까지 대기 — Proxy 의 SECRETS 인증 목록에 앱 비밀이 반영되기 전에 Tomcat 이 뜨면
+# "Access denied for user petclinic_app" 로 컨텍스트 초기화 실패(404) 후 재시도하지 않음 (9/16 was-a 재현)
+for i in $(seq 1 30); do
+  mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" -e "SELECT CURRENT_USER() AS app_login;" && { echo "app login via proxy OK ($i)"; break; }
+  echo "app login retry $i/30"; sleep 10
+done
 unset ADMIN_PASS DB_SECRET DB_PASS_SQL
 
 # ---- Tomcat ----
@@ -83,7 +88,13 @@ for i in $(seq 1 12); do
   echo "cwagent config retry $i/12"; sleep 10
 done
 
-sleep 25
+# 앱 기동 확인 — DB 연결 실패로 404 면 Tomcat 재시작(최대 3회). Spring 컨텍스트는 실패 후 스스로 재시도하지 않음
+for i in 1 2 3; do
+  sleep 30
+  code=$(curl -s -o /dev/null -w "%%{http_code}" "http://localhost:8080${app_context}/")
+  [ "$code" = "200" ] && break
+  echo "petclinic $code → tomcat restart ($i/3)"; systemctl restart tomcat
+done
 curl -s -o /dev/null -w "petclinic %%{http_code}\n" "http://localhost:8080${app_context}/"
 curl -s "http://localhost:8080${app_context}/vets.json" | head -c 120; echo
 mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" "${db_name}" \
