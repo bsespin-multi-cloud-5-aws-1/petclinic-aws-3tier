@@ -26,6 +26,10 @@ if [ -f /tmp/petclinic-src/src/main/webapp/index.html ]; then
     -e 's#href="preview-info\.html\?route=/#href="${app_context}/#g' \
     /tmp/petclinic-src/src/main/webapp/index.html > /var/www/html/index.html
   echo "index.html installed from $INDEX_BRANCH ($(wc -c < /var/www/html/index.html) bytes) · static $(du -sh /var/www/html/static | cut -f1)"
+  # 히어로(첫 화면)는 한 번만: 앱 홈 /petclinic/ (welcome.jsp 도 히어로) 는 랜딩 / 로 보냄. 앱 내부 링크·헬스체크(Internal ALB→Tomcat 직접)는 영향 없음
+  ROOT_RULE='RewriteCond %%{HTTP:X-Forwarded-Proto} =https
+RewriteRule ^'"${app_context}"'/$ https://%%{HTTP_HOST}/ [R=302,L]
+RewriteRule ^'"${app_context}"'/$ / [R=302,L]'
 else
   rm -f /var/www/html/index.html
   ROOT_RULE='RewriteCond %%{HTTP:X-Forwarded-Proto} =https
