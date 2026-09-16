@@ -81,6 +81,31 @@ variable "db_init_mode" {
   default     = "app"
 }
 
+# ---- 운영자 접속: Bastion + SSH 키 (SSM Session Manager 대신) ----
+variable "create_bastion" {
+  type    = bool
+  default = true
+}
+variable "bastion_allowed_cidrs" {
+  description = "Bastion 22 를 허용할 CIDR (운영자 공인 IP /32)"
+  type        = list(string)
+  default     = []
+}
+variable "bastion_instance_type" {
+  type    = string
+  default = "t3.micro"
+}
+variable "ssh_key_name" {
+  description = "기존 키 페어 이름. 비면 tls_private_key 로 mc-ssh 를 만든다 (Bastion · WEB · WAS 공통)"
+  type        = string
+  default     = ""
+}
+variable "enable_ssm" {
+  description = "false: AmazonSSMManagedInstanceCore 를 떼어 Session Manager 접속 불가 (Bastion 만)"
+  type        = bool
+  default     = false
+}
+
 variable "cwagent_param_prefix" {
   description = "CloudWatch Agent 설정 SSM 파라미터 접두사 (루트 observability.tf 가 /mc/cwagent/web|was 생성)"
   type        = string

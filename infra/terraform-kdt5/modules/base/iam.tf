@@ -16,6 +16,7 @@ resource "aws_iam_role" "ec2" {
 }
 
 resource "aws_iam_role_policy_attachment" "ec2_ssm" {
+  count      = var.enable_ssm ? 1 : 0 # 팀 결정 9/16: Bastion 사용 → 기본 없음 (SSM 에이전트가 등록 못 함 = Session Manager 불가)
   role       = aws_iam_role.ec2.name
   policy_arn = "arn:${data.aws_partition.current.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }

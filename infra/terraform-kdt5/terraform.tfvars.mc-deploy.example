@@ -11,6 +11,7 @@ base = {
   app_repo_branch      = "test"   # Green(Phase 2): test 브랜치(pom 패치 + 리디자인 JSP). Blue 로 되돌리려면 "main" + "9.0.53"
   tomcat_version       = "9.0.121"
   public_http_listener = false    # NS 위임 전 ALB DNS 로 직접 확인하려면 true (확인 후 false 로 되돌려 apply)
+  bastion_allowed_cidrs = ["183.98.42.129/32"] # 운영자 공인 IP (팀원은 여기에 /32 추가)
   web_index_branch     = "test"   # Apache 첫 화면 = test 브랜치 WAR 의 index.html (main 엔 없음)
 }
 

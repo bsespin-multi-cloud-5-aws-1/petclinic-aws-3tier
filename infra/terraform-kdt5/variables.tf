@@ -78,6 +78,11 @@ variable "base" {
     # DB 스키마 초기화 주체. app = Spring jdbc:initialize-database(현재 · schema IF NOT EXISTS + INSERT IGNORE 라 멱등)
     # userdata = was.sh 가 GET_LOCK 으로 직렬화해 1회 실행하고 Spring 초기화는 끔(-Djdbc.initLocation) — ASG 동시 부팅용(Notion 'was' 2안)
     db_init_mode = optional(string, "app")
+    # ---- 운영자 접속 (팀 결정 9/16 저녁: Bastion + SSH 키 · SSM Session Manager 는 안 씀 → enable_ssm=false) ----
+    create_bastion        = optional(bool, true)
+    bastion_allowed_cidrs = optional(list(string), []) # SSH 22 를 허용할 운영자 공인 IP(/32). 비면 아무도 못 들어감
+    bastion_instance_type = optional(string, "t3.micro")
+    ssh_key_name          = optional(string, "") # 기존 키 페어 이름. 비면 mc-ssh 키 페어를 만들고 개인키를 .keys/mc-ssh.pem 에 저장(gitignore)
   })
   default = {}
   validation {
@@ -152,6 +157,12 @@ variable "enable_waf" {
   description = "CloudFront 에 WAF Web ACL 부착(allow-loadgen → 관리형 3 → rate-all → rate-booking · 로그 → CloudWatch Logs aws-waf-logs-mc). 9/16 멘토링에서 '관리 어려움' 의견이 있었으나 팀 결정으로 유지(true). 끄면 Web ACL·IP set·로그 그룹이 삭제되고 CloudFront 는 Shield Standard 만 남음"
   type        = bool
   default     = true
+}
+
+variable "enable_ssm" {
+  description = "SSM Session Manager(세션 설정 문서 · /mc/ssm/sessions · AmazonSSMManagedInstanceCore). 팀 결정 9/16: Bastion 을 쓰므로 기본 false. Parameter Store(CW Agent 설정)는 이 값과 무관"
+  type        = bool
+  default     = false
 }
 
 variable "waf_rate_limit_all" {

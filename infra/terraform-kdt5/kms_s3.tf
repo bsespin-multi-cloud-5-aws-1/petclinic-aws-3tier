@@ -51,6 +51,7 @@ locals {
   buckets = {
     maintenance = "${local.p}-maintenance-${data.aws_caller_identity.current.account_id}"
     logs        = "${local.p}-logs-${data.aws_caller_identity.current.account_id}"
+    static      = "${local.p}-static-${data.aws_caller_identity.current.account_id}"
     cloudtrail  = "${local.p}-cloudtrail-${data.aws_caller_identity.current.account_id}"
   }
 }
@@ -59,6 +60,13 @@ resource "aws_s3_bucket" "maintenance" {
   bucket        = local.buckets.maintenance
   force_destroy = true
   tags          = merge(local.tier_tag.edge, { Name = local.buckets.maintenance })
+}
+
+# 정적 자산(랜딩 페이지 css·이미지·hero 영상): CloudFront /static/* · /images/* 의 오리진 (OAC). Apache 를 거치지 않음
+resource "aws_s3_bucket" "static" {
+  bucket        = local.buckets.static
+  force_destroy = true
+  tags          = merge(local.tier_tag.edge, { Name = local.buckets.static })
 }
 
 resource "aws_s3_bucket" "logs" {
@@ -76,6 +84,7 @@ resource "aws_s3_bucket" "cloudtrail" {
 locals {
   all_buckets = {
     maintenance = aws_s3_bucket.maintenance
+    static      = aws_s3_bucket.static
     logs        = aws_s3_bucket.logs
     cloudtrail  = aws_s3_bucket.cloudtrail
   }
@@ -108,7 +117,7 @@ resource "aws_s3_bucket_versioning" "all" {
 
 # 점검 페이지·CloudTrail: SSE-KMS + 버킷 키. 로그 버킷은 ALB 로그 전송 호환을 위해 SSE-S3
 resource "aws_s3_bucket_server_side_encryption_configuration" "kms" {
-  for_each = { maintenance = aws_s3_bucket.maintenance, cloudtrail = aws_s3_bucket.cloudtrail }
+  for_each = { maintenance = aws_s3_bucket.maintenance, static = aws_s3_bucket.static, cloudtrail = aws_s3_bucket.cloudtrail }
   bucket   = each.value.id
   rule {
     apply_server_side_encryption_by_default {
@@ -222,6 +231,68 @@ data "aws_iam_policy_document" "maintenance_bucket" {
 resource "aws_s3_bucket_policy" "maintenance" {
   bucket = aws_s3_bucket.maintenance.id
   policy = data.aws_iam_policy_document.maintenance_bucket.json
+}
+
+data "aws_iam_policy_document" "static_bucket" {
+  statement {
+    sid       = "AllowCloudFrontOAC"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.static.arn}/*"]
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.main.arn]
+    }
+  }
+  statement {
+    sid       = "DenyInsecureTransport"
+    effect    = "Deny"
+    actions   = ["s3:*"]
+    resources = [aws_s3_bucket.static.arn, "${aws_s3_bucket.static.arn}/*"]
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "static" {
+  bucket = aws_s3_bucket.static.id
+  policy = data.aws_iam_policy_document.static_bucket.json
+}
+
+# 정적 자산 동기화: 저장소의 src/main/webapp/resources·images → s3://mc-static/static/… (apply 때 바뀐 파일만 다시 올림). .less 원본은 제외
+locals {
+  static_root = "${path.root}/../../src/main/webapp"
+  static_files = merge(
+    { for f in fileset("${local.static_root}/resources", "**") : "static/resources/${f}" => "${local.static_root}/resources/${f}" if !startswith(f, "less/") },
+    { for f in fileset("${local.static_root}/images", "**") : "static/images/${f}" => "${local.static_root}/images/${f}" },
+  )
+  mime = {
+    css = "text/css", js = "application/javascript", json = "application/json", html = "text/html", svg = "image/svg+xml",
+    png = "image/png", jpg = "image/jpeg", jpeg = "image/jpeg", gif = "image/gif", webp = "image/webp", ico = "image/x-icon",
+    mp4 = "video/mp4", webm = "video/webm", woff = "font/woff", woff2 = "font/woff2", ttf = "font/ttf", eot = "application/vnd.ms-fontobject", otf = "font/otf",
+  }
+}
+
+resource "aws_s3_object" "static" {
+  for_each      = local.static_files
+  bucket        = aws_s3_bucket.static.id
+  key           = each.key
+  source        = each.value
+  source_hash   = filemd5(each.value)
+  content_type  = lookup(local.mime, lower(element(split(".", each.key), length(split(".", each.key)) - 1)), "application/octet-stream")
+  cache_control = "public, max-age=86400"
+  tags          = local.tier_tag.edge
 }
 
 # 로그 버킷: ALB 액세스 로그 전송 계정 허용 → 기존 ALB 두 개의 "액세스 로그" 를 콘솔에서 이 버킷으로 켜면 됨 (README 후속)

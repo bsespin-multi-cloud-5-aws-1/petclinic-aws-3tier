@@ -12,19 +12,24 @@ module "base" {
   tier_tag     = local.tier_tag
   app_context  = local.app_context
 
-  web_instance_type    = var.base.web_instance_type
-  was_instance_type    = var.base.was_instance_type
-  app_repo_url         = var.base.app_repo_url
-  app_repo_branch      = var.base.app_repo_branch
-  tomcat_version       = var.base.tomcat_version
-  public_http_listener = var.base.public_http_listener
-  web_index_branch     = var.base.web_index_branch
-  enable_asg           = var.base.enable_asg
-  web_asg              = var.base.web_asg
-  was_asg              = var.base.was_asg
-  web_ami_id           = var.base.web_ami_id
-  was_ami_id           = var.base.was_ami_id
-  db_init_mode         = var.base.db_init_mode
+  web_instance_type     = var.base.web_instance_type
+  was_instance_type     = var.base.was_instance_type
+  app_repo_url          = var.base.app_repo_url
+  app_repo_branch       = var.base.app_repo_branch
+  tomcat_version        = var.base.tomcat_version
+  public_http_listener  = var.base.public_http_listener
+  web_index_branch      = var.base.web_index_branch
+  enable_asg            = var.base.enable_asg
+  web_asg               = var.base.web_asg
+  was_asg               = var.base.was_asg
+  web_ami_id            = var.base.web_ami_id
+  was_ami_id            = var.base.was_ami_id
+  db_init_mode          = var.base.db_init_mode
+  create_bastion        = var.base.create_bastion
+  bastion_allowed_cidrs = var.base.bastion_allowed_cidrs
+  bastion_instance_type = var.base.bastion_instance_type
+  ssh_key_name          = var.base.ssh_key_name
+  enable_ssm            = var.enable_ssm
 
   access_logs_bucket   = aws_s3_bucket_policy.logs.bucket # 정책 적용 후 ALB 생성
   db_secret_arn        = aws_db_instance.main.master_user_secret[0].secret_arn

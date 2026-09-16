@@ -42,6 +42,7 @@ resource "aws_instance" "web" {
   vpc_security_group_ids      = [aws_security_group.web.id]
   iam_instance_profile        = aws_iam_instance_profile.ec2.name
   associate_public_ip_address = false
+  key_name                    = local.ssh_key_name # Bastion 에서 SSH (create_bastion=false 면 null)
 
   metadata_options {
     http_tokens                 = "required"
@@ -68,6 +69,7 @@ resource "aws_instance" "was" {
   vpc_security_group_ids      = [aws_security_group.was.id]
   iam_instance_profile        = aws_iam_instance_profile.ec2.name
   associate_public_ip_address = false
+  key_name                    = local.ssh_key_name # Bastion 에서 SSH (create_bastion=false 면 null)
 
   metadata_options {
     http_tokens                 = "required"
@@ -93,6 +95,7 @@ resource "aws_launch_template" "web" {
   image_id               = local.web_ami
   instance_type          = var.web_instance_type
   update_default_version = true
+  key_name               = local.ssh_key_name
   vpc_security_group_ids = [aws_security_group.web.id]
   user_data              = base64encode(local.web_user_data)
 
@@ -129,6 +132,7 @@ resource "aws_launch_template" "was" {
   image_id               = local.was_ami
   instance_type          = var.was_instance_type
   update_default_version = true
+  key_name               = local.ssh_key_name
   vpc_security_group_ids = [aws_security_group.was.id]
   user_data              = base64encode(local.was_user_data)
 

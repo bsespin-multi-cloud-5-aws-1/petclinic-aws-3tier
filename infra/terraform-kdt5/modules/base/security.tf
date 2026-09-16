@@ -1,4 +1,4 @@
-# ---------- SG 체인: alb-public → web → alb-internal → was → rds. 22번 없음(SSM) ----------
+# ---------- SG 체인: alb-public → web → alb-internal → was → rds. 22번은 bastion.tf 의 Bastion SG 에서만 (SSM 대신) ----------
 # alb-public 인바운드는 루트 security.tf 가 넣음 (CloudFront 프리픽스 443). 80 은 public_http_listener=true 일 때만
 resource "aws_security_group" "alb_public" {
   name        = "${local.p}-sg-alb-public"

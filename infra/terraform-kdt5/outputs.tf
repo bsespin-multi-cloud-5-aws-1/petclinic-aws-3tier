@@ -35,18 +35,36 @@ output "sns_alerts_topic_arn" {
 }
 
 output "log_locations" {
-  description = "로그 5종이 놓이는 곳 (앱·SSM = CloudWatch Logs, ALB·CloudFront·CloudTrail = S3 객체)"
+  description = "로그가 놓이는 곳 (앱·Bastion SSH·WAF = CloudWatch Logs, ALB·CloudFront·CloudTrail = S3 객체)"
   value = {
-    app_cloudwatch = "/mc/web/* · /mc/was/*"
-    ssm_cloudwatch = "/mc/ssm/sessions"
-    alb_s3         = "s3://${local.buckets.logs}/alb/{public,internal}/"
-    cloudfront_s3  = "s3://${local.buckets.logs}/cloudfront/"
-    cloudtrail_s3  = "s3://${local.buckets.cloudtrail}/AWSLogs/"
+    app_cloudwatch     = "/mc/web/* · /mc/was/*"
+    bastion_cloudwatch = var.create_base && var.base.create_bastion ? "/mc/bastion/secure" : null
+    ssm_cloudwatch     = var.enable_ssm ? "/mc/ssm/sessions" : null
+    waf_cloudwatch     = var.enable_waf ? "aws-waf-logs-${local.p} (us-east-1)" : null
+    alb_s3             = "s3://${local.buckets.logs}/alb/{public,internal}/"
+    cloudfront_s3      = "s3://${local.buckets.logs}/cloudfront/"
+    cloudtrail_s3      = "s3://${local.buckets.cloudtrail}/AWSLogs/"
   }
 }
 
 output "buckets" {
   value = local.buckets
+}
+
+output "bastion" {
+  description = "운영자 접속 (SSM 대신). 같은 키로 WEB·WAS 에 -J 점프. DB 는 Bastion 에서 mysql --ssl -h <rds_proxy_endpoint>"
+  value = var.create_base && var.base.create_bastion ? {
+    public_ip = module.base[0].bastion_public_ip
+    key_file  = var.base.ssh_key_name == "" ? "${path.root}/.keys/${local.p}-ssh.pem" : "(기존 키 ${var.base.ssh_key_name})"
+    ssh       = "ssh -i .keys/${local.p}-ssh.pem ec2-user@${module.base[0].bastion_public_ip}"
+    jump      = "ssh -i .keys/${local.p}-ssh.pem -J ec2-user@${module.base[0].bastion_public_ip} ec2-user@<WEB/WAS 사설 IP>"
+    allowed   = var.base.bastion_allowed_cidrs
+  } : null
+}
+
+output "static_bucket" {
+  description = "CloudFront /static/* · /images/* 오리진 (OAC). 내용 = src/main/webapp/resources·images (apply 가 동기화)"
+  value       = local.buckets.static
 }
 
 output "public_alb_dns" {

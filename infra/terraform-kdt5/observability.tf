@@ -1,13 +1,15 @@
 # ---------- ⑤ 운영 · 관측: 로그 5종 → CloudWatch / S3, 알람 3 → SNS, CloudTrail, SSM, Grafana(선택) ----------
 locals {
-  log_groups = {
+  log_groups = merge({
     "/mc/web/access"   = var.log_retention_days
     "/mc/web/error"    = var.log_retention_days
     "/mc/was/catalina" = var.log_retention_days
     "/mc/was/access"   = var.log_retention_days
     "/mc/was/gc"       = var.log_retention_days
-    "/mc/ssm/sessions" = 90
-  }
+    },
+    var.enable_ssm ? { "/mc/ssm/sessions" = 90 } : {},
+    var.create_base && var.base.create_bastion ? { "/mc/bastion/secure" = 90 } : {}, # 누가 언제 SSH 로 들어왔나 (SSM 세션 로그의 대체)
+  )
 }
 
 resource "aws_cloudwatch_log_group" "app" {
@@ -29,6 +31,9 @@ locals {
       { file_path = "${local.was_tomcat_home}/logs/catalina.out", log_group_name = "/mc/was/catalina" },
       { file_path = "${local.was_tomcat_home}/logs/localhost_access_log.*.txt", log_group_name = "/mc/was/access" },
       { file_path = "${local.was_tomcat_home}/logs/gc.log", log_group_name = "/mc/was/gc" },
+    ]
+    bastion = [
+      { file_path = "/var/log/secure", log_group_name = "/mc/bastion/secure" }, # sshd 로그인 성공·실패
     ]
   }
 }
@@ -138,8 +143,9 @@ resource "aws_cloudtrail" "main" {
   depends_on                    = [aws_s3_bucket_policy.cloudtrail]
 }
 
-# ---------- SSM Session Manager 환경 설정 (세션 로그 → /mc/ssm/sessions · KMS). Bastion·22번 대체 ----------
+# ---------- SSM Session Manager 환경 설정 (enable_ssm 일 때만 · 팀 결정 9/16: Bastion 사용이라 기본 없음) ----------
 resource "aws_ssm_document" "session_prefs" {
+  count           = var.enable_ssm ? 1 : 0
   name            = "SSM-SessionManagerRunShell"
   document_type   = "Session"
   document_format = "JSON"

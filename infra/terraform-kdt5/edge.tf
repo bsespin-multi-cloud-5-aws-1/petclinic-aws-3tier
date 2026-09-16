@@ -227,15 +227,17 @@ resource "aws_cloudfront_origin_access_control" "s3" {
 }
 
 locals {
-  cf_origin_alb         = "alb-public"
-  cf_origin_maintenance = "s3-maintenance"
-  cf_origin_group       = "alb-with-maintenance-failover"
+  cf_origin_alb           = "alb-public"
+  cf_origin_maintenance   = "s3-maintenance"
+  cf_origin_static        = "s3-static"        # /static/*  → 키 static/…
+  cf_origin_static_images = "s3-static-images" # /images/*  → origin_path /static → 키 static/images/…
+  cf_origin_group         = "alb-with-maintenance-failover"
 }
 
 resource "aws_cloudfront_distribution" "main" {
   enabled         = true
   is_ipv6_enabled = true
-  comment         = "${local.p} petclinic (Behavior 분기: 정적 캐시 / 점검 페이지 S3 / 동적 ALB)"
+  comment         = "${local.p} petclinic (Behavior 분기: 정적 S3(OAC) 캐시 / 점검 페이지 S3 / 동적 ALB)"
   aliases         = [var.domain_name]
   price_class     = "PriceClass_200"
   web_acl_id      = var.enable_waf ? aws_wafv2_web_acl.main[0].arn : null
@@ -275,6 +277,20 @@ resource "aws_cloudfront_distribution" "main" {
     origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
   }
 
+  # 오리진 3·4: 정적 자산 S3 (OAC · 같은 버킷). 정적 트래픽은 Apache 를 거치지 않는다 (Hit 면 엣지, Miss 면 S3)
+  origin {
+    domain_name              = aws_s3_bucket.static.bucket_regional_domain_name
+    origin_id                = local.cf_origin_static
+    origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
+  }
+
+  origin {
+    domain_name              = aws_s3_bucket.static.bucket_regional_domain_name
+    origin_id                = local.cf_origin_static_images
+    origin_path              = "/static"
+    origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
+  }
+
   origin_group {
     origin_id = local.cf_origin_group
     failover_criteria {
@@ -301,29 +317,27 @@ resource "aws_cloudfront_distribution" "main" {
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
-  # Behavior 1-c: Apache 가 직접 서빙하는 랜딩 페이지 자산(/static/* = index 브랜치의 resources/·images/) 캐시
+  # Behavior 1-c: 랜딩 페이지 자산 /static/* (resources/·images/) → S3 정적 버킷 (OAC). S3 오리진엔 AllViewer 를 붙이면 Host 가 넘어가 서명 불일치 → 캐시 정책만
   ordered_cache_behavior {
     path_pattern               = "/static/*"
-    target_origin_id           = local.cf_origin_group
+    target_origin_id           = local.cf_origin_static
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
     cached_methods             = ["GET", "HEAD"]
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
-    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
-  # Behavior 1-d: /images/* — WAS welcome.jsp 의 배경 영상 경로(옛 S3 버킷 경로). Apache Alias → /static/images 로 서빙, 여기서 캐시
+  # Behavior 1-d: /images/* — WAS welcome.jsp 의 배경 영상 경로 → 같은 S3 버킷 (origin_path /static → 키 static/images/…)
   ordered_cache_behavior {
     path_pattern               = "/images/*"
-    target_origin_id           = local.cf_origin_group
+    target_origin_id           = local.cf_origin_static_images
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
     cached_methods             = ["GET", "HEAD"]
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.optimized.id
-    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
   }
 
