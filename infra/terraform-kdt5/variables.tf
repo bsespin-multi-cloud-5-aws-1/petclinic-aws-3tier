@@ -69,8 +69,21 @@ variable "base" {
     tomcat_version       = optional(string, "9.0.53")
     public_http_listener = optional(bool, false) # NS 위임 전 ALB DNS 로 직접 확인할 때만 true
     web_index_branch     = optional(string, "")  # Apache 첫 화면 = 이 브랜치의 src/main/webapp/index.html. 비면 app_repo_branch
+    # ---- ASG · AMI (Notion 'AMI & Auto Scaling'·'was' 반영, 기본은 고정 EC2 2대) ----
+    enable_asg = optional(bool, false) # true: WEB·WAS 를 시작 템플릿 + ASG 로 (고정 EC2 는 0대). 도면의 회색 'Auto Scaling (로드맵)' 을 켜는 스위치
+    web_asg    = optional(object({ min = number, max = number, desired = number, cpu_target = number }), { min = 2, max = 4, desired = 2, cpu_target = 60 })
+    was_asg    = optional(object({ min = number, max = number, desired = number, cpu_target = number, req_per_target = number }), { min = 2, max = 4, desired = 2, cpu_target = 60, req_per_target = 300 })
+    web_ami_id = optional(string, "") # 구운 AMI(Golden). 비면 AL2023 최신 + 부팅 시 전부 설치
+    was_ami_id = optional(string, "") # 구운 AMI 면 was.sh 가 Tomcat 다운로드·git clone 을 건너뛰고 WAR 만 다시 빌드
+    # DB 스키마 초기화 주체. app = Spring jdbc:initialize-database(현재 · schema IF NOT EXISTS + INSERT IGNORE 라 멱등)
+    # userdata = was.sh 가 GET_LOCK 으로 직렬화해 1회 실행하고 Spring 초기화는 끔(-Djdbc.initLocation) — ASG 동시 부팅용(Notion 'was' 2안)
+    db_init_mode = optional(string, "app")
   })
   default = {}
+  validation {
+    condition     = contains(["app", "userdata"], var.base.db_init_mode)
+    error_message = "base.db_init_mode 는 app 또는 userdata"
+  }
 }
 
 # ---------- 콘솔로 이미 만든 리소스 (WEB · WAS · VPC · ALB · RDS) — create_base=false 일 때만 사용 ----------
@@ -136,9 +149,9 @@ variable "origin_verify_secret" {
 }
 
 variable "enable_waf" {
-  description = "CloudFront 에 WAF Web ACL 부착. 9/16 멘토링 결정: 소규모 팀이 규칙 튜닝·오탐을 운영하기 어려워 기본 false (CloudFront·Shield Standard 는 유지)"
+  description = "CloudFront 에 WAF Web ACL 부착(allow-loadgen → 관리형 3 → rate-all → rate-booking · 로그 → CloudWatch Logs aws-waf-logs-mc). 9/16 멘토링에서 '관리 어려움' 의견이 있었으나 팀 결정으로 유지(true). 끄면 Web ACL·IP set·로그 그룹이 삭제되고 CloudFront 는 Shield Standard 만 남음"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "waf_rate_limit_all" {

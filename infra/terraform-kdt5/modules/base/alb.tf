@@ -49,7 +49,7 @@ resource "aws_lb_listener" "public_http" {
 }
 
 resource "aws_lb_target_group_attachment" "web" {
-  count            = 2
+  count            = local.ec2_count
   target_group_arn = aws_lb_target_group.web.arn
   target_id        = aws_instance.web[count.index].id
   port             = 80
@@ -104,7 +104,7 @@ resource "aws_lb_listener" "internal_8080" {
 }
 
 resource "aws_lb_target_group_attachment" "was" {
-  count            = 2
+  count            = local.ec2_count
   target_group_arn = aws_lb_target_group.was.arn
   target_id        = aws_instance.was[count.index].id
   port             = 8080

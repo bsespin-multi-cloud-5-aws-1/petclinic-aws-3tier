@@ -15,5 +15,7 @@ output "sg_was_id" { value = aws_security_group.was.id }
 output "sg_db_id" { value = aws_security_group.rds.id }
 
 output "ec2_role_id" { value = aws_iam_role.ec2.id }
-output "web_instance_ids" { value = aws_instance.web[*].id }
+output "web_instance_ids" { value = aws_instance.web[*].id } # enable_asg 면 []
 output "was_instance_ids" { value = aws_instance.was[*].id }
+output "web_asg_name" { value = try(aws_autoscaling_group.web[0].name, null) }
+output "was_asg_name" { value = try(aws_autoscaling_group.was[0].name, null) }

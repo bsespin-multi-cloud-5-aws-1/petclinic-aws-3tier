@@ -46,21 +46,47 @@ done
 unset ADMIN_PASS DB_SECRET DB_PASS_SQL
 
 # ---- Tomcat ----
+%{ if baked ~}
+# 구운 AMI(was_ami_id): 같은 버전이 이미 있으면 다운로드 생략 (Notion 'AMI & Auto Scaling' — 이미 구운 AMI 면 건너뜀)
+if [ -x /opt/tomcat/bin/catalina.sh ] && grep -q "Apache Tomcat Version $TOMCAT_VER" /opt/tomcat/RELEASE-NOTES 2>/dev/null; then echo "tomcat $TOMCAT_VER already baked"; else
+%{ endif ~}
 cd /tmp && curl -fLO "https://dlcdn.apache.org/tomcat/tomcat-9/v$TOMCAT_VER/bin/apache-tomcat-$TOMCAT_VER.tar.gz" \
   || curl -fLO "https://archive.apache.org/dist/tomcat/tomcat-9/v$TOMCAT_VER/bin/apache-tomcat-$TOMCAT_VER.tar.gz"
 mkdir -p /opt/tomcat && tar xzf "apache-tomcat-$TOMCAT_VER.tar.gz" -C /opt/tomcat --strip-components=1
+%{ if baked ~}
+fi
+%{ endif ~}
 id tomcat >/dev/null 2>&1 || useradd -r -m -d /opt/tomcat -s /sbin/nologin tomcat
 rm -rf /opt/tomcat/webapps/*
 
 # ---- 앱 빌드 (MySQL 프로필 · 빌드 시 주입) ----
+%{ if baked ~}
+# 구운 AMI: 소스가 있으면 fetch 만 (빌드는 항상 — WAR 에 Proxy 주소·앱 비밀이 들어가므로 계정·비밀 바뀌면 다시 구워야 함). ~/.m2 캐시 덕에 빌드 1분 안팎
+if [ -d /opt/petclinic-src/.git ]; then (cd /opt/petclinic-src && git fetch -q origin "${repo_branch}" && git checkout -q -B "${repo_branch}" FETCH_HEAD); else
+%{ endif ~}
 cd /opt && git clone -b "${repo_branch}" "${repo_url}" petclinic-src
+%{ if baked ~}
+fi
+%{ endif ~}
 cd /opt/petclinic-src && ./mvnw -q package -P MySQL -DskipTests \
   "-Djdbc.url=$JDBC_URL" "-Djdbc.username=$DB_USER" "-Djdbc.password=$DB_PASS_XML" \
   && cp target/petclinic.war /opt/tomcat/webapps/ || echo "BUILD FAILED: petclinic.war not deployed"
 rm -rf /opt/petclinic-src/target/classes /opt/petclinic-src/target/petclinic
+%{ if db_init_mode == "userdata" ~}
+
+# ---- DB 초기화 1회 (ASG 동시 부팅 안전 · Notion 'was' 2안): 앱 사용자로 GET_LOCK 직렬화 → schema.sql(CREATE IF NOT EXISTS)·data.sql(INSERT IGNORE)
+# 실행 후 Spring 의 부팅 시 초기화는 setenv 의 -Djdbc.initLocation(system-properties-mode=OVERRIDE) 로 빈 스크립트로 돌림. Java 무수정
+SQL_DIR=/opt/petclinic-src/src/main/resources/db/mysql
+{ echo "SELECT GET_LOCK('mc_db_init', 300) AS got_lock;"; cat "$SQL_DIR/schema.sql" "$SQL_DIR/data.sql"; echo "SELECT RELEASE_LOCK('mc_db_init') AS released;"; } \
+  | mysql --ssl -h "${jdbc_host}" -u "$DB_USER" -p"$DB_PASS" "${db_name}" && echo "DB init OK (serialized by GET_LOCK)" || echo "DB INIT FAILED"
+: > /opt/tomcat/conf/noop.sql
+%{ endif ~}
 
 cat > /opt/tomcat/bin/setenv.sh <<'SETENV'
 export CATALINA_OPTS="$CATALINA_OPTS -Xms512m -Xmx1g -Xloggc:/opt/tomcat/logs/gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
+%{ if db_init_mode == "userdata" ~}
+export CATALINA_OPTS="$CATALINA_OPTS -Djdbc.initLocation=file:/opt/tomcat/conf/noop.sql -Djdbc.dataLocation=file:/opt/tomcat/conf/noop.sql"
+%{ endif ~}
 SETENV
 chown -R tomcat:tomcat /opt/tomcat
 
@@ -81,6 +107,34 @@ Restart=on-failure
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload && systemctl enable --now tomcat
+%{ if enable_asg ~}
+
+# ---- ASG 종료 훅 처리: IMDS target-lifecycle-state 가 Terminated 가 되면 마지막 로그를 S3 로 sync 하고 훅을 CONTINUE 로 마감(로그를 서버에 남기지 않는 원칙의 마지막 조각) ----
+cat > /usr/local/bin/mc-lifecycle-watch.sh <<'WATCH'
+#!/bin/bash
+imds() { curl -s -H "X-aws-ec2-metadata-token: $TOKEN" "http://169.254.169.254/latest/meta-data/$1"; }
+while sleep 15; do
+  TOKEN=$(curl -sX PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
+  [ "$(imds autoscaling/target-lifecycle-state)" = "Terminated" ] || continue
+  IID=$(imds instance-id)
+  aws s3 sync /opt/tomcat/logs "s3://${logs_bucket}/was/$IID/" --region "${region}" || true
+  aws autoscaling complete-lifecycle-action --region "${region}" --auto-scaling-group-name "${asg_name}" --lifecycle-hook-name "${asg_hook_name}" --instance-id "$IID" --lifecycle-action-result CONTINUE || true
+  exit 0
+done
+WATCH
+chmod +x /usr/local/bin/mc-lifecycle-watch.sh
+cat > /etc/systemd/system/mc-lifecycle-watch.service <<UNIT
+[Unit]
+Description=ASG termination hook watcher (sync Tomcat logs to S3, then CONTINUE)
+After=network.target
+[Service]
+ExecStart=/usr/local/bin/mc-lifecycle-watch.sh
+Restart=always
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload && systemctl enable --now mc-lifecycle-watch
+%{ endif ~}
 
 # CloudWatch Agent (catalina · access · gc → /mc/was/*)
 for i in $(seq 1 12); do

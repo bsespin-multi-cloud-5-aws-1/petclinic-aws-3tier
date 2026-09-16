@@ -29,6 +29,7 @@ db = {
   apply_immediately     = true
 }
 
+enable_waf     = true # 9/16 팀 결정: WAF 유지 (Phase 3 실험 전 loadgen_cidrs 에 JMeter IP)
 loadgen_cidrs  = []
 alert_emails   = []
 enable_grafana = false

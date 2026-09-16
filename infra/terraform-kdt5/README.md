@@ -23,7 +23,7 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 |---|---|---|
 | 그대로 (읽기만) | `test-vpc` · 서브넷 8 · NAT · IGW · `test-Public-ALB` · `alb-internal-test` · `Targetgroup-web` · `tg-internal-alb` · SG 5개 · `mc-ec2-role` · WEB ASG `web-test`(AMI `web-appache`) · `WAS-test-a` · `bas-server` | `existing.tf` data 소스. 이름은 `var.existing` |
 | 편입 (import) | RDS `database-1` (MySQL 8.0.44 · db.t3.small · Multi-AZ · 200GB gp3) | `imports.tf` + `rds.tf` — 파라미터 그룹(TLS 강제·utf8mb4) · 백업 7일(PITR) · 삭제 방지만 바뀜 |
-| 신규 ① | Route 53 존 · ACM ×2(us-east-1·서울) · WAF(관리형 3 + rate 2) · CloudFront(Behavior 3 · 5xx→점검 페이지) · S3 점검 페이지(OAC) · **기존 Public ALB 에 443 리스너 + X-Origin-Verify 규칙** · alb-public-sg 에 CloudFront 프리픽스 443 규칙 | `edge.tf` `alb.tf` `security.tf` |
+| 신규 ① | Route 53 존 · ACM ×2(us-east-1·서울) · WAF(관리형 3 + rate 2 · `enable_waf`) · CloudFront(Behavior 3 · 5xx→점검 페이지) · S3 점검 페이지(OAC) · **기존 Public ALB 에 443 리스너 + X-Origin-Verify 규칙** · alb-public-sg 에 CloudFront 프리픽스 443 규칙 | `edge.tf` `alb.tf` `security.tf` |
 | 신규 ④ | RDS Proxy(TLS·Secrets 인증) + SG · petclinic-db-sg 에 Proxy 3306 규칙 · AWS Backup 볼트/계획 | `rds.tf` `security.tf` |
 | 신규 ⑤ | KMS CMK · S3 로그/CloudTrail 버킷 · CloudWatch Logs 6 · CW Agent 설정(SSM 파라미터) · 알람 3 → SNS · CloudTrail · SSM 세션 설정 · Grafana(선택) · mc-ec2-role 인라인 정책 | `kms_s3.tf` `observability.tf` `iam.tf` |
 | 수동 후속 | 가비아 NS · ALB 액세스 로그 · 인스턴스 프로파일 부착 · CW Agent 설치 · WAS JDBC → Proxy 재빌드 · 80 리스너/0.0.0.0/0 정리 · RDS 재부팅 | output `manual_followups` · [MANUAL-FOLLOWUPS.md](MANUAL-FOLLOWUPS.md) · 도면 `docs/architecture-kdt5-terraform.drawio` |
@@ -31,8 +31,21 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 왜 WEB·WAS 를 코드로 안 만드나: 팀이 콘솔로 AMI(`web-appache`)·ASG(`web-test`)·WAS 를 이미 만들었고 "WEB·WAS 는 그대로" 결정. Terraform 이 이를 다시 만들면 두 벌이 되거나 교체된다. 대신 **경계(ALB 리스너 · SG 규칙 · IAM 인라인 · 알람 차원)** 만 코드가 붙인다.
 
 ## 9/16 멘토링 반영
-- `enable_waf`(기본 false): WAF 제거 결정. CloudFront·Shield Standard 는 유지. 다시 켜면 관리형 3종 + rate 2 규칙이 그대로 붙음.
-- ASG·Bastion 옵션·EFS 설계는 `docs/notion-mentoring-followup.md` 참고(순차 반영 예정).
+- `enable_waf`(기본 **true** · 9/16 저녁 팀 결정으로 **유지**): CloudFront 에 붙는 Web ACL(allow-loadgen → 관리형 3 → rate-all 2,000/5분 → rate-booking `/visits/new` 100/5분) + 로그 → CloudWatch Logs `aws-waf-logs-mc`(us-east-1). 멘토링의 '관리 어려움' 의견은 기록만. 끄려면 `enable_waf = false`(Web ACL·IP set·로그 그룹 삭제 — CloudFront 에서 먼저 떼야 해서 `update-distribution --web-acl-id ""` 뒤 apply).
+- Phase 3 부하 실험 전 `loadgen_cidrs` 에 JMeter IP 를 넣지 않으면 rate-all 이 발생기를 차단한다.
+- Bastion 옵션·EFS 설계는 `docs/notion-mentoring-followup.md` 참고.
+
+## ASG · AMI (`base.enable_asg` · `base.web_ami_id` / `was_ami_id` · `base.db_init_mode`) — Notion 'AMI & Auto Scaling' · 'was' 반영
+기본은 **고정 EC2 2대**(도면의 회색 'Auto Scaling (로드맵)' 상태). 켜는 순서:
+
+| 단계 | 값 | 무슨 일 |
+|---|---|---|
+| 0 (현재) | `enable_asg=false` | `aws_instance` 2+2 · 대상 그룹에 직접 등록 |
+| 1 AMI 굽기(선택) | 콘솔: 현재 `mc-was-a` 에서 이미지 생성 → `was_ami_id = "ami-…"` (WEB 도 동일) | was.sh 가 Tomcat 다운로드·git clone 을 건너뛰고 WAR 만 다시 빌드(~/.m2 캐시). 부팅 5~8분 → 1~2분. **WAR 에 Proxy 주소·앱 비밀이 박히므로 계정·비밀이 바뀌면 다시 굽기** |
+| 2 ASG 켜기 | `enable_asg=true` (+ `web_asg`/`was_asg` min 2 · max 4 · desired 2 · CPU 60% · WAS 는 대상당 요청 300 추가) | 고정 EC2 0대 → 시작 템플릿(`$Latest`) + ASG(`mc-asg-web/was`) 생성. 템플릿을 고치면 `instance_refresh`(Rolling · 50% 유지)가 교체. WAS 종료 훅 300s: `mc-lifecycle-watch` 가 마지막 로그를 `s3://mc-logs/was/<instance-id>/` 로 sync 후 CONTINUE |
+| 2' DB 초기화 | `db_init_mode="userdata"` (ASG 권장) | Notion 'was' 의 우려(동시 부팅 시 schema 경합)에 대한 답. 우리 앱은 Spring Boot 가 아니라 XML `jdbc:initialize-database` 이고 MySQL 스크립트가 `CREATE TABLE IF NOT EXISTS`·`INSERT IGNORE` 라 **현재(app 모드)도 멱등** — 9/16 롤링 교체·동시 부팅에서 실측 문제 없음. `userdata` 는 한 단계 더: was.sh 가 앱 사용자로 `GET_LOCK('mc_db_init')` 아래에서 1회 실행하고 Spring 초기화는 `-Djdbc.initLocation`(datasource-config.xml 이 `system-properties-mode="OVERRIDE"`)으로 빈 스크립트로 돌림. Java 0줄 |
+
+주의: `user_data_replace_on_change = true` 라 was.sh 템플릿이 바뀌면 고정 EC2 는 **교체**된다(템플릿 기본 렌더링은 byte-identical 하게 유지 — `enable_asg`·`baked`·`db_init_mode` 블록은 켤 때만 나옴). 교체는 AZ-a → AZ-c 순으로 `-target` 롤링.
 
 ## 검증 (적용 없이)
 ```bash

@@ -19,6 +19,12 @@ module "base" {
   tomcat_version       = var.base.tomcat_version
   public_http_listener = var.base.public_http_listener
   web_index_branch     = var.base.web_index_branch
+  enable_asg           = var.base.enable_asg
+  web_asg              = var.base.web_asg
+  was_asg              = var.base.was_asg
+  web_ami_id           = var.base.web_ami_id
+  was_ami_id           = var.base.was_ami_id
+  db_init_mode         = var.base.db_init_mode
 
   access_logs_bucket   = aws_s3_bucket_policy.logs.bucket # 정책 적용 후 ALB 생성
   db_secret_arn        = aws_db_instance.main.master_user_secret[0].secret_arn

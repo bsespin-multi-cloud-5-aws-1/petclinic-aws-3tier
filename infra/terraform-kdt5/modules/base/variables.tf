@@ -51,6 +51,36 @@ variable "jdbc_host" {
   type        = string
 }
 
+# ---- ASG · AMI (루트 var.base 에서 전달) ----
+variable "enable_asg" {
+  description = "true: WEB·WAS 를 시작 템플릿 + ASG 로 (고정 aws_instance 는 0대). false: 고정 EC2 2대"
+  type        = bool
+  default     = false
+}
+variable "web_asg" {
+  type    = object({ min = number, max = number, desired = number, cpu_target = number })
+  default = { min = 2, max = 4, desired = 2, cpu_target = 60 }
+}
+variable "was_asg" {
+  type    = object({ min = number, max = number, desired = number, cpu_target = number, req_per_target = number })
+  default = { min = 2, max = 4, desired = 2, cpu_target = 60, req_per_target = 300 }
+}
+variable "web_ami_id" {
+  description = "구운 AMI. 비면 AL2023 최신"
+  type        = string
+  default     = ""
+}
+variable "was_ami_id" {
+  description = "구운 AMI. 비면 AL2023 최신. 값이 있으면 was.sh 가 Tomcat·소스 다운로드를 건너뜀"
+  type        = string
+  default     = ""
+}
+variable "db_init_mode" {
+  description = "app = Spring 이 부팅 시 schema/data 실행(멱등) · userdata = was.sh 가 GET_LOCK 직렬화로 1회 실행 후 Spring 초기화 끔"
+  type        = string
+  default     = "app"
+}
+
 variable "cwagent_param_prefix" {
   description = "CloudWatch Agent 설정 SSM 파라미터 접두사 (루트 observability.tf 가 /mc/cwagent/web|was 생성)"
   type        = string

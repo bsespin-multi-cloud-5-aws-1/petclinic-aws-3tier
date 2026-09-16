@@ -26,6 +26,16 @@ data "aws_iam_policy_document" "ec2_inline" {
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.logs.arn}/was/*", "${aws_s3_bucket.logs.arn}/web/*"]
   }
+  statement {
+    sid       = "ListLogsBucket" # aws s3 sync 가 대상 프리픽스를 나열
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.logs.arn]
+  }
+  statement {
+    sid       = "CompleteAsgLifecycleHook" # enable_asg: 종료 훅을 CONTINUE 로 마감 (mc-lifecycle-watch)
+    actions   = ["autoscaling:CompleteLifecycleAction"]
+    resources = ["arn:${data.aws_partition.current.partition}:autoscaling:${var.region}:${data.aws_caller_identity.current.account_id}:autoScalingGroup:*:autoScalingGroupName/${local.p}-asg-*"]
+  }
 }
 
 resource "aws_iam_role_policy" "ec2_inline" {
