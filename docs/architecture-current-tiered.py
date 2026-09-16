@@ -92,7 +92,7 @@ ET.SubElement(tg, "mxGeometry", x="50", y="30", width="2000", height="83").set("
 t1 = ET.SubElement(root, "mxCell", id="title-text", value="PetClinic 3-Tier on AWS — 현재 아키텍처 As-Built (1팀 Mission Critical · mc-deploy 528821350786 · 2026-09-16)",
                    style=f"text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t1, "mxGeometry", width="1900", height="42").set("as", "geometry")
-t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB + 계층별 로그·비밀·백업  |  infra/terraform-kdt5 create_base=true (127 리소스)  |  Route 53 → CloudFront(WAF 유지·로그 켬) → Public ALB :443 → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.121 ×2 (test·Green) → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ",
+t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB + 계층별 로그·비밀·백업  |  infra/terraform-kdt5 create_base=true (127 리소스)  |  Route 53 → CloudFront(WAF 유지·로그 켬 · 정적은 S3 OAC) → Public ALB :443 → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.121 ×2 (test·Green) → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ",
                    style=f"text;html=1;resizable=0;points=[];whiteSpace=wrap;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t2, "mxGeometry", x="5", y="40", width="1990", height="30").set("as", "geometry")
 t3 = ET.SubElement(root, "mxCell", id="title-separator", value="", style=f"line;strokeWidth=2;html=1;fontSize=14;strokeColor=#FF9900;{FONT}", vertex="1", parent="title-group")
@@ -100,7 +100,7 @@ ET.SubElement(t3, "mxGeometry", x="5", y="70", width="1990", height="10").set("a
 
 # ---------- groups ----------
 vertex("aws-cloud", "AWS Cloud · 528821350786 (mc-deploy) · Terraform state infra/terraform-kdt5/terraform.tfstate", STY["cloud"], 230, 140, 1820, 2000)
-vertex("band-entry", "①  네트워크 진입 계층 · 글로벌 엣지 (Route 53 → CloudFront [WAF Web ACL · ACM us-east-1 부착] → Behavior 분기 → Public ALB / S3 점검 페이지 OAC · 액세스 로그 → S3 · WAF 로그 → CloudWatch Logs)",
+vertex("band-entry", "①  네트워크 진입 계층 · 글로벌 엣지 (Route 53 → CloudFront [WAF Web ACL · ACM us-east-1 부착] → Behavior 분기: 정적 → S3 mc-static(OAC) / 동적 → Public ALB / 점검 페이지 S3(OAC) · 액세스 로그 → S3 · WAF 로그 → CloudWatch Logs)",
        f"rounded=0;fillColor=none;dashed=1;strokeColor=#8C4FFF;verticalAlign=top;align=left;spacingLeft=10;fontColor=#8C4FFF;fontStyle=1;fontSize=14;whiteSpace=wrap;html=1;container=0;pointerEvents=0;{FONT}", 250, 165, 1780, 300)
 vertex("region", "ap-northeast-2 (서울)", STY["region"], 260, 500, 1760, 1580)
 vertex("vpc", "VPC mc-vpc · 10.0.0.0/16 (서브넷 8 · IGW · NAT ×2 · rt public / private-a / private-c / db)", STY["vpc"], 290, 580, 1210, 1040)
@@ -131,13 +131,13 @@ text("lbl-ops2", "CloudWatch 알람 3 → SNS<br>Grafana·Slack 은 미도입", 
 text("lbl-store-band", "감사 로그 (계정 수준)", 300, 1630, 520, 22, "#E7157B", 14)
 text("lbl-ops-band", "운영 · 관측 공통 (전 계층)", 300, 1845, 400, 22, "#E7157B", 14)
 text("lbl-opscol", "계층별 로그 · 비밀 · 백업 (오른쪽 열, 계층 행에 맞춤) — 로그는 서버에 두지 않음", 1550, 515, 470, 24, "#E7157B", 14)
-text("lbl-row-web", "WEB·WAS 로그 (계정에 1개) · 접속", 1550, 910, 300, 20, "#ED7100", 12)
+text("lbl-row-web", "WEB·WAS·Bastion 로그 (계정에 1개)", 1550, 910, 300, 20, "#ED7100", 12)
 text("lbl-row-was", "WAS 설정 · 권한 · 증설(로드맵)", 1550, 1155, 300, 20, "#ED7100", 12)
 text("lbl-row-db", "DB 계층 비밀 · 암호화 · 백업", 1550, 1385, 260, 20, "#C925D1", 12)
 
 # ---------- external actors ----------
 actor("users", "사용자 (의료진·환자)", 60, 290)
-actor("ops", "운영자 (관리자)", 2080, 880, res="user")
+actor("ops", "운영자 (관리자)", 60, 690, res="user")
 vertex("slack", "Slack (미연결 · 로드맵)", f"fillColor=#FAFAFA;strokeColor=#9E9E9E;dashed=1;dashPattern=6 4;rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=12;fontColor=#9E9E9E;{FONT}container=1;collapsible=0;shadow=0;strokeWidth=1;", 2080, 1900, 107, 98)
 vertex("slack-icon", "", icon_style("chat", "#9E9E9E", "sub"), 30, 30, 48, 48, parent="slack")
 
@@ -146,6 +146,7 @@ service("r53", "DNS", "Amazon Route 53", "mission-critical.site<br>A/AAAA alias 
 service("waf", "웹 방화벽 (유지)", "AWS WAF", "관리형 3 + rate-all 2,000/5분<br>rate-booking 100/5분 · 로그 → CW Logs", "waf", "sec", 520, 260)
 service("cf", "CDN · 엣지", "Amazon CloudFront", "E2PWXW3LUYTDEE<br>PriceClass_200 · TLS1.2_2021", "cloudfront", "net", 740, 260)
 attach("cf", "acm-cf", "ACM", "certificate_manager", "sec", "tr")
+service("s3static", "정적 자산 (OAC)", "Amazon S3", "mc-static · /static/* · /images/*<br>apply 가 저장소 자산 동기화", "s3", "storage", 960, 260)
 service("s3maint", "점검 페이지 (OAC)", "Amazon S3", "mc-maintenance-…<br>5xx → 503 maintenance.html", "s3", "storage", 1180, 260)
 service("s3cflog", "CloudFront 액세스 로그", "Amazon S3", "mc-logs/cloudfront/ · 객체 .gz<br>9/16 켬 · 90일", "s3", "storage", 1420, 260)
 service("acm", "인증서", "AWS Certificate Manager", "us-east-1: CloudFront<br>서울: ALB 443 · 자동 갱신", "certificate_manager", "sec", 1660, 260)
@@ -167,10 +168,10 @@ service("rds-s", "관계형 DB (대기 · Standby)", "RDS mc-petclinic", "Second
 service("rds-p", "관계형 DB (주 · Primary)", "RDS MySQL 8.4.11", "Primary AZ = 2c · db.t3.small<br>Multi-AZ · 암호화 · TLS 필수", "rds", "db", 1030, 1410)
 
 # ---------- ops column (per tier) ----------
-service("cwl", "로그 저장소 (계정에 1개)", "CloudWatch Logs", "/mc/web/* · /mc/was/* 30일<br>/mc/ssm/sessions 90일 · KMS", "cloudwatch_logs", "integ", 1550, 935, kind="sub")
+service("cwl", "로그 저장소 (계정에 1개)", "CloudWatch Logs", "/mc/web/* · /mc/was/* 30일<br>/mc/bastion/secure 90일 · WAF · KMS", "cloudwatch_logs", "integ", 1550, 935, kind="sub")
 service("s3-logs", "액세스 로그 (객체)", "Amazon S3", "mc-logs · alb/public · alb/internal<br>cloudfront/ · 90일 · 5분 .gz", "s3", "storage", 1710, 935)
-service("ssm", "운영자 접속", "SSM Session Manager", "22번·키페어 없음 · 4대 Online<br>세션 로그 → /mc/ssm/sessions", "systems_manager_session_manager", "integ", 1870, 935, kind="sub")
-service("cwparam", "Agent 설정", "SSM Parameter Store", "/mc/cwagent/web · was<br>Agent 는 user_data 로 설치", "systems_manager", "integ", 1550, 1180, kind="sub")
+service("bastion", "운영자 접속 (Bastion)", "Bastion Host", "퍼블릭 A · EIP · SSH 22 ← 운영자 IP<br>같은 키로 WEB·WAS · Proxy 3306", "ec2", "integ", 620, 700)
+service("cwparam", "Agent 설정 (Parameter Store)", "SSM Parameter Store", "/mc/cwagent/web · was · bastion<br>Session Manager 아님 · 설정만", "systems_manager", "integ", 1550, 1180, kind="sub")
 service("iam", "인스턴스 권한", "IAM mc-ec2-role", "SSM Core · CW Agent · Secrets 2개<br>kms:Decrypt · s3:PutObject mc-logs", "identity_and_access_management", "sec", 1710, 1180)
 service("asg", "증설 (로드맵)", "Auto Scaling", "enable_asg 미도입<br>도입 시 종료 훅 300s 로그 sync", "autoscaling", "compute", 1870, 1180, optional=True)
 service("secrets", "비밀 관리", "Secrets Manager", "admin rds!db-…(7일 교체)<br>app-db petclinic_app(교체 없음)", "secrets_manager", "sec", 1550, 1410)
@@ -191,9 +192,10 @@ edge("e1", "users", "r53", EDGE, label="DNS 조회", lx=-0.1, ly=-12, exit=(1, 0
 edge("e2", "r53", "waf", EDGE, label="alias · HTTPS", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
 edge("e2w", "waf", "cf", EDGE, label="먼저 검사 → 통과만 (부착 · 홉 아님)", lx=0, ly=-16, exit=(1, 0.5), entry=(0, 0.5))
 edge("e2l", "waf", "cwl", EDGE_LOGCW, pts=[(580, 212), (1590, 212)], label="WAF 로그 aws-waf-logs-mc → CloudWatch Logs", lx=-0.25, ly=-10, exit=(0.5, 0), entry=(0.35, 0))
+edge("e6s", "cf", "s3static", EDGE, label="정적 Miss (OAC)", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
 edge("e6", "cf", "s3maint", EDGE_LOGS3, pts=[(830, 440), (1240, 440)], label="오리진 5xx·타임아웃 → 점검 페이지 (OAC SigV4)", lx=-0.1, ly=12, exit=(0.75, 1), entry=(0.5, 1))
 edge("e6l", "cf", "s3cflog", EDGE_LOGS3, pts=[(800, 228), (1480, 228)], label="액세스 로그 (1시간 이내 · S3 객체)", lx=0.2, ly=-10, exit=(0.5, 0), entry=(0.5, 0))
-edge("e7", "cf", "igw", EDGE, pts=[(770, 464), (900, 464)], label="캐시 미스·동적만 오리진 · HTTPS 443 + X-Origin-Verify", lx=-0.25, ly=-12, exit=(0.25, 1), entry=(0.5, 0))
+edge("e7", "cf", "igw", EDGE, pts=[(770, 464), (900, 464)], label="동적 + /petclinic/resources/* Miss → ALB · HTTPS 443 + X-Origin-Verify", lx=-0.25, ly=-12, exit=(0.25, 1), entry=(0.5, 0))
 edge("e8", "igw", "alb", EDGE, exit=(0.5, 1), entry=(0.5, 0))
 edge("e10", "alb", "web-a", EDGE, pts=[(870, 858), (440, 858)], label="mc-tg-web :80 · /health.html 10s · 2/3 · 라운드로빈", lx=0.1, ly=-12, exit=(0.25, 1), entry=(0.5, 0))
 edge("e11", "alb", "web-c", EDGE, pts=[(930, 858), (1090, 858)], exit=(0.75, 1), entry=(0.5, 0))
@@ -218,12 +220,13 @@ edge("e33", "web-c", "cwl", EDGE_LOGCW, label="CloudWatch Agent · access·error
 edge("e34", "was-c", "cwl", EDGE_LOGCW, pts=[(1520, 1240), (1520, 1030)], label="Agent · catalina·access·gc", lx=-0.3, ly=-12, exit=(1, 0.5), entry=(0, 0.75))
 edge("e35", "alb", "s3-logs", EDGE_LOGS3, pts=[(830, 702), (830, 572), (1770, 572)], label="ALB 액세스 로그 (외부·내부) → S3 객체 5분", lx=0.15, ly=-11, exit=(0, 0.1), entry=(0.5, 0))
 edge("e36", "cwparam", "was-c", EDGE_D, pts=[(1610, 1150), (1150, 1150)], label="fetch-config", lx=0.3, ly=-10, exit=(0.5, 0), entry=(0.75, 0))
-edge("e37", "ops", "ssm", EDGE, pts=[(2030, 929), (2030, 995)], exit=(0, 0.5), entry=(1, 0.5))
-edge("e38", "ssm", "cwl", EDGE_LOGCW, pts=[(1930, 1085), (1610, 1085)], label="세션 로그", lx=0.3, ly=10, exit=(0.5, 1), entry=(0.5, 1))
+edge("e37", "ops", "bastion", EDGE, label="SSH 22 (키 mc-ssh)", lx=-0.2, ly=-10, exit=(1, 0.5), entry=(0, 0.5))
+edge("e38", "bastion", "cwl", EDGE_LOGCW, pts=[(680, 865), (1562, 865)], label="sshd 로그 → /mc/bastion/secure", lx=0.2, ly=-10, exit=(0.5, 1), entry=(0.1, 0))
+edge("e39", "bastion", "web-a", EDGE_D, pts=[(560, 760), (560, 995)], label="같은 키로 WEB·WAS 22", lx=0.4, ly=12, exit=(0, 0.5), entry=(1, 0.5))
 
 # ---------- badges ----------
 for n, (x, y) in {1: (215, 300), 2: (455, 285), 3: (1300, 405), 4: (885, 825), 5: (455, 1070), 6: (805, 1205), 7: (455, 1312),
-                  8: (1165, 1500), 9: (1625, 1540), 10: (1030, 960), 11: (455, 1648), 12: (1030, 1850), 13: (2085, 850), 14: (1548, 228)}.items():
+                  8: (1165, 1500), 9: (1625, 1540), 10: (1030, 960), 11: (455, 1648), 12: (1030, 1850), 13: (215, 700), 14: (1548, 228)}.items():
     badge(n, x, y)
 
 # ---------- legend ----------
@@ -236,17 +239,17 @@ ET.SubElement(lt, "mxGeometry", width="580", height="24").set("as", "geometry")
 steps = [
  ("① 사용자 → Route 53", "petclinic.mission-critical.site A/AAAA alias → d2p7som2iuyba.cloudfront.net (존 Z0299891BL9WGKOA2LW9, 가비아 NS 위임). ALB DNS 는 공개하지 않음"),
  ("① CloudFront (WAF · ACM 부착)", "WAF 는 별도 홉이 아니라 CloudFront 에 붙은 Web ACL(us-east-1): 캐시 조회보다 먼저 평가, 차단은 캐시·오리진 미도달. allow-loadgen(JMeter IP set) → 관리형 3 → rate-all IP당 5분 2,000 → rate-booking /visits/new 100. 로그 → CloudWatch Logs aws-waf-logs-mc. 멘토링 '관리 어려움' 의견은 있었으나 팀 결정으로 유지(enable_waf=true). ACM us-east-1 · TLSv1.2_2021 · HTTP→HTTPS"),
- ("① Behavior 분기 → ALB / S3(OAC)", "/static/* · /images/* · /petclinic/resources/* · /petclinic/images/* = CachingOptimized(1일)+compress → Hit 면 오리진 미도달. /maintenance.html = S3 OAC(SigV4). 그 외 * = CachingDisabled + AllViewer(쿠키·쿼리 그대로). 오리진 5xx → 503 점검 페이지(오리진 그룹 failover). 정적 파일 교체 후엔 invalidation"),
+ ("① Behavior 분기 → 정적 S3 / ALB / 점검 S3", "오리진 3개. /static/* · /images/*(랜딩 css·이미지·hero 영상) = S3 mc-static(OAC) — apply 가 src/main/webapp/resources·images 를 동기화, CachingOptimized 1일 → Hit 면 엣지, Miss 면 S3(Apache 안 거침). /petclinic/resources/* · /petclinic/images/*(WAR 안) = ALB 캐시. * = CachingDisabled + AllViewer → 매번 ALB. /maintenance.html = 점검 S3 OAC, 오리진 5xx → 503(오리진 그룹 failover). 정적 교체 후 invalidation"),
  ("② Public ALB → WEB ×2", "SG = CloudFront origin-facing 프리픽스 443 만(1차) · 리스너 기본 403 · 규칙10 X-Origin-Verify 일치 시만 mc-tg-web(2차). 80 리스너 없음. 헬스체크 /health.html 10s·5s·2/3(얕게 → WAS 장애 연쇄 방지). 액세스 로그 → S3 mc-logs/alb/public"),
  ("② WEB → Internal ALB", "Apache 2.4 mod_proxy_http(mod_jk 아님 — AJP 는 ALB 통과 불가). / = test 브랜치 WAR 의 index.html + resources·images 를 부팅 시 /var/www/html/static 으로 복사해 직접 서빙 · /petclinic/ → 302 / (hero 1회) · ProxyPass /petclinic/ → :8080 · ProxyPreserveHost On"),
  ("③ Internal ALB → WAS ×2", "mc-alb-internal :8080 → mc-tg-was /petclinic/ 10s·2/3. SG 체인: sg-alb-internal 8080 ← sg-web · sg-was 8080 ← sg-alb-internal. WEB 은 WAS IP 를 모름 → WAS 교체·증설 시 WEB 무변경"),
  ("③→④ WAS → RDS Proxy", "부팅 시 Secrets Manager 에서 app-db(petclinic_app) 조회 → mvnw -P MySQL -Djdbc.* 로 WAR 빌드 주입(Java 0줄) · Tomcat 9.0.121 systemd. JDBC sslMode=REQUIRED → Proxy require_tls. tomcat-jdbc 풀 testOnBorrow(SELECT 1)·유휴 10분 회수(Proxy idle 30분 대비). was.sh: Proxy 로그인 성공까지 대기 · 404 면 재시작"),
  ("④ RDS Multi-AZ", "mc-petclinic MySQL 8.4.11 · db.t3.small · Primary 2c / Standby 2a 동기 복제(RPO 0) · failover 60~120s 엔드포인트 동일 · 파라미터 그룹 mc-mysql84 require_secure_transport=1 · SG 3306 ← sg-rds-proxy 만(WAS 직결 없음). Spring initialize-database → vets 6 · owners 10 · pets 13"),
  ("④ Secrets ×2 · 파라미터 그룹 · Backup", "admin 비밀(rds!db-…)은 RDS 관리형 7일 교체 → 앱이 쓰면 교체 때 끊김 → 앱 전용 petclinic_app 비밀(교체 없음) 추가, Proxy 인증 2개 등록. Backup mc-rds-daily 04:00 KST 7일 + PITR. KMS alias/mc-cmk 는 S3·SNS·Logs·Backup, RDS·비밀은 AWS 관리형 키"),
- ("계층별 로그 = 서버에 두지 않음", "CloudWatch Logs 는 계정에 1개(VPC 밖 · 자체 저장소) — 로그 그룹만 /mc/web/* · /mc/was/* 30일 · /mc/ssm/sessions 90일 · aws-waf-logs-mc(us-east-1) 로 나눔, 스트림 = 인스턴스 ID. Agent 는 user_data 로 설치하고 설정은 SSM 파라미터 /mc/cwagent/*. ALB·CloudFront 는 서비스가 직접 S3 객체(5분 .gz)로. 롤링 교체 5회 유실 0"),
+ ("계층별 로그 = 서버에 두지 않음", "CloudWatch Logs 는 계정에 1개(VPC 밖 · 자체 저장소) — 로그 그룹만 /mc/web/* · /mc/was/* 30일 · /mc/bastion/secure 90일(sshd) · aws-waf-logs-mc(us-east-1) 로 나눔, 스트림 = 인스턴스 ID. Agent 는 user_data 로 설치하고 설정은 SSM 파라미터 /mc/cwagent/*. ALB·CloudFront 는 서비스가 직접 S3 객체(5분 .gz)로. 롤링 교체 5회 유실 0"),
  ("감사 로그 (계정 수준)", "CloudTrail mc-trail(다중 리전 · 관리 이벤트 · 로그 파일 검증) → S3 mc-cloudtrail 1년(90일 후 Glacier IR). 서버·VPC 와 무관하게 AWS API 호출을 기록. 오늘 장애(was-a Access denied)는 서버 접속 없이 /mc/was/catalina 로 원인 확인"),
  ("관측 · 알림 (공통)", "CloudWatch 알람 3(was-unhealthy-host ≥1 2분 · alb-p95 &gt;2s 3분 · rds-connections &gt;60 3분) → SNS mc-alerts. 이메일 구독 0건(alert_emails tfvars 한 줄). Grafana(enable_grafana=false)·Slack 은 미도입 로드맵"),
- ("② ③ 운영자 접속", "Bastion·22번·키페어 없음. SSM Session Manager(IAM 인증, 4대 Online) · 세션 로그 → /mc/ssm/sessions(KMS) · DB 는 포트 포워딩. NAT ×2 는 아웃바운드(dnf·git·Maven·SSM)용 · AZ 손실 대비로 2개 유지(멘토링). Bastion 은 create_bastion 옵션 로드맵"),
+ ("② ③ 운영자 접속 = Bastion (SSM 안 씀)", "팀 결정 9/16: 퍼블릭 서브넷 A 의 Bastion(t3.micro · EIP) 에 SSH 22 — 허용은 운영자 공인 IP /32 만(base.bastion_allowed_cidrs). 키 mc-ssh 하나를 Bastion·WEB·WAS 에 부착 → ssh -J 점프, DB 는 Bastion 에서 mysql --ssl → RDS Proxy 3306. Session Manager 문서·/mc/ssm 로그·SSM Core 정책 제거(enable_ssm=false). sshd 로그 → /mc/bastion/secure. NAT ×2 는 아웃바운드 전용"),
  ("① CloudFront 액세스 로그 (9/16 켬)", "WAF 로그(차단·규칙 매치)와 별개로 모든 엣지 요청의 기록 → logging_config → S3 mc-logs/cloudfront/ 90일. CloudFront 표준 로그는 버킷 ACL 로 쓰므로 BucketOwnerPreferred + awslogsdelivery FULL_CONTROL 자동 부여. 첫 객체 16:55 확인. 로그 5종 = 앱·SSM(CW Logs) · ALB·CloudFront·CloudTrail(S3)"),
 ]
 y = 36

@@ -15,7 +15,7 @@
 | tfvars 예시 | `terraform.tfvars.example` | `terraform.tfvars.mc-deploy.example` |
 
 create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw -P MySQL -Djdbc.*` 빌드 → 도면 ④ 경로가 처음부터 적용. CloudWatch Agent 도 SSM 파라미터(`/mc/cwagent/web|was`)로 설정. Apache 첫 화면은 `base.web_index_branch` 브랜치의 `src/main/webapp/index.html` + `resources/`·`images/` 를 `/var/www/html/{index.html,static/}` 로 복사해 직접 서빙(자산 링크는 `/static/…`, 앱 링크는 `/petclinic/…` 로 치환 · `/static/*` 은 CloudFront 캐시). Blue(main) WAR 에는 리디자인 자산이 없으므로 랜딩 페이지 자산을 WAS 에 의존시키지 않는다. 그 브랜치에 index.html 이 없으면(main=Blue) `/` → 302 `/petclinic/` 폴백.
-설계 경로가 CloudFront → 443 이라 Public ALB 80 리스너는 기본 없음 — NS 위임 전 ALB DNS 로 직접 확인하려면 `base.public_http_listener = true`.
+랜딩 자산(`/static/*`·`/images/*`)은 9/16 저녁부터 S3 mc-static(OAC) 오리진이 서빙(아래 절). 설계 경로가 CloudFront → 443 이라 Public ALB 80 리스너는 기본 없음 — NS 위임 전 ALB DNS 로 직접 확인하려면 `base.public_http_listener = true`.
 
 ## 무엇을 건드리고 무엇을 안 건드리나
 
@@ -46,6 +46,18 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 | 2' DB 초기화 | `db_init_mode="userdata"` (ASG 권장) | Notion 'was' 의 우려(동시 부팅 시 schema 경합)에 대한 답. 우리 앱은 Spring Boot 가 아니라 XML `jdbc:initialize-database` 이고 MySQL 스크립트가 `CREATE TABLE IF NOT EXISTS`·`INSERT IGNORE` 라 **현재(app 모드)도 멱등** — 9/16 롤링 교체·동시 부팅에서 실측 문제 없음. `userdata` 는 한 단계 더: was.sh 가 앱 사용자로 `GET_LOCK('mc_db_init')` 아래에서 1회 실행하고 Spring 초기화는 `-Djdbc.initLocation`(datasource-config.xml 이 `system-properties-mode="OVERRIDE"`)으로 빈 스크립트로 돌림. Java 0줄 |
 
 주의: `user_data_replace_on_change = true` 라 was.sh 템플릿이 바뀌면 고정 EC2 는 **교체**된다(템플릿 기본 렌더링은 byte-identical 하게 유지 — `enable_asg`·`baked`·`db_init_mode` 블록은 켤 때만 나옴). 교체는 AZ-a → AZ-c 순으로 `-target` 롤링.
+
+## 운영자 접속 = Bastion (팀 결정 9/16 저녁 · SSM Session Manager 는 안 씀)
+| 항목 | 값 |
+|---|---|
+| 스위치 | `base.create_bastion`(기본 true) · `enable_ssm`(기본 **false**: Session Manager 문서 · `/mc/ssm/sessions` · `AmazonSSMManagedInstanceCore` 제거. Parameter Store 로 CW Agent 설정을 받는 건 그대로) |
+| 위치 | 퍼블릭 서브넷 A · `t3.micro` · EIP · SG `mc-sg-bastion` 22 ← **`base.bastion_allowed_cidrs`(운영자 공인 IP /32)만**. 팀원은 tfvars 에 `/32` 추가 후 apply |
+| 키 | `base.ssh_key_name` 이 비면 ED25519 키 페어 `mc-ssh` 를 만들고 개인키를 `.keys/mc-ssh.pem`(0600 · gitignore)에 저장. 같은 키가 Bastion·WEB·WAS(·시작 템플릿)에 붙음 → `key_name` 변경이라 **고정 EC2 4대는 교체**(AZ-a → AZ-c 롤링) |
+| 접속 | `ssh -i .keys/mc-ssh.pem ec2-user@<bastion_public_ip>` · WEB/WAS: `ssh -i .keys/mc-ssh.pem -J ec2-user@<bastion> ec2-user@10.0.2x.x` (SG: web/was 22 ← Bastion SG) · DB: Bastion 에서 `mysql --ssl -h <rds_proxy_endpoint> -u petclinic_app -p` (SG: rds-proxy 3306 ← Bastion SG) — output `bastion` 에 명령이 그대로 나옴 |
+| 로그 | `/var/log/secure`(sshd 로그인 성공·실패) → CloudWatch Agent → `/mc/bastion/secure` 90일 |
+
+## 정적 자산 S3 (`mc-static-<계정>` · OAC)
+`/static/*`(랜딩 페이지 css·이미지) · `/images/*`(hero 영상)은 CloudFront → **S3 mc-static** (OAC · SSE-KMS · 공개 차단). Apache 를 거치지 않는다. 내용은 저장소 `src/main/webapp/resources`·`images` 를 `aws_s3_object`(23개 · `.less` 제외 · `source_hash`)가 apply 때 동기화하므로 **자산을 바꾸면 apply + invalidation** (`/static/*` `/images/*`). `/images/*` 는 같은 버킷의 두 번째 오리진(`origin_path = /static`)이라 키는 `static/images/…` 하나만 둔다. WAR 안의 `/petclinic/resources/*` 는 여전히 ALB(Tomcat) 캐시.
 
 ## 검증 (적용 없이)
 ```bash
