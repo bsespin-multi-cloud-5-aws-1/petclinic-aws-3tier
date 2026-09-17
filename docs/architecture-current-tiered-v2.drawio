@@ -1,5 +1,5 @@
 <mxfile host="app.diagrams.net" pages="6">
-  <diagram name="0. 전체 아키텍처 (As-Built 9/16)" id="tab-full">
+  <diagram name="0. 전체 아키텍처 (As-Built 9/17)" id="tab-full">
     <mxGraphModel dx="1133" dy="689" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="2900" pageHeight="2200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
@@ -7,10 +7,10 @@
         <mxCell id="title-group" connectable="0" parent="1" style="group;fontFamily=Helvetica;" value="" vertex="1">
           <mxGeometry height="83" width="2000" x="50" y="30" as="geometry" />
         </mxCell>
-        <mxCell id="title-text" parent="title-group" style="text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;fontFamily=Helvetica;" value="PetClinic 3-Tier on AWS — 현재 아키텍처 As-Built (1팀 Mission Critical · mc-deploy · 2026-09-16)" vertex="1">
+        <mxCell id="title-text" parent="title-group" style="text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;fontFamily=Helvetica;" value="PetClinic 3-Tier on AWS — 현재 아키텍처 As-Built (1팀 Mission Critical · mc-deploy · 2026-09-17)" vertex="1">
           <mxGeometry height="42" width="1600" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle-text" parent="title-group" style="text;html=1;resizable=0;points=[];autosize=0;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;fontFamily=Helvetica;whiteSpace=wrap;" value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB + 로그·비밀·백업  |  Route 53 → CloudFront(WAF 유지 · 로그 켬) → Public ALB :443 → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.121 ×2 → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ  |  EC2 고정 2대 (ASG · Grafana · Slack 은 회색 로드맵) · WAF 유지 · Bastion(SSM 대신) · 정적 S3  |  9/16 실측" vertex="1">
+        <mxCell id="subtitle-text" parent="title-group" style="text;html=1;resizable=0;points=[];autosize=0;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;fontFamily=Helvetica;whiteSpace=wrap;" value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB + 로그·비밀·백업  |  Route 53 → CloudFront(WAF 유지 · 로그 켬) → Public ALB :443 → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.121 ×2 → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ  |  EC2 고정 2대 (ASG · Grafana · Slack 은 회색 로드맵) · WAF 유지 · Bastion(SSM 대신) · 정적 S3  |  9/17 실측" vertex="1">
           <mxGeometry height="30" width="1990" x="5" y="40" as="geometry" />
         </mxCell>
         <mxCell id="title-separator" parent="title-group" style="line;strokeWidth=2;html=1;fontSize=14;strokeColor=#FF9900;fontFamily=Helvetica;" value="" vertex="1">
@@ -569,7 +569,7 @@
         <mxCell id="legend-container" connectable="0" parent="1" style="group" value="" vertex="1">
           <mxGeometry height="2090" width="602" x="2250" y="60" as="geometry" />
         </mxCell>
-        <mxCell id="legend-title" parent="legend-container" style="text;html=1;align=left;verticalAlign=top;fontSize=16;fontStyle=1;fontFamily=Helvetica;" value="계층별 흐름 · 설정 · 로그  (mc-deploy 실측 · 2026-09-16)" vertex="1">
+        <mxCell id="legend-title" parent="legend-container" style="text;html=1;align=left;verticalAlign=top;fontSize=16;fontStyle=1;fontFamily=Helvetica;" value="계층별 흐름 · 설정 · 로그  (mc-deploy 실측 · 2026-09-17)" vertex="1">
           <mxGeometry height="24" width="580" as="geometry" />
         </mxCell>
         <mxCell id="step-1-legend" connectable="0" parent="legend-container" style="group;fontFamily=Helvetica;" value="" vertex="1">

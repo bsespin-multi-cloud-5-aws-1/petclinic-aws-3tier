@@ -1,4 +1,4 @@
-"""현재 아키텍처(mc-deploy As-Built · 2026-09-16) 를 '계층별 상세 아키텍처' 양식(번호 배지 + 오른쪽 범례 패널)으로 그린다.
+"""현재 아키텍처(mc-deploy As-Built · 2026-09-17) 를 '계층별 상세 아키텍처' 양식(번호 배지 + 오른쪽 범례 패널)으로 그린다.
 실행: python3 docs/architecture-current-tiered.py [--png] → docs/architecture-current-tiered.drawio / .png
 근거: infra/terraform-kdt5 (create_base=true) apply 결과 · aws cli 실측 (인스턴스 ID · RDS AZ · CloudFront 로깅)"""
 import html as _html, json, os, subprocess, sys
@@ -31,7 +31,7 @@ EDGE_BI = "edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;elbow=vertical;st
 EDGE_GHOST = EDGE_D + "strokeColor=#9E9E9E;"
 
 mxfile = ET.Element("mxfile", host="Electron", version="29.6.1")
-diagram = ET.SubElement(mxfile, "diagram", name="현재 아키텍처 (As-Built 9/16)", id="cur-1")
+diagram = ET.SubElement(mxfile, "diagram", name="현재 아키텍처 (As-Built 9/17)", id="cur-1")
 model = ET.SubElement(diagram, "mxGraphModel", dx="2400", dy="1600", grid="0", gridSize="10", guides="1", tooltips="1", connect="1", arrows="1", fold="1",
                       page="0", pageScale="1", pageWidth="2900", pageHeight="2200", math="0", shadow="0")
 root = ET.SubElement(model, "root")
@@ -89,7 +89,7 @@ def actor(cid, label, x, y, res="users", kind="svc"):
 # ---------- title ----------
 tg = ET.SubElement(root, "mxCell", id="title-group", value="", style=f"group;{FONT}", connectable="0", vertex="1", parent="1")
 ET.SubElement(tg, "mxGeometry", x="50", y="30", width="2000", height="83").set("as", "geometry")
-t1 = ET.SubElement(root, "mxCell", id="title-text", value="PetClinic 3-Tier on AWS — 현재 아키텍처 As-Built (1팀 Mission Critical · mc-deploy 528821350786 · 2026-09-16)",
+t1 = ET.SubElement(root, "mxCell", id="title-text", value="PetClinic 3-Tier on AWS — 현재 아키텍처 As-Built (1팀 Mission Critical · mc-deploy 528821350786 · 2026-09-17)",
                    style=f"text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;{FONT}", vertex="1", parent="title-group")
 ET.SubElement(t1, "mxGeometry", width="1900", height="42").set("as", "geometry")
 t2 = ET.SubElement(root, "mxCell", id="subtitle-text", value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB + 계층별 로그·비밀·백업  |  infra/terraform-kdt5 create_base=true (127 리소스)  |  Route 53 → CloudFront(WAF 유지·로그 켬 · 정적은 S3 OAC) → Public ALB :443 → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.121 ×2 (test·Green) → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ",
@@ -238,7 +238,7 @@ LX, LY, LW, LH = 2230, 30, 650, 2130
 vertex("legend-bg", "", "verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.basic.rect;fillColor2=none;strokeWidth=1;size=20;indent=5;fillColor=light-dark(#EDF3FF,#305363);strokeColor=#6c8ebf;", LX, LY, LW, LH)
 lc = ET.SubElement(root, "mxCell", id="legend-container", value="", style="group", connectable="0", vertex="1", parent="1")
 ET.SubElement(lc, "mxGeometry", x=str(LX + 20), y=str(LY + 30), width="602", height=str(LH - 40)).set("as", "geometry")
-lt = ET.SubElement(root, "mxCell", id="legend-title", value="계층별 흐름 · 설정 · 로그  (mc-deploy 실측 · 2026-09-16)", style=f"text;html=1;align=left;verticalAlign=top;fontSize=16;fontStyle=1;{FONT}", vertex="1", parent="legend-container")
+lt = ET.SubElement(root, "mxCell", id="legend-title", value="계층별 흐름 · 설정 · 로그  (mc-deploy 실측 · 2026-09-17)", style=f"text;html=1;align=left;verticalAlign=top;fontSize=16;fontStyle=1;{FONT}", vertex="1", parent="legend-container")
 ET.SubElement(lt, "mxGeometry", width="580", height="24").set("as", "geometry")
 steps = [
  ("① 사용자 → Route 53", "petclinic.mission-critical.site A/AAAA alias → d2p7som2iuyba.cloudfront.net (존 Z0299891BL9WGKOA2LW9, 가비아 NS 위임). ALB DNS 는 공개하지 않음"),

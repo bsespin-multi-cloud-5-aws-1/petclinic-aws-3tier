@@ -1,5 +1,5 @@
 <mxfile host="Electron" version="29.6.1">
-  <diagram name="현재 아키텍처 (As-Built 9/16)" id="cur-1">
+  <diagram name="현재 아키텍처 (As-Built 9/17)" id="cur-1">
     <mxGraphModel dx="2400" dy="1600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="2900" pageHeight="2200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
@@ -7,7 +7,7 @@
         <mxCell id="title-group" value="" style="group;fontFamily=Helvetica;" connectable="0" vertex="1" parent="1">
           <mxGeometry x="50" y="30" width="2000" height="83" as="geometry" />
         </mxCell>
-        <mxCell id="title-text" value="PetClinic 3-Tier on AWS — 현재 아키텍처 As-Built (1팀 Mission Critical · mc-deploy 528821350786 · 2026-09-16)" style="text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="title-group">
+        <mxCell id="title-text" value="PetClinic 3-Tier on AWS — 현재 아키텍처 As-Built (1팀 Mission Critical · mc-deploy 528821350786 · 2026-09-17)" style="text;html=1;resizable=1;points=[];autosize=1;align=left;verticalAlign=top;spacingTop=-4;fontSize=30;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="title-group">
           <mxGeometry width="1900" height="42" as="geometry" />
         </mxCell>
         <mxCell id="subtitle-text" value="① 네트워크 진입 → ② WEB → ③ WAS → ④ DB + 계층별 로그·비밀·백업  |  infra/terraform-kdt5 create_base=true (127 리소스)  |  Route 53 → CloudFront(WAF 유지·로그 켬 · 정적은 S3 OAC) → Public ALB :443 → Apache ×2 → Internal ALB :8080 → Tomcat 9.0.121 ×2 (test·Green) → RDS Proxy(TLS) → RDS MySQL 8.4.11 Multi-AZ" style="text;html=1;resizable=0;points=[];whiteSpace=wrap;align=left;verticalAlign=top;spacingTop=-4;fontSize=14;fontFamily=Helvetica;" vertex="1" parent="title-group">
@@ -783,7 +783,7 @@
         <mxCell id="legend-container" value="" style="group" connectable="0" vertex="1" parent="1">
           <mxGeometry x="2250" y="60" width="602" height="2090" as="geometry" />
         </mxCell>
-        <mxCell id="legend-title" value="계층별 흐름 · 설정 · 로그  (mc-deploy 실측 · 2026-09-16)" style="text;html=1;align=left;verticalAlign=top;fontSize=16;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="legend-container">
+        <mxCell id="legend-title" value="계층별 흐름 · 설정 · 로그  (mc-deploy 실측 · 2026-09-17)" style="text;html=1;align=left;verticalAlign=top;fontSize=16;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="legend-container">
           <mxGeometry width="580" height="24" as="geometry" />
         </mxCell>
         <mxCell id="step-1-legend" value="" style="group;fontFamily=Helvetica;" connectable="0" vertex="1" parent="legend-container">
