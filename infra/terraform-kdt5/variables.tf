@@ -223,6 +223,12 @@ variable "enable_grafana" {
   default     = false
 }
 
+variable "existing_rds_log_groups" {
+  description = "계정에 이미 자동 생성돼 있어 import 할 RDS 로그 그룹 키(error · slowquery · proxy 중). mc-deploy 9/17: error · proxy"
+  type        = list(string)
+  default     = ["error", "proxy"]
+}
+
 variable "log_retention_days" {
   type    = number
   default = 30

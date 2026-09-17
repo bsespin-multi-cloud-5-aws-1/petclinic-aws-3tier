@@ -61,6 +61,16 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 ## 정적 자산 S3 (`mc-static-<계정>` · OAC)
 `/static/*`(랜딩 페이지 css·이미지) · `/images/*`(hero 영상)은 CloudFront → **S3 mc-static** (OAC · SSE-KMS · 공개 차단). Apache 를 거치지 않는다. 내용은 저장소 `src/main/webapp/resources`·`images` 를 `aws_s3_object`(23개 · `.less` 제외 · `source_hash`)가 apply 때 동기화하므로 **자산을 바꾸면 apply + invalidation** (`/static/*` `/images/*`). `/images/*` 는 같은 버킷의 두 번째 오리진(`origin_path = /static`)이라 키는 `static/images/…` 하나만 둔다. WAR 안의 `/petclinic/resources/*` 는 여전히 ALB(Tomcat) 캐시.
 
+## DB 로그 → CloudWatch Logs · CloudWatch Logs → S3 장기 보관 (9/17 · `logs_archive.tf`)
+도면에서 DB 계층만 로그 화살표가 없었고, CloudWatch Logs → S3 도 없었다. 둘 다 실제로 만든다.
+| 무엇 | 어떻게 | 확인 |
+|---|---|---|
+| RDS error · **slowquery** → CloudWatch Logs | `enabled_cloudwatch_logs_exports = ["error","slowquery"]` + 파라미터 그룹 `slow_query_log=1` · `long_query_time=2`(동적 · 재부팅 없음). 그룹 `/aws/rds/instance/mc-petclinic/{error,slowquery}` 는 이름이 고정이라 **우리가 먼저 만들어** 보존 30일 · KMS 를 건다(이미 자동 생성된 error · Proxy 그룹은 `imports.tf` 로 편입 — 없으면 `existing_rds_log_groups` 에서 키를 뺌) | `aws logs tail /aws/rds/instance/mc-petclinic/slowquery` |
+| RDS Proxy → CloudWatch Logs | Proxy 가 스스로 `/aws/rds/proxy/mc-rds-proxy` 에 씀 → 편입해 보존·KMS | `describe-log-groups --log-group-name-prefix /aws/rds` |
+| **CloudWatch Logs → S3 사본** | 로그 그룹마다 구독 필터(필터 없음) → **Kinesis Data Firehose**(계층당 1개: `mc-cwlogs-web/was/bastion/db`) → `s3://mc-logs/cwlogs/<tier>/yyyy/MM/dd/` gzip · 5분 버퍼 · 1년 보관. 레코드는 Firehose 가 gzip 을 풀어 줄 단위 JSON(logGroup · logStream · logEvents)으로 저장 → Athena 로 바로 조회. WAF 로그는 us-east-1 이라 제외 | `aws s3 ls s3://mc-logs-528821350786/cwlogs/db/ --recursive` (첫 객체는 로그 발생 후 ≤5분) |
+
+왜 Firehose 인가: CloudWatch Logs 는 자체 저장소라 S3 에 "저장"되지 않는다. S3 사본은 (a) 내보내기 작업(수동·느림), (b) 구독 → Firehose(실시간 · 관리형), (c) 구독 → Lambda 중 (b) 가 운영 부담이 가장 적다. 비용은 GB 당 몇 십 원 수준(우리 로그 양 MB 단위).
+
 ## 검증 (적용 없이)
 ```bash
 cd infra/terraform-kdt5

@@ -160,6 +160,26 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
     }
   }
   rule {
+    id     = "cwlogs-archive-1y" # CloudWatch Logs 사본(Firehose) — 장기 보관
+    status = "Enabled"
+    filter {
+      prefix = "cwlogs/"
+    }
+    expiration {
+      days = 365
+    }
+  }
+  rule {
+    id     = "cwlogs-errors-30d"
+    status = "Enabled"
+    filter {
+      prefix = "cwlogs-errors/"
+    }
+    expiration {
+      days = 30
+    }
+  }
+  rule {
     id     = "instance-logs-30d"
     status = "Enabled"
     filter {

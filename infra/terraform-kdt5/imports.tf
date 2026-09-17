@@ -7,3 +7,11 @@ import {
   to       = aws_db_instance.main
   id       = each.value
 }
+
+# RDS 가 error 로그 내보내기로, Proxy 가 스스로 만든 로그 그룹 → 코드로 편입해 보존 기간·KMS 를 건다 (이미 상태에 있으면 무시됨)
+# plan 이 "Cannot import non-existent remote object" 로 실패하면 그 키를 existing_rds_log_groups 에서 빼면 된다(그룹은 새로 생성)
+import {
+  for_each = var.create_base ? { for k in var.existing_rds_log_groups : k => local.rds_log_groups[k] } : {}
+  to       = aws_cloudwatch_log_group.rds[each.key]
+  id       = each.value
+}

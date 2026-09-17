@@ -1046,7 +1046,7 @@ RDS 자체 자동 백업(7일 · PITR 5분)과 별개로 **다른 볼트에 복�
 
 # ⑩ 계층별 로그 = 서버에 두지 않음
 > 선행: 0-6 로그 그룹·파라미터 · 0-5 로그 버킷 · 코드 `observability.tf`
-CloudWatch Logs 는 계정에 하나인 리전 서비스이고 **로그 그룹**만 계층별로 나눈다. 서버(EBS) 에 남기지 않고 만들자마자 밖으로 보내는 게 원칙 — 교체·축소해도 유실 없음.
+CloudWatch Logs 는 계정에 하나인 리전 서비스이고 **로그 그룹**만 계층별로 나눈다. 서버(EBS) 에 남기지 않고 만들자마자 밖으로 보내는 게 원칙 — 교체·축소해도 유실 없음. DB 계층은 Agent 대신 **RDS 로그 내보내기**(error · slowquery)와 Proxy 자체 로그가 CloudWatch Logs 로 가고, 모든 그룹은 **구독 필터 → Firehose → S3 `cwlogs/`** 로 사본이 1년 보관된다(9/17).
 <table header-row="true" fit-page-width="true">
 	<tr>
 		<td>로그</td>
@@ -1098,13 +1098,28 @@ CloudWatch Logs 는 계정에 하나인 리전 서비스이고 **로그 그룹**
 		<td>② 표준 로깅</td>
 	</tr>
 	<tr>
-		<td>RDS error · Proxy</td>
-		<td>RDS</td>
-		<td>자동</td>
-		<td>CW Logs `/aws/rds/instance/mc-petclinic/error` · `/aws/rds/proxy/mc-rds-proxy`</td>
-		<td>⑧ 로그 내보내기</td>
+		<td>RDS error · slowquery · Proxy</td>
+		<td>RDS · RDS Proxy</td>
+		<td>서비스 내보내기(자동)</td>
+		<td>CW Logs `/aws/rds/instance/mc-petclinic/error` · `/slowquery` · `/aws/rds/proxy/mc-rds-proxy` 30일 · KMS</td>
+		<td>⑧ 로그 내보내기(error · slowquery) + 파라미터 slow_query_log=1 · 그룹은 10-2 에서 미리 생성</td>
+	</tr>
+	<tr>
+		<td>**CloudWatch Logs → S3 사본**</td>
+		<td>위 CW Logs 그룹 전부(WAF 제외)</td>
+		<td>구독 필터 → Kinesis Data Firehose</td>
+		<td>S3 `mc-logs/cwlogs/‹tier›/yyyy/MM/dd/` gzip · 1년</td>
+		<td>10-2</td>
 	</tr>
 </table>
+## 10-2. DB 로그 · CloudWatch Logs → S3 장기 보관 (9/17 추가)
+1. **로그 그룹 미리 생성**(CloudWatch → 로그 그룹, 서울 · KMS mc-cmk · 보존 30일): `/aws/rds/instance/mc-petclinic/error` · `/aws/rds/instance/mc-petclinic/slowquery` · `/aws/rds/proxy/mc-rds-proxy`. 이름이 서비스에 고정돼 있어 미리 만들어야 우리 보존·KMS 가 적용된다(이미 있으면 보존 기간만 30일로 편집).
+2. **RDS → 수정**: 로그 내보내기 **error · slowquery** 체크(즉시 적용 · 재부팅 없음). 파라미터 그룹 `mc-mysql84` 에 `slow_query_log` = 1 · `long_query_time` = 2 (동적).
+3. **IAM 역할 2개**: `mc-firehose-cwlogs-role`(신뢰 firehose.amazonaws.com · 인라인: mc-logs 버킷 `s3:AbortMultipartUpload GetBucketLocation GetObject ListBucket ListBucketMultipartUploads PutObject` — 리소스 버킷 + `cwlogs/*` + `cwlogs-errors/*`) · `mc-cwlogs-to-firehose-role`(신뢰 logs.ap-northeast-2.amazonaws.com · 인라인: `firehose:PutRecord PutRecordBatch` — 아래 스트림 4개).
+4. **Kinesis → Data Firehose → 스트림 생성** ×4 (`mc-cwlogs-web` `mc-cwlogs-was` `mc-cwlogs-bastion` `mc-cwlogs-db`): 소스 **Direct PUT** · 대상 **S3** `mc-logs-528821350786` · 접두사 `cwlogs/‹tier›/!{timestamp:yyyy/MM/dd}/` · 오류 접두사 `cwlogs-errors/‹tier›/!{firehose:error-output-type}/!{timestamp:yyyy/MM/dd}/` · 버퍼 5MiB / 300초 · 압축 GZIP · **레코드 변환: "CloudWatch Logs 압축 해제(Decompression, GZIP)" + "레코드 구분자 추가(\n)"** · 역할 `mc-firehose-cwlogs-role`.
+5. **구독 필터**: 각 로그 그룹 → 구독 필터 → "Amazon Data Firehose": 스트림은 그룹의 계층(web·was·bastion·db) · 역할 `mc-cwlogs-to-firehose-role` · 필터 패턴 비움 · 이름 `mc-s3-archive`. (그룹당 구독 필터는 2개까지)
+6. **S3 수명 주기** `mc-logs`: `cwlogs/` 365일 만료 · `cwlogs-errors/` 30일.
+확인: 5분 뒤 `aws s3 ls s3://mc-logs-528821350786/cwlogs/was/ --recursive | tail -3`, 객체를 받아 `zcat` 하면 줄마다 `{"messageType":"DATA_MESSAGE","logGroup":"/mc/was/catalina","logStream":"i-…","logEvents":[…]}`.
 ## 10-1. Parameter Store 값 (Systems Manager → Parameter Store → 파라미터 생성 · 표준 · String)
 `/mc/cwagent/web`:
 

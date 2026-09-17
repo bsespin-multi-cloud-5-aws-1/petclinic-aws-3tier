@@ -131,7 +131,7 @@ text("lbl-ops2", "CloudWatch 알람 3 → SNS<br>Grafana·Slack 은 미도입", 
 text("lbl-store-band", "감사 로그 (계정 수준)", 300, 1630, 520, 22, "#E7157B", 14)
 text("lbl-ops-band", "운영 · 관측 공통 (전 계층)", 300, 1845, 400, 22, "#E7157B", 14)
 text("lbl-opscol", "계층별 로그 · 비밀 · 백업 (오른쪽 열, 계층 행에 맞춤) — 로그는 서버에 두지 않음", 1550, 515, 470, 24, "#E7157B", 14)
-text("lbl-row-web", "WEB·WAS·Bastion 로그 (계정에 1개)", 1550, 910, 300, 20, "#ED7100", 12)
+text("lbl-row-web", "로그 (계정에 1개) → Firehose → S3 사본 1년", 1550, 910, 330, 20, "#ED7100", 12)
 text("lbl-row-was", "WAS 설정 · 권한 · 증설(로드맵)", 1550, 1155, 300, 20, "#ED7100", 12)
 text("lbl-row-db", "DB 계층 비밀 · 암호화 · 백업", 1550, 1385, 260, 20, "#C925D1", 12)
 
@@ -168,8 +168,9 @@ service("rds-s", "관계형 DB (대기 · Standby)", "RDS mc-petclinic", "Second
 service("rds-p", "관계형 DB (주 · Primary)", "RDS MySQL 8.4.11", "Primary AZ = 2c · db.t3.small<br>Multi-AZ · 암호화 · TLS 필수", "rds", "db", 1030, 1410)
 
 # ---------- ops column (per tier) ----------
-service("cwl", "로그 저장소 (계정에 1개)", "CloudWatch Logs", "/mc/web/* · /mc/was/* 30일<br>/mc/bastion/secure 90일 · WAF · KMS", "cloudwatch_logs", "integ", 1550, 935, kind="sub")
-service("s3-logs", "액세스 로그 (객체)", "Amazon S3", "mc-logs · alb/public · alb/internal<br>cloudfront/ · 90일 · 5분 .gz", "s3", "storage", 1710, 935)
+service("cwl", "로그 저장소 (계정에 1개)", "CloudWatch Logs", "/mc/web·was·bastion · /aws/rds/*<br>WAF · 30일 · KMS", "cloudwatch_logs", "integ", 1550, 935, kind="sub")
+service("firehose", "로그 사본 전달", "Kinesis Data Firehose", "구독 필터 → 5분 버퍼 gzip<br>계층당 1개 (web·was·bastion·db)", "kinesis_data_firehose", "integ", 1710, 935, kind="sub")
+service("s3-logs", "로그 객체 (S3)", "Amazon S3", "mc-logs · alb/ cloudfront/ 90일<br>cwlogs/ 사본 1년", "s3", "storage", 1870, 935)
 service("bastion", "운영자 접속 (Bastion)", "Bastion Host", "퍼블릭 A · EIP · SSH 22 ← 운영자 IP<br>같은 키로 WEB·WAS · Proxy 3306", "ec2", "integ", 620, 700)
 service("cwparam", "Agent 설정 (Parameter Store)", "SSM Parameter Store", "/mc/cwagent/web · was · bastion<br>Session Manager 아님 · 설정만", "systems_manager", "integ", 1550, 1180, kind="sub")
 service("iam", "인스턴스 권한", "IAM mc-ec2-role", "SSM Core · CW Agent · Secrets 2개<br>kms:Decrypt · s3:PutObject mc-logs", "identity_and_access_management", "sec", 1710, 1180)
@@ -218,7 +219,10 @@ edge("e27", "cw", "grafana", EDGE_GHOST, pts=[(850, 2035), (1290, 2035)], label=
 edge("e31", "grafana", "slack", EDGE_GHOST, pts=[(1350, 1940), (2060, 1940)], label="Grafana Alerting → Slack (로드맵)", lx=0.2, ly=-11, exit=(1, 0.5), entry=(0, 0.5))
 edge("e33", "web-c", "cwl", EDGE_LOGCW, label="CloudWatch Agent · access·error", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
 edge("e34", "was-c", "cwl", EDGE_LOGCW, pts=[(1520, 1240), (1520, 1030)], label="Agent · catalina·access·gc", lx=-0.3, ly=-12, exit=(1, 0.5), entry=(0, 0.75))
-edge("e35", "alb", "s3-logs", EDGE_LOGS3, pts=[(830, 702), (830, 572), (1770, 572)], label="ALB 액세스 로그 (외부·내부) → S3 객체 5분", lx=0.15, ly=-11, exit=(0, 0.1), entry=(0.5, 0))
+edge("e35", "alb", "s3-logs", EDGE_LOGS3, pts=[(830, 702), (830, 572), (1930, 572)], label="ALB 액세스 로그 (외부·내부) → S3 객체 5분", lx=0.15, ly=-11, exit=(0, 0.1), entry=(0.5, 0))
+edge("e40", "cwl", "firehose", EDGE_LOGS3, label="구독 필터", lx=0, ly=-12, exit=(1, 0.5), entry=(0, 0.5))
+edge("e41", "firehose", "s3-logs", EDGE_LOGS3, label="cwlogs/‹tier›/ 1년", lx=0, ly=12, exit=(1, 0.5), entry=(0, 0.5))
+edge("e42", "rds-p", "cwl", EDGE_LOGCW, pts=[(1505, 1470), (1505, 1120), (1610, 1120)], label="RDS error·slowquery 내보내기 · Proxy 로그 → /aws/rds/*", lx=0.15, ly=12, exit=(1, 0.5), entry=(0.5, 1))
 edge("e36", "cwparam", "was-c", EDGE_D, pts=[(1610, 1150), (1150, 1150)], label="fetch-config", lx=0.3, ly=-10, exit=(0.5, 0), entry=(0.75, 0))
 edge("e37", "ops", "bastion", EDGE, label="SSH 22 (키 mc-ssh)", lx=-0.2, ly=-10, exit=(1, 0.5), entry=(0, 0.5))
 edge("e38", "bastion", "cwl", EDGE_LOGCW, pts=[(680, 865), (1562, 865)], label="sshd 로그 → /mc/bastion/secure", lx=0.2, ly=-10, exit=(0.5, 1), entry=(0.1, 0))
@@ -246,7 +250,7 @@ steps = [
  ("③→④ WAS → RDS Proxy", "부팅 시 Secrets Manager 에서 app-db(petclinic_app) 조회 → mvnw -P MySQL -Djdbc.* 로 WAR 빌드 주입(Java 0줄) · Tomcat 9.0.121 systemd. JDBC sslMode=REQUIRED → Proxy require_tls. tomcat-jdbc 풀 testOnBorrow(SELECT 1)·유휴 10분 회수(Proxy idle 30분 대비). was.sh: Proxy 로그인 성공까지 대기 · 404 면 재시작"),
  ("④ RDS Multi-AZ", "mc-petclinic MySQL 8.4.11 · db.t3.small · Primary 2c / Standby 2a 동기 복제(RPO 0) · failover 60~120s 엔드포인트 동일 · 파라미터 그룹 mc-mysql84 require_secure_transport=1 · SG 3306 ← sg-rds-proxy 만(WAS 직결 없음). Spring initialize-database → vets 6 · owners 10 · pets 13"),
  ("④ Secrets ×2 · 파라미터 그룹 · Backup", "admin 비밀(rds!db-…)은 RDS 관리형 7일 교체 → 앱이 쓰면 교체 때 끊김 → 앱 전용 petclinic_app 비밀(교체 없음) 추가, Proxy 인증 2개 등록. Backup mc-rds-daily 04:00 KST 7일 + PITR. KMS alias/mc-cmk 는 S3·SNS·Logs·Backup, RDS·비밀은 AWS 관리형 키"),
- ("계층별 로그 = 서버에 두지 않음", "CloudWatch Logs 는 계정에 1개(VPC 밖 · 자체 저장소) — 로그 그룹만 /mc/web/* · /mc/was/* 30일 · /mc/bastion/secure 90일(sshd) · aws-waf-logs-mc(us-east-1) 로 나눔, 스트림 = 인스턴스 ID. Agent 는 user_data 로 설치하고 설정은 SSM 파라미터 /mc/cwagent/*. ALB·CloudFront 는 서비스가 직접 S3 객체(5분 .gz)로. 롤링 교체 5회 유실 0"),
+ ("계층별 로그 = 서버에 두지 않음", "CloudWatch Logs 는 계정에 1개(VPC 밖 · 자체 저장소) — 로그 그룹만 /mc/web/* · /mc/was/* · /mc/bastion/secure · /aws/rds/instance/mc-petclinic/{error,slowquery} · /aws/rds/proxy/mc-rds-proxy(30일 · KMS) · aws-waf-logs-mc(us-east-1) 로 나눔, 스트림 = 인스턴스 ID. WEB·WAS·Bastion 은 Agent, RDS·Proxy 는 서비스 내보내기. 장기 보관은 구독 필터 → Firehose(계층당 1개 · 5분 gzip) → S3 mc-logs/cwlogs/‹tier›/ 1년. ALB·CloudFront 는 서비스가 직접 S3 객체"),
  ("감사 로그 (계정 수준)", "CloudTrail mc-trail(다중 리전 · 관리 이벤트 · 로그 파일 검증) → S3 mc-cloudtrail 1년(90일 후 Glacier IR). 서버·VPC 와 무관하게 AWS API 호출을 기록. 오늘 장애(was-a Access denied)는 서버 접속 없이 /mc/was/catalina 로 원인 확인"),
  ("관측 · 알림 (공통)", "CloudWatch 알람 3(was-unhealthy-host ≥1 2분 · alb-p95 &gt;2s 3분 · rds-connections &gt;60 3분) → SNS mc-alerts. 이메일 구독 0건(alert_emails tfvars 한 줄). Grafana(enable_grafana=false)·Slack 은 미도입 로드맵"),
  ("② ③ 운영자 접속 = Bastion (SSM 안 씀)", "팀 결정 9/16: 퍼블릭 서브넷 A 의 Bastion(t3.micro · EIP) 에 SSH 22 — 허용은 운영자 공인 IP /32 만(base.bastion_allowed_cidrs). 키 mc-ssh 하나를 Bastion·WEB·WAS 에 부착 → ssh -J 점프, DB 는 Bastion 에서 mysql --ssl → RDS Proxy 3306. Session Manager 문서·/mc/ssm 로그·SSM Core 정책 제거(enable_ssm=false). sshd 로그 → /mc/bastion/secure. NAT ×2 는 아웃바운드 전용"),

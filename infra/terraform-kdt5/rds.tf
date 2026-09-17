@@ -16,6 +16,15 @@ resource "aws_db_parameter_group" "main" {
     name  = "collation_server"
     value = "utf8mb4_unicode_ci"
   }
+  # 슬로우 쿼리 로그 → CloudWatch Logs 내보내기(9/17). 동적 파라미터라 재부팅 없음. Phase 3 부하 때 느린 쿼리 확인용
+  parameter {
+    name  = "slow_query_log"
+    value = "1"
+  }
+  parameter {
+    name  = "long_query_time"
+    value = "2"
+  }
 
   tags = merge(local.tier_tag.db, { Name = "${local.p}-${replace(local.db_family, ".", "")}" })
 }
@@ -49,8 +58,8 @@ resource "aws_db_instance" "main" {
   backup_window                   = var.db.backup_window
   maintenance_window              = var.db.maintenance_window
   auto_minor_version_upgrade      = false
-  enabled_cloudwatch_logs_exports = ["error"]
-  performance_insights_enabled    = false # db.t3.small(MySQL) 미지원
+  enabled_cloudwatch_logs_exports = ["error", "slowquery"] # → /aws/rds/instance/<id>/{error,slowquery} (logs_archive.tf 가 그룹·보존·KMS 관리)
+  performance_insights_enabled    = false                  # db.t3.small(MySQL) 미지원
   monitoring_interval             = 0
 
   # ---- 도면 ④ 보강: kdt5 import 후 첫 plan 에 이 항목만 바뀌어야 정상 ----
@@ -63,6 +72,8 @@ resource "aws_db_instance" "main" {
   final_snapshot_identifier = var.db.skip_final_snapshot ? null : "${local.db_identifier}-final"
 
   tags = merge(local.tier_tag.db, { Name = local.db_identifier, Data = "pii" })
+
+  depends_on = [aws_cloudwatch_log_group.rds] # 그룹을 우리가 먼저 만들어야 RDS 가 그 그룹(보존 30일 · KMS)에 쓴다
 }
 
 # ---------- 앱 전용 DB 사용자 비밀 (교체 없음) ----------

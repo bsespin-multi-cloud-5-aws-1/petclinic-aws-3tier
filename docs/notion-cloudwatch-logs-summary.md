@@ -17,7 +17,7 @@
 | # | 질문 | 답 (한 줄) | 근거·실측 |
 |---|---|---|---|
 | ① | CloudWatch Logs가 왜 계층마다 있나 | **없다.** 계정에 하나 있는 리전 서비스. 도면의 계층 옆 아이콘은 "여기서 로그가 나간다"는 출발점 표시였고, 로그 **그룹**만 계층별로 나눈 것(검색·보관·권한을 따로 관리하려고) | 로그 그룹 6개 `/mc/web/*`·`/mc/was/*`·`/mc/ssm/sessions`, 스트림 = 인스턴스 ID |
-| ② | S3에 저장되나 | **아니다.** CloudWatch Logs는 자체 저장소(파일·객체·블록 어느 것도 아닌 로그 이벤트 DB). S3로 가는 건 ALB·CloudFront·CloudTrail | `describe-log-groups`: storedBytes 3.5 MB, KMS 암호화, 보관 30/90일 |
+| ② | S3에 저장되나 | **아니다.** CloudWatch Logs는 자체 저장소(파일·객체·블록 어느 것도 아닌 로그 이벤트 DB). S3로 가는 건 ALB·CloudFront·CloudTrail. (9/17) 단, 장기 보관용 **사본**은 구독 필터 → Firehose 로 S3 `mc-logs/cwlogs/‹tier›/` 에 1년 — 원본은 여전히 CloudWatch Logs | `describe-log-groups`: storedBytes 3.5 MB, KMS 암호화, 보관 30/90일 |
 | ③ | CloudTrail은 VPC 밖인가 | **맞다.** 계정 수준 서비스. 서버·에이전트·네트워크 무관, AWS API 서버가 호출을 받을 때 기록해 S3에 떨굼 | `mc-trail` 다중 리전·로그 파일 검증, 마지막 전달 13:18 |
 | ④ | CloudFront 같은 관리형 리소스는 어떻게 남기나, 알아서 되나 | **알아서 안 된다.** 우리 서버(EC2)는 Agent를 설치해야 하고, 관리형 리소스(CloudFront·ALB·RDS·SSM)는 안에 설치할 곳이 없어 리소스 설정에서 "로깅 켜기 + 목적지"를 켜야 한다. 목적지는 서비스마다 정해져 있음(CloudFront·ALB = S3만, RDS = CW Logs만) | CloudFront 로그가 빠져 있어 오늘 켬(아래 4절) |
 | ⑤ | 파일인지 객체인지 블록인지 | 서버 안 원본 = **블록**(EBS) 위 파일 · S3 로그 = **객체**(5분마다 새 .gz, append 불가) · **파일**(EFS)은 로그엔 안 씀 · CloudWatch Logs = 셋 다 아님 | |

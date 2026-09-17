@@ -41,6 +41,8 @@ output "log_locations" {
     bastion_cloudwatch = var.create_base && var.base.create_bastion ? "/mc/bastion/secure" : null
     ssm_cloudwatch     = var.enable_ssm ? "/mc/ssm/sessions" : null
     waf_cloudwatch     = var.enable_waf ? "aws-waf-logs-${local.p} (us-east-1)" : null
+    rds_cloudwatch     = "/aws/rds/instance/${local.db_identifier}/{error,slowquery} · /aws/rds/proxy/${local.p}-rds-proxy"
+    archive_s3         = "s3://${local.buckets.logs}/cwlogs/{web,was,bastion,db}/ (CloudWatch Logs → Firehose 구독 사본 · 1년)"
     alb_s3             = "s3://${local.buckets.logs}/alb/{public,internal}/"
     cloudfront_s3      = "s3://${local.buckets.logs}/cloudfront/"
     cloudtrail_s3      = "s3://${local.buckets.cloudtrail}/AWSLogs/"
