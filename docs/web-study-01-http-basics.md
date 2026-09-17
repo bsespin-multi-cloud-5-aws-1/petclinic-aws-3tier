@@ -81,4 +81,4 @@ CloudFront 오리진 요청 정책 AllViewer(Host 전달) · ALB 는 기본 유�
 - MDN — HTTP 응답 상태 코드 (HTTP response status codes) 에서 200 · 301 · 302 · 403 · 502 · 503 · 504 항목만
 - MDN — X-Forwarded-For
 - MDN — X-Forwarded-Proto
-> **로드맵 위치**: 1 HTTP 기초 → 2 TLS 종료 지점 → 3 ALB 해부 → 4 오리진 보호(헤더) → 5 헬스체크 → 6 Apache 프록시 → 7 분산·타임아웃 → 8 WEB 관측 → 9 장애 모드 → 10 ASG·AMI. 상위 페이지에 전체 표.
+> **로드맵 위치**: 0 VPC 입구 → **1 HTTP 기초(이 페이지)** → 2 TLS 종료 지점 → 3 ALB 해부 → 4 오리진 보호(헤더) → 5 헬스체크 → 6 Apache 프록시 → 7 분산·타임아웃 → 8 WEB 관측 → 9 장애 모드 → 10 ASG·AMI. 상위 페이지에 전체 표.

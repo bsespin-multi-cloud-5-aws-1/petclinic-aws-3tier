@@ -11,6 +11,13 @@
 		<td>상태</td>
 	</tr>
 	<tr>
+		<td>0</td>
+		<td>VPC 입구</td>
+		<td>CloudFront → 인터넷 → Internet Gateway → 퍼블릭 서브넷의 ALB 노드(ENI) → SG → 리스너 443. 퍼블릭 = IGW 경로 한 줄 · 접두사 목록 · NAT 는 나가기만</td>
+		<td>mc-igw · mc-rt-public · mc-public-a/c · ALB 노드 2 · mc-sg-alb-public 443 ← pl-22a6434b</td>
+		<td>✅ 하위 페이지</td>
+	</tr>
+	<tr>
 		<td>1</td>
 		<td>HTTP 기초</td>
 		<td>Host · 상태 코드 · X-Forwarded-* · keep-alive · 리다이렉트 원리</td>
@@ -81,4 +88,4 @@
 		<td>예정</td>
 	</tr>
 </table>
-> 1~5 = ALB 쪽, 6~9 = Apache 쪽. 이틀씩 나누면 나흘에 한 바퀴.
+> 0 = 네트워크 지도(먼저), 1~5 = ALB 쪽, 6~9 = Apache 쪽. 이틀씩 나누면 닷새에 한 바퀴.

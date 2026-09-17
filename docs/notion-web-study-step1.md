@@ -190,5 +190,5 @@ ssh -i infra/terraform-kdt5/.keys/mc-ssh.pem -J ec2-user@52.78.145.87 ec2-user@1
 - MDN — X-Forwarded-For
 - MDN — X-Forwarded-Proto
 <callout icon="🗺️" color="gray_bg">
-	**로드맵 위치**: 1 HTTP 기초 → 2 TLS 종료 지점 → 3 ALB 해부 → 4 오리진 보호(헤더) → 5 헬스체크 → 6 Apache 프록시 → 7 분산·타임아웃 → 8 WEB 관측 → 9 장애 모드 → 10 ASG·AMI. 상위 페이지에 전체 표.
+	**로드맵 위치**: 0 VPC 입구 → **1 HTTP 기초(이 페이지)** → 2 TLS 종료 지점 → 3 ALB 해부 → 4 오리진 보호(헤더) → 5 헬스체크 → 6 Apache 프록시 → 7 분산·타임아웃 → 8 WEB 관측 → 9 장애 모드 → 10 ASG·AMI. 상위 페이지에 전체 표.
 </callout>

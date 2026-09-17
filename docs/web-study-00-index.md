@@ -2,6 +2,7 @@
 # 10단계 로드맵
 | # | 주제 | 핵심 질문 | 우리 설계에서 | 상태 |
 |---|---|---|---|---|
+| 0 | VPC 입구 | CloudFront → 인터넷 → Internet Gateway → 퍼블릭 서브넷의 ALB 노드(ENI) → SG → 리스너 443. 퍼블릭 = IGW 경로 한 줄 · 접두사 목록 · NAT 는 나가기만 | mc-igw · mc-rt-public · mc-public-a/c · ALB 노드 2 · mc-sg-alb-public 443 ← pl-22a6434b | ✅ 하위 페이지 |
 | 1 | HTTP 기초 | Host · 상태 코드 · X-Forwarded-* · keep-alive · 리다이렉트 원리 | Apache 302 · ALB 403 · CloudFront 오류 응답 | ✅ 하위 페이지 |
 | 2 | TLS 종료 지점 | HTTPS 는 어디서 끝나나 · 인증서가 왜 2장(us-east-1 · 서울) · 보안 정책 이름의 뜻 | ACM ×2 · 리스너 443 · ALB → Apache 는 평문 80 | 예정 |
 | 3 | ALB 해부 | 리스너 → 규칙(조건·작업·우선순위) → 대상 그룹 → SG. 규칙은 위에서부터, 기본 작업은 마지막 | 443 기본 403 + 우선순위 10 헤더 규칙 → mc-tg-web | 예정 |
@@ -12,4 +13,4 @@
 | 8 | WEB 관측 | ALB 액세스 로그 필드(elb vs target 상태 코드 · target_processing_time) · Apache 로그 XFF · HealthyHostCount · p95 · ELB_5XX vs Target_5XX | /mc/web/* · S3 alb/public · p95 알람 | 예정 |
 | 9 | 장애 모드 | 502 · 503 · 504 가 각각 언제 · CloudFront 오류 응답이 걸리는 코드 · httpd 한 대 내리고 관찰 | ② custom error → /maintenance.html | 예정 |
 | 10 | ASG · AMI | 고정 EC2 2대 → 시작 템플릿 + ASG · Golden AMI | base.enable_asg · modules/base/compute.tf | 예정 |
-> 1~5 = ALB 쪽, 6~9 = Apache 쪽. 이틀씩 나누면 나흘에 한 바퀴.
+> 0 = 네트워크 지도(먼저), 1~5 = ALB 쪽, 6~9 = Apache 쪽. 이틀씩 나누면 닷새에 한 바퀴.
