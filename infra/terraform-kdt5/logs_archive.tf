@@ -89,11 +89,7 @@ resource "aws_kinesis_firehose_delivery_stream" "cwlogs" {
         }
       }
       processors {
-        type = "AppendDelimiterToRecord"
-        parameters {
-          parameter_name  = "Delimiter"
-          parameter_value = "\\n"
-        }
+        type = "AppendDelimiterToRecord" # 기본 구분자 = 개행. Delimiter 파라미터를 적으면 API 가 돌려주지 않아 plan 이 계속 바뀜 → 생략
       }
     }
 
