@@ -1,99 +1,158 @@
-# 최종 스프린트 — 콘솔 구축(한 계정) · "돌아가면 됨" · 초점은 발표·Q&A (9/18 → 10/1)
+# 최종 스프린트 — 콘솔 구축 마무리 → 테스트 → 네이밍·태그 → PPT·시연 영상 → 리허설 (9/18 → 10/1)
 
-> 전제(9/18 팀장 결정): **한 계정에 콘솔로 구축**, Terraform 은 정답지(값 복사용)로만. 완벽 구현이 아니라 **돌아가는 것**이 목표. 시간의 절반 이상을 **서비스 공부 + 리허설·Q&A** 에 쓴다.
-> OT 확정: 초안 9/30(수) 09:00 · 리허설 9/30 11:30~12:10 · 최종 10/1 09:00 · 발표 10/1 11:30 (15분 + Q&A 15분, 각자 파트 직접 발표, 이름 먼저). 평가 = 완성도 60(**돌아가는 사이트 · 플로우 이해 · 아키텍처**) + 기술 이해도 20(개인) + 발표 20(개인). 남은 수업일 6일(9/18·21·22·23·28·29), 추석 9/24~27.
+> 팀장 방침(9/18): 한 계정 · 콘솔 · "돌아가면 됨" · 초점은 발표·Q&A. 발표는 **전체 흐름을 각자 파트로 나눠** 발표(전체 이해는 간략히). 지라에 일정·할 일을 만들고 각자 체크리스트로 관리.
+> 남은 멘토링: **9/18(오늘) · 9/22(화)** + 10/1 발표. OT 마감: 초안 9/30 09:00 · 리허설 9/30 11:30 · 최종 10/1 09:00 · 발표 10/1 11:30.
+> Jira 가져오기: `docs/jira-final-sprint.csv` (에픽 6 · 태스크 36 · 서브태스크 81 = 체크리스트). Jira → 프로젝트 설정 → **외부 시스템 가져오기 → CSV** → 담당자는 `팀장(박준석)/WEB 담당/WAS 담당/DB 담당/시연 담당/전원` 을 실제 계정에 매핑, 날짜 형식 `yyyy-MM-dd`. `Parent Id` 로 에픽→태스크→서브태스크가 이어진다.
 
-## 0. 한 줄 답
-| 마감 | 무엇 |
+## 0. 흐름 한 줄
+**9/18 계층별 미구현 정리·보고 → 취합** → **9/19~21 콘솔 구현 마무리(로그 수집 · 시나리오 통과)** → **9/21~22 JMeter 읽기·쓰기 부하 테스트** → **9/22 멘토링** → **9/22~23 네이밍·태그 정리 + 트러블슈팅 보고** → **9/24~28 PPT·시연 영상**(추석은 원격) → **9/28~29 리허설·모의 Q&A → [초안] 업로드** → 9/30 공식 리허설·[최종] → 10/1 발표
+
+| 마감 | 완료 기준 |
 |---|---|
-| **9/21(월) 저녁** | **콘솔 구축 P0 완료 = 사이트가 돌아감**(도메인/HTTPS 포함) · 시연 시나리오 A(정상 흐름) 성공 |
-| **9/22(화) 12:00** | P1(발표에 나오는 서비스) 마감 → **프리즈**. P2 는 로드맵 |
-| **9/23(수) 저녁** | **완성 v1**: PPT 20장 · 시연 영상 · 리허설 1회 · 모의 Q&A 1회 · `[초안]` 선업로드 |
-| 9/24~27 추석 | 공부 + 대본 + Q&A 뱅크(개인 15문) — 인프라 손 안 댐 |
-| **9/28(월)** | v2 · 리허설 2회 · 모의 Q&A 2회 · 초안 최종 덮어쓰기 |
-| 9/29(화) | 5회차 멘토링 Q&A 검토 · 최종 리허설 · 환경 점검 |
-| 9/30 → 10/1 | 공식 리허설 → `[최종]` 저녁 업로드 → 발표 |
+| **9/18(금)** | 4개 계층 미구현 보고 → 취합 · Jira 등록 · 멘토링 |
+| **9/21(월)** | 로그 수집 전부 켜짐 · 시나리오 A·B 1회 통과·캡처 |
+| **9/22(화)** | 부하 테스트 결과 캡처 · 멘토링 · 네이밍 규칙 확정 → **인프라 변경 종료** |
+| **9/23(수)** | 이름·태그 적용 완료 · 트러블슈팅 4개 보고 취합 · 슬라이드 골격 |
+| **9/28(월)** | PPT 20장 · 시연 영상 삽입 · 리허설 1 · 모의 Q&A 1 |
+| **9/29(화)** | 리허설 2·3 · 모의 Q&A 2·3 · **[초안] 업로드** (기한 9/30 09:00 을 앞당김) |
+| 9/30 → 10/1 | 공식 리허설 → [최종] 저녁 업로드 → 발표 |
 
-## 1. 구축 범위 — "돌아가기만" 기준 (콘솔 가이드 🛠️ 절 번호 · 값은 거기서 복사)
-| 등급 | 무엇 | 담당 | 가이드 |
-|---|---|---|---|
-| **P0 (9/21까지, 없으면 시연 불가)** | VPC·서브넷·SG 체인(있으면 재사용) · Public ALB 443 + X-Origin-Verify · Internal ALB 8080 · WEB ×2(Apache · index.html · mod_proxy) · WAS ×2(Tomcat · PetClinic · JDBC) · RDS Multi-AZ · **RDS Proxy + 앱 사용자 비밀** · Route 53 존 + 가비아 NS + ACM 2개 · CloudFront(오리진 ALB·점검 S3 · Behavior) · Bastion + 키 · IAM 프로파일(CW Agent·비밀 조회) | 팀장(0·①·②·④), WEB(⑤), WAS(⑥⑦), DB(⑧⑨) | 0, ①~⑨, ⑬ |
-| **P1 (9/22 12:00까지, 발표에 나오니 실제로 있어야 함)** | WAF Web ACL(관리형 3 + rate 2) · 정적 S3 mc-static(OAC) + `/static/*` Behavior · CloudWatch Agent → 로그 그룹(web·was·bastion) · RDS error/slowquery 내보내기 · 알람 3 + SNS 이메일 · CloudTrail → S3 · AWS Backup · 파라미터 그룹(TLS 강제) · ALB/CloudFront 액세스 로그 → S3 | 각 계층 담당이 자기 것 · 공통은 팀장 | ②-2, ③, ⑩, ⑪, ⑫, 9-3 |
-| **P2 (하면 좋고, 못 하면 로드맵 슬라이드)** | Firehose → S3 사본 · WAS ASG(9/17 팀이 만든 AMI·LT 활용) · KMS 고객 관리형 키 · Grafana · EFS · Read Replica | — | 10-2 |
-**절대 안 하는 것**: 소스 컴파일 설치 · EBS 루트/데이터 분리 · Golden AMI 재작업 · 도면 탭 1~5 갱신 · Terraform 수정.
-- **mc-deploy(Terraform) 환경**: 콘솔 구축이 시나리오 A·B 를 통과하는 순간까지 **플랜B 로 유지**(≈$3/일), 통과 후 destroy(10/1 이후 권장 — 시연 보험). 도메인 존은 콘솔 계정으로 옮기며 가비아 NS 재교체(ⓜ1, 전파 20~30분).
-- 원칙: **자기 계층은 자기가 콘솔로 만든다** — 만든 사람이 답할 수 있다(개인 평가 20+20점).
+## 1. 9/18 보고 양식 (계층별 미구현 정리 — 각자 오전 중 작성)
+| 항목 | 가이드 절 | 상태(있음/부분/없음) | 필요한 작업 | 소요(h) | 마감 | 비고 |
+|---|---|---|---|---|---|---|
+| 예) RDS Proxy | ⑨-2 | 없음 | 생성 · 비밀 2개 인증 · SG 3306 | 1.5 | 9/18 | 앱 사용자 먼저 |
+- 참조: 🛠️ 콘솔 구축 가이드(①~⑬ · 값 그대로) · `MANUAL-FOLLOWUPS.md` ⓜ1~7 · 이 문서 3절(로그 수집 정의)
+- 취합 기준: **P0** = 없으면 시연 불가 → 9/21 · **P1** = 발표에 나옴 → 9/22 · **P2** = 로드맵 슬라이드
 
-## 2. 날짜별 (오전 = 구축, 오후 = 공부·발표, 저녁 30분 = 서로 질문)
-### 9/18(금) — 현황 점검 · 역할 · 착수
-- 09:30 회의 30분: 계정 확정(기존 콘솔 구축본 재사용) · P0/P1 담당 · 시연 담당 · 발표 순서
-- 오전(팀장): 계정 현황표 — 가이드 ①~⑬ 대비 있음/없음(30분) · Route 53 존 생성 → **가비아 NS 교체**(전파 기다리는 동안 다른 일) · ACM 2개 요청(us-east-1 · 서울, DNS 검증)
-- 오전(DB): 파라미터 그룹(require_secure_transport · slow_query_log) 생성 · 앱 사용자 비밀 `mc/petclinic/app-db` · **RDS Proxy 생성**(비밀 2개) · 앱 사용자 CREATE USER
-- 오전(WAS): 인스턴스 프로파일 부착 · WAS-a 에 CW Agent · JDBC 를 **Proxy 주소·앱 사용자**로 WAR 재빌드(가이드 7-2 스크립트 그대로) · WAS-c 1대 추가(같은 user_data)
-- 오전(WEB): 시작 템플릿 새 버전 = 가이드 5-2 `web.sh`(index.html · `/static/` · ProxyPass · CustomLog 1개) + 프로파일 → 인스턴스 새로 고침
-- 오후 2h 공부: 각자 "내 계층 다섯 가지"(무슨 일 · 우리 값 · 없으면 · 대안 · 확인 방법) 표 작성 — WEB 공부 0단계 양식
-- 저녁: 20장 골격(제목+담당) 공유
-- 완료 기준: NS 교체 요청 완료 · Proxy AVAILABLE · WAS `/petclinic/` 200(Proxy 경유) · WEB `/` 200 · 골격 링크
-### 9/19(토) — 원격, 각자 2~3h
-- 팀장: ACM 발급 확인 → Public ALB **443 리스너**(기본 403 · X-Origin-Verify 규칙) · SG 443 ← CloudFront 프리픽스 · S3 4개(점검·정적·로그·cloudtrail) + 점검 페이지 업로드
-- WEB: 정적 자산 S3 업로드(3-2) · 슬라이드 9~10 텍스트
-- WAS: Internal ALB 헬스체크 `/petclinic/` 확인 · 슬라이드 11~12 텍스트
-- DB: RDS 로그 내보내기(error·slowquery) · Backup 계획 · 슬라이드 13~14 텍스트
-- 완료 기준: ALB 443 으로 Apache 응답(헤더 없으면 403) · 슬라이드 9~14 텍스트
-### 9/20(일) — 원격
-- 팀장: **CloudFront 생성**(OAC · 오리진 4 · Behavior 6 · 오류 응답) · Route 53 A/AAAA alias · WAF Web ACL 연결(P1 이지만 같은 화면이라 같이) → `https://petclinic.mission-critical.site/` 200
-- WEB·WAS·DB: 자기 계층 스크린샷(콘솔 화면·로그 한 줄·헬스체크) → 슬라이드 삽입 · 예상질문 5개
-- 완료 기준: 도메인으로 랜딩 → 앱 → owner 등록 → DB 조회(시나리오 A) **한 번 성공**
-### 9/21(월) — ★ P0 완료 · 3회차 멘토링
-- 09:00 보고서(진행률·이슈·개인 활동) → **11:00 멘토링**(콘솔 구축 방향 확인 · 발표 구성안 · 4·5회차 날짜)
-- 오후: P0 잔여 마무리 · 시나리오 A **재현 + 캡처** · CloudWatch 로그 그룹 3종 + 알람 3 + SNS 이메일 4명(공통 담당) · Bastion 키 4명 배포
-- 저녁: 시나리오 B(WAS 1대 중단 → 알람 메일 → 서비스 지속 → 로그 → 복구) 1회 실행·캡처
-- 완료 기준: **사이트가 돌아감(P0 전부)** · A·B 캡처 세트
-### 9/22(화) — ★ 프리즈 12:00 · 공부 전환
-- 오전: P1 잔여(CloudTrail · ALB/CloudFront 로그 · 액세스 로그 확인) → **12:00 프리즈**(이후 인프라 변경 금지)
-- 오후: 슬라이드 15~20(로그 흐름·보안·트러블슈팅·비용·로드맵) · 각자 대본 v1(600자) · 팀 Q&A 뱅크 착수(⑬ 28문 + 각자 10문)
-- 완료 기준: PPT v1 20장 전부 · Q&A 뱅크 40문+
-### 9/23(수) — ★ 완성 v1
-- 오전: 시연 영상 촬영(A 1분 + B 1.5분) · 편집 · 삽입 · 재생 확인
-- 오후: **자체 리허설 1회**(15분 타이머) → **모의 Q&A 1회**(각자 5문, 답변 틀: 이름 → 결론 → 왜 → 확인 방법) → 4회차 멘토링(자료 검토)
-- 저녁: `[초안]AWS1팀-박준석 외 3` 선업로드
-- 완료 기준: 15분 안 · 영상 OK · 초안 업로드
-### 9/24(목)~9/27(일) — 추석 · 공부 주간 (인프라 손 안 댐)
-- 매일 1~2h: 자기 계층 서비스 공부(아래 4절 자료) · 대본 암기 · Q&A 개인 15문 답 작성 · 멘토 피드백 자기 장 반영
-- 9/27 저녁(팀장): v2 통합 · 온라인 리허설 45분(가능하면)
-### 9/28(월) — v2 · 리허설 집중
-- 오전: 리허설 2회(통독 1 · zoom 화면공유 모의 1) → 오후: **모의 Q&A 2회**(온라인 평가자 → 현장 순서 흉내 · 타이머 15분) · 초안 최종 덮어쓰기 · 5회차 요청
-- 완료 기준: 리허설 2회 15분 안 · Q&A 뱅크 60문 답 완성
-### 9/29(화) — 예비일
-- 5회차 멘토링(발표자료·Q&A 검토) → 반영 → 최종 리허설 → 환경 점검(사이트 200 · 4대 healthy · Bastion 키 · 알람 메일)
-### 9/30(수) 11:30 공식 리허설 → 오후 수정 → 저녁 `[최종]` 업로드 · 10/1(목) 09:00 제출 확인 · 10:30 점검 · 11:25 대기 · **11:30 발표**
+## 2. Jira 항목 (CSV 와 동일 · 서브태스크는 CSV 참조)
+| ID | 유형 | 항목 | 담당 | 마감 |
+|---|---|---|---|---|
+| 1 | **에픽** | E1 계층별 현황·미구현 정리 → 취합 (9/18) | 팀장(박준석) | 09/18 |
+| 2 | 태스크 | CDN·보안 계층 미구현 정리 보고 | 팀장(박준석) | 09/18 |
+| 11 | 태스크 | WEB 계층 미구현 정리 보고 | WEB 담당 | 09/18 |
+| 17 | 태스크 | WAS 계층 미구현 정리 보고 | WAS 담당 | 09/18 |
+| 24 | 태스크 | DB 계층 미구현 정리 보고 | DB 담당 | 09/18 |
+| 31 | 태스크 | 취합·확정 → Jira 등록 · 오늘 멘토링 보고서 | 팀장(박준석) | 09/18 |
+| 35 | **에픽** | E2 콘솔 구현 마무리 — 로그 수집(CloudWatch Logs · S3) + 시연 시나리오 통과 (9/19~9/21) | 팀장(박준석) | 09/21 |
+| 36 | 태스크 | WEB 로그 수집: /mc/web/access · /mc/web/error | WEB 담당 | 09/20 |
+| 40 | 태스크 | WAS 로그 수집: /mc/was/catalina · access · gc | WAS 담당 | 09/20 |
+| 43 | 태스크 | DB 로그 수집: RDS error · slowquery · Proxy 로그 | DB 담당 | 09/20 |
+| 46 | 태스크 | 공통 로그: Bastion sshd → /mc/bastion/secure · CloudTrail → S3 · CloudFront 로그 → S3 | 팀장(박준석) | 09/20 |
+| 51 | 태스크 | (P2) CloudWatch Logs → Firehose → S3 사본 (10-2) | 팀장(박준석) | 09/22 |
+| 53 | 태스크 | 알람 3 + SNS 이메일 4명 구독·승인 · WEB HealthyHost 알람 추가 | 팀장(박준석) | 09/21 |
+| 56 | 태스크 | 시연 시나리오 A(정상 흐름) · B(장애·복구) 1회 통과 + 캡처 | 시연 담당 | 09/21 |
+| 60 | **에픽** | E3 JMeter 읽기·쓰기 부하 테스트 (9/21~9/22) | WAS 담당 | 09/22 |
+| 61 | 태스크 | 부하 테스트 계획서 1장 | WAS 담당 | 09/21 |
+| 65 | 태스크 | 부하 테스트 실행 + 지표 캡처 | WAS 담당 | 09/22 |
+| 69 | 태스크 | 결과 정리 1장: 병목·한계·개선안(ASG·Read Replica·캐시) | WAS 담당 | 09/22 |
+| 70 | **에픽** | E4 네이밍·태그 정리 + 계층별 트러블슈팅 정리 보고 (9/22~9/23) | 팀장(박준석) | 09/23 |
+| 71 | 태스크 | 네이밍·태그 규칙 확정 + 재생성 필요 목록 공지 | 팀장(박준석) | 09/22 |
+| 74 | 태스크 | 이름·태그 적용 — 팀장 | 팀장(박준석) | 09/23 |
+| 76 | 태스크 | 이름·태그 적용 — WEB 담당 | WEB 담당 | 09/23 |
+| 78 | 태스크 | 이름·태그 적용 — WAS 담당 | WAS 담당 | 09/23 |
+| 80 | 태스크 | 이름·태그 적용 — DB 담당 | DB 담당 | 09/23 |
+| 82 | 태스크 | 트러블슈팅 정리 보고 — CDN·보안·공통 | 팀장(박준석) | 09/23 |
+| 85 | 태스크 | 트러블슈팅 정리 보고 — WEB | WEB 담당 | 09/23 |
+| 88 | 태스크 | 트러블슈팅 정리 보고 — WAS | WAS 담당 | 09/23 |
+| 91 | 태스크 | 트러블슈팅 정리 보고 — DB | DB 담당 | 09/23 |
+| 94 | 태스크 | 트러블슈팅 취합 보고 + 슬라이드 18 초안 | 팀장(박준석) | 09/23 |
+| 95 | **에픽** | E5 발표 자료(구글슬라이드 지정 양식) + 시연 영상 (9/23~9/28) | 팀장(박준석) | 09/28 |
+| 96 | 태스크 | 지정 양식 확보 · 20장 골격(제목+담당) · 개요·아키텍처·흐름 슬라이드 1~8 | 팀장(박준석) | 09/24 |
+| 98 | 태스크 | 파트 슬라이드 9~10 — WEB | WEB 담당 | 09/28 |
+| 102 | 태스크 | 파트 슬라이드 11~12 — WAS | WAS 담당 | 09/28 |
+| 106 | 태스크 | 파트 슬라이드 13~14 — DB | DB 담당 | 09/28 |
+| 110 | 태스크 | 슬라이드 15~20: 로그 흐름 · 보안 · 트러블슈팅 · 부하 테스트 결과 · 비용·트레이드오프 · 로드맵 | 팀장(박준석) | 09/28 |
+| 111 | 태스크 | 시연 영상: 콘티 → 촬영(A 1분 + B 1.5분) → 편집 → 슬라이드 삽입 → 재생 확인 · 플랜B 파일 | 시연 담당 | 09/28 |
+| 115 | **에픽** | E6 리허설 · 모의 Q&A · 제출 (9/28~10/1) | 팀장(박준석) | 10/01 |
+| 116 | 태스크 | 자체 리허설 1 + 모의 Q&A 1 (타이머 15분 · 이름 먼저 · 화면 전환) | 팀장(박준석) | 09/28 |
+| 117 | 태스크 | 개인 Q&A 15문 답 작성(자기 파트) → 팀 뱅크 60문 | 전원 | 09/28 |
+| 118 | 태스크 | 리허설 2·3 + 모의 Q&A 2·3 (온라인 → 현장 순서 흉내) · [초안] 업로드 | 팀장(박준석) | 09/29 |
+| 120 | 태스크 | 공식 리허설 9/30 11:30~12:10 → 수정 → [최종] 저녁 업로드 | 팀장(박준석) | 09/30 |
+| 123 | 태스크 | 발표 당일: 09:00 제출 확인 · 10:30 사이트·zoom·공용 노트북 점검 · 11:25 대기 · 11:30 발표 | 팀장(박준석) | 10/01 |
 
-## 3. 15분 시간표
-| 분 | 내용 | 발표자 | 슬라이드 |
-|---|---|---|---|
-| 0–2 | 팀 소개(이름) · 개요 · 시나리오·규모 가정 · 요구사항 대응표 | 팀장 | 1–4 |
-| 2–4 | 전체 아키텍처 한 장 · 한 요청의 여행(정적/동적) | 팀장 | 5–6 |
-| 4–6 | ① 진입: Route 53 · CloudFront(캐시·정적 S3·점검 페이지) · WAF · ALB 오리진 보호 · 인증서 | 팀장 | 7–8 |
-| 6–8.5 | ② WEB: Apache mod_proxy · 헬스체크 얕게 · 정적/동적 · WEB 로그 · 발견한 이슈 | WEB | 9–10 |
-| 8.5–11 | ③ WAS: Tomcat · Internal ALB · JDBC→Proxy · 부팅 대기 로직 · WAS 로그 · (ASG/EFS 설계) | WAS | 11–12 |
-| 11–13 | ④ DB: Multi-AZ · Proxy · 비밀 2개 · TLS 강제 · 백업 · DB 로그 | DB | 13–14 |
-| 13–14.5 | 시연 영상(A 정상 · B 장애·복구) + 운영 한 장(알람·CloudTrail) | 시연 담당 | 15–16 |
-| 14.5–15 | 트러블슈팅 · 트레이드오프 · 로드맵 · 마무리 | 팀장 | 17–20 |
+## 3. "무엇을 수집하나" — 로그 수집 정의 (E2 의 기준)
+| 계층 | 소스 | 어디로 | 그룹·경로 | 보존 | 켜는 곳 |
+|---|---|---|---|---|---|
+| WEB | Apache access_log · error_log | CloudWatch Logs (Agent) | /mc/web/access · /mc/web/error | 30일 | Parameter Store /mc/cwagent/web → fetch-config |
+| WAS | catalina.out · localhost_access_log · gc.log | CloudWatch Logs (Agent) | /mc/was/catalina · access · gc | 30일 | /mc/cwagent/was |
+| DB | RDS error · slowquery(2s) · RDS Proxy | CloudWatch Logs (서비스 내보내기) | /aws/rds/instance/‹id›/error · /slowquery · /aws/rds/proxy/‹name› | 30일 | RDS 수정 → 로그 내보내기 · 파라미터 slow_query_log=1 |
+| CDN·보안 | CloudFront 표준 로그 | S3 객체 | mc-logs/cloudfront/ | 90일 | 배포 → 표준 로깅(버킷 ACL 활성 필요) |
+| CDN·보안 | WAF 규칙 매치·차단 | CloudWatch Logs (us-east-1) | aws-waf-logs-mc | 30일 | Web ACL → 로깅 |
+| WEB·WAS | ALB 액세스 로그(외부·내부) | S3 객체 | mc-logs/alb/public · alb/internal | 90일 | ALB 속성 |
+| 공통 | CloudTrail 관리 이벤트 | S3 객체 | mc-cloudtrail-‹acct›/AWSLogs/ | 1년 | 추적 mc-trail |
+| 공통 | Bastion sshd | CloudWatch Logs (Agent) | /mc/bastion/secure | 90일 | /mc/cwagent/bastion |
+| (P2) | CloudWatch Logs 전부 | S3 사본 (Firehose) | mc-logs/cwlogs/‹tier›/ | 1년 | 구독 필터 → Firehose ×4 |
+확인 명령: `aws logs describe-log-groups --log-group-name-prefix /mc` · `aws logs tail /mc/was/catalina --since 10m` · `aws s3 ls s3://mc-logs-‹acct›/alb/public/ --recursive | tail -3`
 
-## 4. 공부 자료 — 계층별 (전부 저장소·Notion 에 이미 있음)
-| 계층 | 담당 | 꼭 답할 수 있어야 하는 것 | 자료 |
-|---|---|---|---|
-| 진입·공통 | 팀장 | CloudFront 왜(캐시·은닉·점검) · WAF 규칙 순서·rate · X-Origin-Verify 두 겹 · ACM us-east-1 이유 · Bastion vs SSM · CloudTrail vs CloudWatch Logs · 암호화 표 · NAT 2개 이유 | ⑪ 요청 흐름 · ⑬ 질문지 1~9 · ⑭ 용어 · 📚/🗂️ 로그 · WEB 공부 0~4단계 |
-| WEB | WEB 담당 | mod_proxy vs mod_jk · 헬스체크 얕게 이유 · ProxyPreserveHost · 정적 S3 로 뺀 이유 · CustomLog 중복 발견 · CW Agent 설정(Parameter Store) | WEB 공부 5~10단계 · 콘솔 가이드 ④⑤ · 🛠️ 10-1 |
-| WAS | WAS 담당 | Internal ALB 필수 이유 · `/petclinic/` 슬래시 · JDBC 빌드 시 주입(Java 0줄) · Proxy 로그인 대기·404 재시작(was-a 사례) · 풀 testOnBorrow(Proxy idle 30분) · T vs M 근거 · ASG/EFS 설계 | 콘솔 가이드 ⑥⑦ · ⑬ 질문지 WAS · Notion 'was'·'AMI & Auto Scaling' |
-| DB | DB 담당 | Multi-AZ RPO 0·failover 60~120s · Proxy 왜(풀링·failover·비밀) · 비밀 2개 이유(7일 교체) · require_secure_transport · 백업 7일+Backup 볼트 · slowquery · Read Replica vs Redis | 콘솔 가이드 ⑧⑨ · ⑬ 질문지 DB · ⑮ 후기 |
-- 답변 틀(개인 평가용): **"저는 ○○○입니다 → 결론 한 줄 → 왜(트레이드오프·대안) → 확인한 방법(로그·화면)"**. 모르면 "지금 구성에선 ~까지 확인했고, ~는 로드맵입니다".
+## 4. JMeter 읽기·쓰기 부하 테스트 (E3)
+- 읽기: `GET /petclinic/vets` · `GET /petclinic/owners?lastName=` (검색 → DB 조회) · 쓰기: `POST /petclinic/owners/new` (firstName·lastName·address·city·telephone 폼)
+- 설정: 스레드 50 · 램프 60s · 10분 · 읽기 70% / 쓰기 30% · HTTP Cookie Manager · 응답 assertion 200
+- **발생기 공인 IP 를 WAF IP set `mc-loadgen` 에 먼저 등록**(rate-all 2,000/5분·rate-booking 100/5분이 차단) · 끝나면 제거
+- 관측: ALB TargetResponseTime p95 · HTTPCode 5xx · WAS CPU·mem(MC/WAS) · RDS DatabaseConnections(알람 60)·CPU · Proxy 연결 · slowquery 건수 · (ASG면) 인스턴스 수 → 그래프 5장 캡처
+- 결과 1장: 요청 수·오류율·p95 · 병목(예: WAS CPU 먼저 vs DB 연결 먼저) · 개선안(ASG · Read Replica · 캐시) — 슬라이드 19
 
-## 5. 리스크
-| 리스크 | 대응 |
-|---|---|
-| 가비아 NS 전파 지연 → ACM·CloudFront 지연 | 9/18 오전에 먼저 · 안 되면 CloudFront 기본 도메인 + ALB 80 으로 시연(도메인은 P1 강등) |
-| 콘솔 구축이 9/21 못 끝남 | 9/22 오전까지 연장, P1 은 로드맵 · **mc-deploy 를 시연 플랜B 로 유지** |
-| 실시간 시연 실패 | 영상 기본 · 실시간은 플랜A 로만 |
-| 개인 Q&A 막힘 | Q&A 뱅크 60문 · 모의 3회 · 담당자 먼저 답 → 팀장 보완 |
-| 추석 공백 | 인프라 프리즈 9/22 · 연휴는 공부·대본만 |
+## 5. 네이밍·태그 규칙 + "바꿔야 할 것만" (E4)
+- 이름: `mc-<계층>-<역할>[-<az>]` — 예 `mc-web-a` `mc-was-c` `mc-alb-public` `mc-tg-was` `mc-sg-rds-proxy` `mc-rds-proxy` `mc-bastion` `mc-trail` `mc-alerts`
+- 태그(전 리소스 공통): `Project=mission-critical` `Team=AWS1` `Tier=edge|web|was|db|ops` `Owner=<이름>` `Env=prod` `ManagedBy=console`
+| 리소스 | 이름 변경 | 권장 |
+|---|---|---|
+| EC2 · EBS · CloudWatch 알람 · Backup 계획 | Name 태그/이름 즉시 변경 가능 | 바꾼다 |
+| SG · TG · ALB · IAM 역할 · S3 버킷 · Secrets · 로그 그룹 · Route 53 존 · WAF ACL · Proxy · 파라미터 그룹 | **이름 불변** → 재생성해야 바뀜 | **Name 태그만**. 재생성은 팀장 승인(ALB 재생성 = CloudFront 오리진·Apache ProxyPass DNS 변경 → WEB 새로 고침) |
+| RDS 식별자 | 변경 가능하나 **엔드포인트 변경 + Proxy 대상 재등록** | 안 바꿈 · Name 태그 |
+| CloudFront | 이름 없음 · 설명(comment)만 | 설명에 `mc-cloudfront` |
+
+## 6. 트러블슈팅 사전 목록 (각 담당이 확인·보강해 9/23 보고 · 실제 겪은 건 스크린샷 첨부)
+### CDN·보안·공통 (팀장)
+| 발생 지점 | 증상 | 원인 | 해결 | 확인 |
+|---|---|---|---|---|
+| ACM | 검증 pending 계속 | 가비아 NS 미전파 / CNAME 없음 | `dig NS` 확인 · Route 53 에서 레코드 생성 · 20~30분 | ACM 상태 ISSUED |
+| CloudFront 기본 도메인 | 403 | alias 만 허용(Host 불일치) | 도메인으로 접속 | `curl -sI https://petclinic…` 200 |
+| CloudFront → ALB | 502/503 → 점검 페이지 | ALB SG 프리픽스 누락 / X-Origin-Verify 값 불일치(기본 403) | SG 443 ← 프리픽스 · 헤더 값 두 곳 동일 | ALB 액세스 로그 403 여부 |
+| CloudFront → S3 정적 | 403 | AllViewer 로 Host 전달 → 서명 불일치 / 버킷 정책 SourceArn | 캐시 정책만 · 정책에 배포 ARN | `server: AmazonS3` 200 |
+| 정적 파일 교체 | 옛 css 보임 | 캐시 1일 | 무효화 `/static/*` `/images/*` | x-cache Miss → Hit |
+| WAF | JMeter·스캐너 차단 | rate-all 2,000/5분 | 발생기 IP → allow IP set | aws-waf-logs-mc action=BLOCK |
+| CloudTrail 생성 | 정책 오류 | 버킷 정책 AclCheck·Write 누락 | 0-5 정책 | 첫 객체 |
+| CloudFront 로그 | 객체 안 생김 | 버킷 ACL 비활성 | BucketOwnerPreferred | cloudfront/ 객체 |
+| Bastion | SSH 타임아웃 | 공인 IP 바뀜 / 키 권한 | SG /32 갱신 · chmod 600 | ssh 접속 |
+| SNS | 알람 메일 없음 | 구독 미승인 | 확인 메일 승인 | 구독 Confirmed |
+### WEB
+| 발생 지점 | 증상 | 원인 | 해결 | 확인 |
+|---|---|---|---|---|
+| TG 헬스체크 | unhealthy → 503 | /health.html 없음 / ProxyPass 가 먼저 잡음 | `echo ok > health.html` · `ProxyPass /health.html !` 를 위에 | TG healthy |
+| Apache 프록시 | 503 | SELinux `httpd_can_network_connect` | setsebool -P 1 | 502/503 사라짐 |
+| 랜딩 자산 | css·영상 404 | 상대 경로 / S3 Behavior 없음 | `/static/` Alias·CloudFront `/static/*` | 200 |
+| 로그 | CloudWatch 스트림 없음 | 프로파일 미부착 / 파라미터 권한 | mc-ec2-profile · ssm:GetParameter | `describe-log-streams` |
+| 로그 | 요청당 2줄 · 헬스체크 줄 남음 | httpd.conf 기본 CustomLog 중복 | 기본 CustomLog 주석 → conf.d 하나만 | `?dup=1` 1줄 |
+| ASG | 새 LT 버전 미반영 | $Latest 이지만 기존 인스턴스 유지 | 인스턴스 새로 고침 | 새 인스턴스 ID |
+### WAS
+| 발생 지점 | 증상 | 원인 | 해결 | 확인 |
+|---|---|---|---|---|
+| 부팅 | `Access denied for user petclinic_app` → 404 | Proxy 인증 목록 반영 전 기동 | Proxy 경유 로그인 성공까지 대기 · 404면 재시작 | catalina.out |
+| 부팅 | `Communications link failure` | Proxy 대상 AVAILABLE 전 | 대기 루프 | Proxy 대상 상태 |
+| 30분 유휴 후 | `JDBC begin transaction failed` | Proxy idle_client_timeout 이 풀 연결 끊음 | testOnBorrow SELECT 1 · 유휴 10분 회수 | 재현 안 됨 |
+| TG 헬스체크 | unhealthy | `/petclinic`(슬래시 없음) → 301 | `/petclinic/` | healthy |
+| 빌드 | mysql-connector 없음 / 메모리 부족 | 8.0.44 아티팩트 없음 · t3.micro | pom 8.4.0 · t3.medium | BUILD SUCCESS |
+| JDBC | 접속 거부 | sslMode=REQUIRED 누락(Proxy require_tls) | URL 에 sslMode=REQUIRED | test.jsp Ssl_cipher |
+| 2대 동시 부팅 | schema 경합 우려 | — | schema IF NOT EXISTS · INSERT IGNORE 라 멱등(실측 OK) | vets 6 |
+### DB
+| 발생 지점 | 증상 | 원인 | 해결 | 확인 |
+|---|---|---|---|---|
+| 파라미터 그룹 | pending-reboot | 정적 파라미터 | 재부팅(장애 조치 포함) 유지 창 | in-sync |
+| Proxy 대상 | Unavailable | 비밀 형식 / 역할 kms·secrets 권한 / SG 3306 | 역할 정책 · SG rds ← proxy | AVAILABLE |
+| admin 비밀 | 7일 뒤 앱 인증 실패 | RDS 관리형 교체 | 앱 전용 사용자(교체 없음) | Proxy 인증 2개 |
+| Multi-AZ failover | 60~120s 오류 | 전환 시간 | Proxy 가 연결 유지 · 앱 풀 재연결 | failover 후 200 |
+| 로그 | slowquery 그룹 비어 있음 | 내보내기 미체크 / long_query_time | 내보내기 error·slowquery · 2s | 그룹 스트림 |
+| 연결 수 | 알람 >60 | t3.small max_connections≈85 | Proxy max 90% · 풀 maxActive 20 | DatabaseConnections |
+| Backup | 작업 실패 | 역할 정책 | AWSBackupServiceRolePolicyForBackup | 복구 지점 |
+
+## 7. 발표 — 흐름을 파트로 나눔 (15분)
+| 분 | 파트 | 발표자 |
+|---|---|---|
+| 0–3 | 개요 · 전체 흐름 한 장(간략) | 팀장 |
+| 3–5.5 | CDN·보안 (Route 53 → CloudFront/WAF → ALB 보호 → Bastion) | 팀장 |
+| 5.5–8 | WEB (ALB → Apache → Internal ALB · 로그) | WEB |
+| 8–10.5 | WAS (Internal ALB → Tomcat → Proxy · 부팅 대기 · 로그 · 부하 테스트 결과) | WAS |
+| 10.5–12.5 | DB (Proxy → RDS Multi-AZ · 비밀 · 백업 · 로그) | DB |
+| 12.5–14.5 | 시연 영상 (A 정상 · B 장애·복구) | 시연 담당 |
+| 14.5–15 | 트러블슈팅·로드맵·마무리 | 팀장 |
+답변 틀: **이름 → 결론 → 왜(트레이드오프·대안) → 확인 방법**. 모르면 "지금 구성에선 ~까지 확인했고 ~는 로드맵".
