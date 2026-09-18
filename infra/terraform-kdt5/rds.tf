@@ -89,7 +89,8 @@ resource "random_password" "app_db" {
 resource "aws_secretsmanager_secret" "app_db" {
   name                    = "${local.p}/petclinic/app-db"
   description             = "PetClinic 앱 전용 DB 사용자 (Proxy SECRETS 인증 · 교체 없음)"
-  recovery_window_in_days = 0 # 프로젝트 정리용. 운영이면 7~30
+  kms_key_id              = aws_kms_key.main.arn # 도면 KMS → Secrets: 앱 비밀은 고객 관리형 키(mc-cmk). admin 비밀(rds!db-…)은 RDS 관리형이라 aws/secretsmanager 그대로
+  recovery_window_in_days = 0                    # 프로젝트 정리용. 운영이면 7~30
   tags                    = merge(local.tier_tag.db, { Name = "${local.p}-app-db-secret" })
 }
 

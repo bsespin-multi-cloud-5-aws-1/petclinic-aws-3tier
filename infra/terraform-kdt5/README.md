@@ -71,6 +71,13 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 
 왜 Firehose 인가: CloudWatch Logs 는 자체 저장소라 S3 에 "저장"되지 않는다. S3 사본은 (a) 내보내기 작업(수동·느림), (b) 구독 → Firehose(실시간 · 관리형), (c) 구독 → Lambda 중 (b) 가 운영 부담이 가장 적다. 비용은 GB 당 몇 십 원 수준(우리 로그 양 MB 단위).
 
+## 9/18 도면 최종본 대조 (apply 전 · 코드만)
+팀 최종 도면(`0917 아키텍쳐 다이어그램 최종본`)은 저장소 `docs/architecture-current-tiered-v2.drawio` 0번 탭과 동일. WAS → CloudWatch Logs 화살표는 Agent(`/mc/cwagent/was` → catalina·access·gc)로 이미 구현돼 있어 코드 변경 없음. 도면과 어긋나 있던 두 가지를 코드로 맞춤:
+| 도면 | 전엔 | 지금 코드 | apply 하면 |
+|---|---|---|---|
+| KMS → Secrets Manager 화살표 | app-db 비밀이 AWS 관리형 키(aws/secretsmanager) | `aws_secretsmanager_secret.app_db` 에 `kms_key_id = mc-cmk` + EC2·Proxy 역할 `kms:Decrypt` 에 mc-cmk 추가(ViaService 조건 유지) | 비밀·정책 in-place. **기존 버전은 옛 키로 남고 새 버전부터 mc-cmk** — 지금 값을 바꿀 일이 없으니 실효는 다음 비밀 갱신 때. admin(RDS 관리형) 비밀은 그대로 |
+| WEB → CloudWatch Logs (Agent · access·error) | httpd.conf 기본 `CustomLog "logs/access_log" combined` 이 같은 파일에 필터 없이 또 써서 **헬스체크가 그대로 남고(최근 2000줄 전부 ELB-HealthChecker) 일반 요청은 2줄**(9/18 web-c 실측 `?dup=1` → 2줄) | web.sh 가 기본 CustomLog 를 주석 처리 → petclinic.conf 의 `env=!nolog` 하나만 | `user_data_replace_on_change` 라 **WEB 2대 교체** — `-replace="module.base[0].aws_instance.web[0]"` → healthy 확인 → `[1]` 순으로(위 교훈). 교체 전까지는 두 서버에서 같은 sed 를 수동 실행해도 됨 |
+
 ## 검증 (적용 없이)
 ```bash
 cd infra/terraform-kdt5

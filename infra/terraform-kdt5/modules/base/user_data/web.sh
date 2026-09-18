@@ -39,6 +39,9 @@ RewriteRule ^/$ '"${app_context}"'/ [R=302,L]'
 fi
 rm -rf /tmp/petclinic-src
 
+# httpd.conf 기본 CustomLog 는 같은 파일(logs/access_log = /var/log/httpd/access_log)에 필터 없이 또 쓴다 → 헬스체크가 그대로 남고 일반 요청은 두 줄. 기본 것을 끄고 아래 petclinic.conf 의 CustomLog(env=!nolog) 하나만 쓴다 (9/17 실측)
+sed -i 's|^\(\s*\)CustomLog "logs/access_log" combined|\1#CustomLog "logs/access_log" combined   # disabled: conf.d/petclinic.conf logs with health-check filter|' /etc/httpd/conf/httpd.conf
+
 cat > /etc/httpd/conf.d/petclinic.conf <<CONF
 ProxyPreserveHost On
 RewriteEngine On

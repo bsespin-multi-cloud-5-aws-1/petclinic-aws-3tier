@@ -150,7 +150,7 @@ service("s3static", "정적 자산 (OAC)", "Amazon S3", "mc-static · /static/* 
 service("s3maint", "점검 페이지 (OAC)", "Amazon S3", "mc-maintenance-…<br>5xx → 503 maintenance.html", "s3", "storage", 1180, 260)
 service("s3cflog", "CloudFront 액세스 로그", "Amazon S3", "mc-logs/cloudfront/ · 객체 .gz<br>9/16 켬 · 90일", "s3", "storage", 1420, 260)
 service("acm", "인증서", "AWS Certificate Manager", "us-east-1: CloudFront<br>서울: ALB 443 · 자동 갱신", "certificate_manager", "sec", 1660, 260)
-service("kms", "암호화 키", "AWS KMS", "alias/mc-cmk<br>S3 · SNS · Logs · Backup", "key_management_service", "sec", 1880, 260)
+service("kms", "암호화 키", "AWS KMS", "alias/mc-cmk<br>S3 · SNS · Logs · Backup · app-db 비밀", "key_management_service", "sec", 1880, 260)
 
 # ---------- VPC · middle lane ----------
 service("igw", "인터넷 연결", "Internet Gateway", "mc-igw", "internet_gateway", "net", 840, 510, kind="sub")
@@ -249,7 +249,7 @@ steps = [
  ("③ Internal ALB → WAS ×2", "mc-alb-internal :8080 → mc-tg-was /petclinic/ 10s·2/3. SG 체인: sg-alb-internal 8080 ← sg-web · sg-was 8080 ← sg-alb-internal. WEB 은 WAS IP 를 모름 → WAS 교체·증설 시 WEB 무변경"),
  ("③→④ WAS → RDS Proxy", "부팅 시 Secrets Manager 에서 app-db(petclinic_app) 조회 → mvnw -P MySQL -Djdbc.* 로 WAR 빌드 주입(Java 0줄) · Tomcat 9.0.121 systemd. JDBC sslMode=REQUIRED → Proxy require_tls. tomcat-jdbc 풀 testOnBorrow(SELECT 1)·유휴 10분 회수(Proxy idle 30분 대비). was.sh: Proxy 로그인 성공까지 대기 · 404 면 재시작"),
  ("④ RDS Multi-AZ", "mc-petclinic MySQL 8.4.11 · db.t3.small · Primary 2c / Standby 2a 동기 복제(RPO 0) · failover 60~120s 엔드포인트 동일 · 파라미터 그룹 mc-mysql84 require_secure_transport=1 · SG 3306 ← sg-rds-proxy 만(WAS 직결 없음). Spring initialize-database → vets 6 · owners 10 · pets 13"),
- ("④ Secrets ×2 · 파라미터 그룹 · Backup", "admin 비밀(rds!db-…)은 RDS 관리형 7일 교체 → 앱이 쓰면 교체 때 끊김 → 앱 전용 petclinic_app 비밀(교체 없음) 추가, Proxy 인증 2개 등록. Backup mc-rds-daily 04:00 KST 7일 + PITR. KMS alias/mc-cmk 는 S3·SNS·Logs·Backup, RDS·비밀은 AWS 관리형 키"),
+ ("④ Secrets ×2 · 파라미터 그룹 · Backup", "admin 비밀(rds!db-…)은 RDS 관리형 7일 교체 → 앱이 쓰면 교체 때 끊김 → 앱 전용 petclinic_app 비밀(교체 없음) 추가, Proxy 인증 2개 등록. Backup mc-rds-daily 04:00 KST 7일 + PITR. KMS alias/mc-cmk 는 S3·SNS·Logs·Backup·app-db 비밀(도면 KMS → Secrets), RDS 스토리지·admin 비밀은 AWS 관리형 키"),
  ("계층별 로그 = 서버에 두지 않음", "CloudWatch Logs 는 계정에 1개(VPC 밖 · 자체 저장소) — 로그 그룹만 /mc/web/* · /mc/was/* · /mc/bastion/secure · /aws/rds/instance/mc-petclinic/{error,slowquery} · /aws/rds/proxy/mc-rds-proxy(30일 · KMS) · aws-waf-logs-mc(us-east-1) 로 나눔, 스트림 = 인스턴스 ID. WEB·WAS·Bastion 은 Agent, RDS·Proxy 는 서비스 내보내기. 장기 보관은 구독 필터 → Firehose(계층당 1개 · 5분 gzip) → S3 mc-logs/cwlogs/‹tier›/ 1년. ALB·CloudFront 는 서비스가 직접 S3 객체"),
  ("감사 로그 (계정 수준)", "CloudTrail mc-trail(다중 리전 · 관리 이벤트 · 로그 파일 검증) → S3 mc-cloudtrail 1년(90일 후 Glacier IR). 서버·VPC 와 무관하게 AWS API 호출을 기록. 오늘 장애(was-a Access denied)는 서버 접속 없이 /mc/was/catalina 로 원인 확인"),
  ("관측 · 알림 (공통)", "CloudWatch 알람 3(was-unhealthy-host ≥1 2분 · alb-p95 &gt;2s 3분 · rds-connections &gt;60 3분) → SNS mc-alerts. 이메일 구독 0건(alert_emails tfvars 한 줄). Grafana(enable_grafana=false)·Slack 은 미도입 로드맵"),

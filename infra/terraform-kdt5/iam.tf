@@ -7,9 +7,9 @@ data "aws_iam_policy_document" "ec2_inline" {
     resources = [aws_db_instance.main.master_user_secret[0].secret_arn, aws_secretsmanager_secret.app_db.arn]
   }
   statement {
-    sid       = "DecryptSecret"
+    sid       = "DecryptSecret" # admin 비밀 = aws/secretsmanager · app-db 비밀 = mc-cmk
     actions   = ["kms:Decrypt"]
-    resources = [data.aws_kms_alias.secretsmanager.target_key_arn]
+    resources = [data.aws_kms_alias.secretsmanager.target_key_arn, aws_kms_key.main.arn]
     condition {
       test     = "StringEquals"
       variable = "kms:ViaService"
@@ -68,7 +68,7 @@ data "aws_iam_policy_document" "rds_proxy_inline" {
   }
   statement {
     actions   = ["kms:Decrypt"]
-    resources = [data.aws_kms_alias.secretsmanager.target_key_arn]
+    resources = [data.aws_kms_alias.secretsmanager.target_key_arn, aws_kms_key.main.arn] # app-db 비밀은 mc-cmk
     condition {
       test     = "StringEquals"
       variable = "kms:ViaService"
