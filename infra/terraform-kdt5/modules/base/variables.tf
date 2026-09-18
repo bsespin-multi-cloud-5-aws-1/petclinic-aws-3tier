@@ -106,6 +106,23 @@ variable "enable_ssm" {
   default     = false
 }
 
+# ---- VPC 엔드포인트 · EBS 키 (9/18 Q&A · 기본은 지금 구성 그대로) ----
+variable "enable_vpc_endpoints" {
+  description = "secretsmanager · logs · ssm 인터페이스 + S3 게이트웨이 엔드포인트. 공용망 미경유 요구가 있을 때만 (≈$48/월)"
+  type        = bool
+  default     = false
+}
+variable "vpc_endpoint_services" {
+  description = "인터페이스 엔드포인트 서비스 목록 (monitoring · ec2messages 등 추가 가능)"
+  type        = list(string)
+  default     = ["secretsmanager", "logs", "ssm"]
+}
+variable "ebs_kms_key_arn" {
+  description = "EBS 루트 볼륨 고객 관리형 키 ARN. 비면 계정 기본 키(aws/ebs). 기존 인스턴스에 바꾸면 볼륨 교체(replace) — 신규 구축·ASG 새로 고침 때만"
+  type        = string
+  default     = ""
+}
+
 variable "cwagent_param_prefix" {
   description = "CloudWatch Agent 설정 SSM 파라미터 접두사 (루트 observability.tf 가 /mc/cwagent/web|was 생성)"
   type        = string

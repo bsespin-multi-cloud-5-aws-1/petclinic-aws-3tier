@@ -52,7 +52,8 @@ resource "aws_instance" "web" {
   root_block_device {
     volume_type = "gp3"
     volume_size = 20
-    encrypted   = true
+    encrypted   = true # 저장 암호화 (기본 aws/ebs · ebs_kms_key_arn 이면 고객 관리형 키)
+    kms_key_id  = var.ebs_kms_key_arn != "" ? var.ebs_kms_key_arn : null
   }
 
   user_data                   = local.web_user_data
@@ -79,7 +80,8 @@ resource "aws_instance" "was" {
   root_block_device {
     volume_type = "gp3"
     volume_size = 20
-    encrypted   = true
+    encrypted   = true # 저장 암호화 (기본 aws/ebs · ebs_kms_key_arn 이면 고객 관리형 키)
+    kms_key_id  = var.ebs_kms_key_arn != "" ? var.ebs_kms_key_arn : null
   }
 
   user_data                   = local.was_user_data
@@ -112,6 +114,7 @@ resource "aws_launch_template" "web" {
       volume_type = "gp3"
       volume_size = 20
       encrypted   = true
+      kms_key_id  = var.ebs_kms_key_arn != "" ? var.ebs_kms_key_arn : null
     }
   }
   tag_specifications {
@@ -149,6 +152,7 @@ resource "aws_launch_template" "was" {
       volume_type = "gp3"
       volume_size = 20
       encrypted   = true
+      kms_key_id  = var.ebs_kms_key_arn != "" ? var.ebs_kms_key_arn : null
     }
   }
   tag_specifications {

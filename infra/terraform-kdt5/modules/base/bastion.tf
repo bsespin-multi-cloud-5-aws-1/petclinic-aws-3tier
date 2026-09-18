@@ -88,6 +88,7 @@ resource "aws_instance" "bastion" {
     volume_type = "gp3"
     volume_size = 8
     encrypted   = true
+    kms_key_id  = var.ebs_kms_key_arn != "" ? var.ebs_kms_key_arn : null
   }
 
   user_data = templatefile("${path.module}/user_data/bastion.sh", {

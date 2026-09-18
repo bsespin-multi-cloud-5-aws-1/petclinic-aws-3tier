@@ -64,6 +64,11 @@ output "bastion" {
   } : null
 }
 
+output "vpc_endpoints" {
+  description = "enable_vpc_endpoints 가 켜졌을 때 만든 엔드포인트 (기본 없음 = AWS API 는 NAT 경유 TLS)"
+  value       = var.create_base ? module.base[0].vpc_endpoint_ids : {}
+}
+
 output "static_bucket" {
   description = "CloudFront /static/* · /images/* 오리진 (OAC). 내용 = src/main/webapp/resources·images (apply 가 동기화)"
   value       = local.buckets.static

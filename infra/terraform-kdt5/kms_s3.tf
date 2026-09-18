@@ -34,10 +34,49 @@ data "aws_iam_policy_document" "kms" {
   }
 }
 
+# EBS 를 mc-cmk 로 암호화하고 ASG 로 띄우면 Auto Scaling 서비스 연결 역할이 키를 써야 인스턴스가 뜬다 (둘 다 켤 때만 문장 추가 — 역할이 없는 계정에선 invalid principal)
+locals {
+  kms_asg_ebs = var.create_base && var.base.enable_asg && var.base.ebs_kms_key_arn == "mc-cmk"
+  asg_slr_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+}
+
+data "aws_iam_policy_document" "kms_with_asg" {
+  source_policy_documents = [data.aws_iam_policy_document.kms.json]
+  dynamic "statement" {
+    for_each = local.kms_asg_ebs ? [1] : []
+    content {
+      sid       = "AutoScalingUseKey"
+      actions   = ["kms:Encrypt", "kms:Decrypt", "kms:ReEncrypt*", "kms:GenerateDataKey*", "kms:DescribeKey"]
+      resources = ["*"]
+      principals {
+        type        = "AWS"
+        identifiers = [local.asg_slr_arn]
+      }
+    }
+  }
+  dynamic "statement" {
+    for_each = local.kms_asg_ebs ? [1] : []
+    content {
+      sid       = "AutoScalingCreateGrant"
+      actions   = ["kms:CreateGrant"]
+      resources = ["*"]
+      principals {
+        type        = "AWS"
+        identifiers = [local.asg_slr_arn]
+      }
+      condition {
+        test     = "Bool"
+        variable = "kms:GrantIsForAWSResource"
+        values   = ["true"]
+      }
+    }
+  }
+}
+
 resource "aws_kms_key" "main" {
   description         = "${local.p} CMK (S3 · SNS · Logs · Backup)"
   enable_key_rotation = true
-  policy              = data.aws_iam_policy_document.kms.json
+  policy              = data.aws_iam_policy_document.kms_with_asg.json
   tags                = merge(local.tier_tag.ops, { Name = "${local.p}-cmk" })
 }
 

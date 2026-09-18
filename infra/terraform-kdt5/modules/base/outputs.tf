@@ -25,5 +25,6 @@ output "ssh_private_key_pem" {
   value     = try(tls_private_key.ssh[0].private_key_openssh, null)
   sensitive = true
 }
+output "vpc_endpoint_ids" { value = merge({ for k, e in aws_vpc_endpoint.interface : k => e.id }, var.enable_vpc_endpoints ? { s3 = aws_vpc_endpoint.s3[0].id } : {}) }
 output "web_asg_name" { value = try(aws_autoscaling_group.web[0].name, null) }
 output "was_asg_name" { value = try(aws_autoscaling_group.was[0].name, null) }

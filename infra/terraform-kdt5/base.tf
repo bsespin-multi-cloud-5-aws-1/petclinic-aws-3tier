@@ -30,6 +30,9 @@ module "base" {
   bastion_instance_type = var.base.bastion_instance_type
   ssh_key_name          = var.base.ssh_key_name
   enable_ssm            = var.enable_ssm
+  enable_vpc_endpoints  = var.base.enable_vpc_endpoints
+  vpc_endpoint_services = var.base.vpc_endpoint_services
+  ebs_kms_key_arn       = var.base.ebs_kms_key_arn == "mc-cmk" ? aws_kms_key.main.arn : var.base.ebs_kms_key_arn
 
   access_logs_bucket   = aws_s3_bucket_policy.logs.bucket # 정책 적용 후 ALB 생성
   db_secret_arn        = aws_db_instance.main.master_user_secret[0].secret_arn

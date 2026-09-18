@@ -78,6 +78,10 @@ variable "base" {
     # DB 스키마 초기화 주체. app = Spring jdbc:initialize-database(현재 · schema IF NOT EXISTS + INSERT IGNORE 라 멱등)
     # userdata = was.sh 가 GET_LOCK 으로 직렬화해 1회 실행하고 Spring 초기화는 끔(-Djdbc.initLocation) — ASG 동시 부팅용(Notion 'was' 2안)
     db_init_mode = optional(string, "app")
+    # ---- 9/18: VPC 엔드포인트 · EBS 키 (기본 = 지금 구성 그대로, 켜면 도면의 로드맵 박스가 실제가 됨) ----
+    enable_vpc_endpoints  = optional(bool, false)
+    vpc_endpoint_services = optional(list(string), ["secretsmanager", "logs", "ssm"])
+    ebs_kms_key_arn       = optional(string, "") # "mc-cmk" 라고 쓰면 루트가 aws_kms_key.main.arn 으로 바꿔 넘김
     # ---- 운영자 접속 (팀 결정 9/16 저녁: Bastion + SSH 키 · SSM Session Manager 는 안 씀 → enable_ssm=false) ----
     create_bastion        = optional(bool, true)
     bastion_allowed_cidrs = optional(list(string), []) # SSH 22 를 허용할 운영자 공인 IP(/32). 비면 아무도 못 들어감
@@ -215,6 +219,12 @@ variable "alert_emails" {
   description = "SNS mc-alerts 이메일 구독 (기본 알람 경로). Slack 은 Grafana Alerting"
   type        = list(string)
   default     = []
+}
+
+variable "enable_ebs_default_encryption" {
+  description = "계정(리전) 수준 'EBS 기본 암호화' 켜기 — 실수로 암호화 안 켠 볼륨 방지. 기본 키는 aws/ebs (base.ebs_kms_key_arn=\"mc-cmk\" 면 mc-cmk). 계정 전체 설정이라 팀 결정 후"
+  type        = bool
+  default     = false
 }
 
 variable "enable_grafana" {
