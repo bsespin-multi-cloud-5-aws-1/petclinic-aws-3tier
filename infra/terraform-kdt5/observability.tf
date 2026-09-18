@@ -1,14 +1,14 @@
 # ---------- ⑤ 운영 · 관측: 로그 5종 → CloudWatch / S3, 알람 3 → SNS, CloudTrail, SSM, Grafana(선택) ----------
 locals {
   log_groups = merge({
-    "/mc/web/access"   = var.log_retention_days
-    "/mc/web/error"    = var.log_retention_days
-    "/mc/was/catalina" = var.log_retention_days
-    "/mc/was/access"   = var.log_retention_days
-    "/mc/was/gc"       = var.log_retention_days
+    "/petclinic/web/access"   = var.log_retention_days
+    "/petclinic/web/error"    = var.log_retention_days
+    "/petclinic/was/catalina" = var.log_retention_days
+    "/petclinic/was/access"   = var.log_retention_days
+    "/petclinic/was/gc"       = var.log_retention_days
     },
-    var.enable_ssm ? { "/mc/ssm/sessions" = 90 } : {},
-    var.create_base && var.base.create_bastion ? { "/mc/bastion/secure" = 90 } : {}, # 누가 언제 SSH 로 들어왔나 (SSM 세션 로그의 대체)
+    var.enable_ssm ? { "/petclinic/ssm/sessions" = 90 } : {},
+    var.create_base && var.base.create_bastion ? { "/petclinic/bastion/secure" = 90 } : {}, # 누가 언제 SSH 로 들어왔나 (SSM 세션 로그의 대체)
   )
 }
 
@@ -20,27 +20,27 @@ resource "aws_cloudwatch_log_group" "app" {
   tags              = local.tier_tag.ops
 }
 
-# CloudWatch Agent 설정을 SSM 파라미터로 배포 → 기존 WEB AMI/WAS 에서 `amazon-cloudwatch-agent-ctl -c ssm:/mc/cwagent/<web|was>` 로 적용 (인스턴스 그대로)
+# CloudWatch Agent 설정을 SSM 파라미터로 배포 → 기존 WEB AMI/WAS 에서 `amazon-cloudwatch-agent-ctl -c ssm:/petclinic/cwagent/<web|was>` 로 적용 (인스턴스 그대로)
 locals {
   cwagent = {
     web = [
-      { file_path = "/var/log/httpd/access_log", log_group_name = "/mc/web/access" },
-      { file_path = "/var/log/httpd/error_log", log_group_name = "/mc/web/error" },
+      { file_path = "/var/log/httpd/access_log", log_group_name = "/petclinic/web/access" },
+      { file_path = "/var/log/httpd/error_log", log_group_name = "/petclinic/web/error" },
     ]
     was = [
-      { file_path = "${local.was_tomcat_home}/logs/catalina.out", log_group_name = "/mc/was/catalina" },
-      { file_path = "${local.was_tomcat_home}/logs/localhost_access_log.*.txt", log_group_name = "/mc/was/access" },
-      { file_path = "${local.was_tomcat_home}/logs/gc.log", log_group_name = "/mc/was/gc" },
+      { file_path = "${local.was_tomcat_home}/logs/catalina.out", log_group_name = "/petclinic/was/catalina" },
+      { file_path = "${local.was_tomcat_home}/logs/localhost_access_log.*.txt", log_group_name = "/petclinic/was/access" },
+      { file_path = "${local.was_tomcat_home}/logs/gc.log", log_group_name = "/petclinic/was/gc" },
     ]
     bastion = [
-      { file_path = "/var/log/secure", log_group_name = "/mc/bastion/secure" }, # sshd 로그인 성공·실패
+      { file_path = "/var/log/secure", log_group_name = "/petclinic/bastion/secure" }, # sshd 로그인 성공·실패
     ]
   }
 }
 
 resource "aws_ssm_parameter" "cwagent" {
   for_each = local.cwagent
-  name     = "/mc/cwagent/${each.key}"
+  name     = "/petclinic/cwagent/${each.key}"
   type     = "String"
   tier     = "Standard"
   value = jsonencode({
@@ -156,7 +156,7 @@ resource "aws_ssm_document" "session_prefs" {
     sessionType   = "Standard_Stream"
     inputs = {
       kmsKeyId                    = aws_kms_key.main.key_id
-      cloudWatchLogGroupName      = "/mc/ssm/sessions"
+      cloudWatchLogGroupName      = "/petclinic/ssm/sessions"
       cloudWatchEncryptionEnabled = true
       cloudWatchStreamingEnabled  = true
       idleSessionTimeout          = "20"

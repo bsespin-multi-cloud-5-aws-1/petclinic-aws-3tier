@@ -49,7 +49,7 @@
 - **user_data(init script)** = EC2가 처음 켜질 때 실행되는 스크립트. 지금은 여기서 Apache/Tomcat 설치·앱 빌드·CloudWatch Agent 설치까지 다 한다(WEB 1분·WAS 8분).
 - **Golden AMI** = 설치가 끝난 상태를 통째로 이미지로 떠 둔 것. 그걸로 켜면 설치 없이 1~2분 만에 뜬다. 패치가 나오면 다시 구워야 함.
 - **EC2 Image Builder** = AMI를 자동으로 굽는 AWS 서비스(레시피 → 주기적 빌드·테스트). 수동 `create-image`는 사람이 인스턴스 하나 세팅하고 버튼 누르는 것. 질문 ⑪은 "3주에 자동화까지 갈 가치".
-- **CloudWatch Agent** = 서버 안 로그 파일(access_log·catalina.out)과 메모리·디스크 지표를 CloudWatch로 보내는 프로그램. 설정은 SSM 파라미터(`/mc/cwagent/web|was`)에서 받음.
+- **CloudWatch Agent** = 서버 안 로그 파일(access_log·catalina.out)과 메모리·디스크 지표를 CloudWatch로 보내는 프로그램. 설정은 SSM 파라미터(`/petclinic/cwagent/web|was`)에서 받음.
 
 ---
 
@@ -115,6 +115,6 @@
 - **SCP** = 조직(Organizations) 단위로 계정 전체에 거는 상위 정책. kdt5 팀 계정엔 없음 → IAM 사용자 정책만으로 해야 함(질문 ㉕).
 
 ### 5-3. 네이밍 · 이름 변경 불가 자원 (질문 ㉗㉘)
-- 우리 규칙: `mc-<계층>-<구분>-<AZ>`(`mc-was-c`, `mc-sg-rds`), 버킷은 계정 ID 접미(전역 유일), 로그 그룹 `/mc/<계층>/<종류>`. 환경(lab/prod)은 태그로.
+- 우리 규칙: `mc-<계층>-<구분>-<AZ>`(`mc-was-c`, `mc-sg-rds`), 버킷은 계정 ID 접미(전역 유일), 로그 그룹 `/petclinic/<계층>/<종류>`. 환경(lab/prod)은 태그로.
 - "환경·계정을 이름에 넣나" = `mc-alb-public` vs `mc-lab-alb-public`. 이름에 넣으면 한눈에 보이지만 길이 제한(ALB 32자)에 걸림. 태그로 두면 이름은 짧고 필터는 태그로(질문 ㉗).
 - "이름 변경 불가 자원" = ALB·대상 그룹은 만든 뒤 이름을 못 바꾼다(RDS 식별자는 바꿀 수 있으나 엔드포인트가 바뀜). kdt5의 `test-Public-ALB`·`Targetgroup-web`을 규칙에 맞추려면 **지웠다 다시 만들어야** 함(질문 ㉘).

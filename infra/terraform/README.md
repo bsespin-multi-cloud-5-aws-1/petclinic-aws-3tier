@@ -86,5 +86,5 @@ terraform validate
 
 ## 앱 쪽 전제 (코드 변경)
 
-- 예약 등록 시 `RESERVATION_CREATED id= vet= time= owner_id= pet=` 로그 1줄 → `/opt/tomcat/logs/events.log` → CloudWatch Agent → `/mc/was/events`
+- 예약 등록 시 `RESERVATION_CREATED id= vet= time= owner_id= pet=` 로그 1줄 → `/opt/tomcat/logs/events.log` → CloudWatch Agent → `/petclinic/was/events`
 - 로그인은 ALB가 처리하므로 앱 변경 없음. ALB가 `x-amzn-oidc-data` 헤더로 사용자 정보를 전달

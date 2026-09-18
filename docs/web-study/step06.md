@@ -145,9 +145,9 @@ CustomLog /var/log/httpd/access_log combined env=!nolog
 # 1) 경로별 코드와 담당 — CloudFront 경유 (Apache 인지 S3 인지 server 헤더로)
 for p in / /health.html /static/resources/css/petclinic.css /images/hero/hero.mp4 /petclinic/vets /petclinic/resources/css/petclinic.css /nope /maintenance.html; do printf "%-45s " "$p"; curl -sI "https://petclinic.mission-critical.site$p" | grep -iE "^HTTP|^server" | tr -d '\r' | tr '\n' ' '; echo; done
 # 2) Apache 가 실제로 받은 것 — CloudWatch Logs (S3 로 간 경로는 여기 없다)
-aws logs tail /mc/web/access --since 5m --profile mc-deploy --region ap-northeast-2 --format short | grep -v health.html | awk '{print $7, $8, $10}' | sort | uniq -c
+aws logs tail /petclinic/web/access --since 5m --profile mc-deploy --region ap-northeast-2 --format short | grep -v health.html | awk '{print $7, $8, $10}' | sort | uniq -c
 # 3) 프록시로 Tomcat 까지 간 것 — WAS 로그
-aws logs tail /mc/was/access --since 5m --profile mc-deploy --region ap-northeast-2 --format short | grep -v '"GET /petclinic/ ' | awk '{print $7, $8, $10}' | sort | uniq -c
+aws logs tail /petclinic/was/access --since 5m --profile mc-deploy --region ap-northeast-2 --format short | grep -v '"GET /petclinic/ ' | awk '{print $7, $8, $10}' | sort | uniq -c
 # 4) 파일이 만들어지는 과정 — web.sh 원문 (복사 · sed · conf)
 sed -n '10,60p' infra/terraform-kdt5/modules/base/user_data/web.sh
 ```
@@ -254,7 +254,7 @@ for p in /petclinic/ /petclinic; do printf "%-12s " $p; curl -sI "https://petcli
 # 2) 규칙 원문 — web.sh 의 ROOT_RULE 분기 + 슬래시 규칙
 grep -nE "RewriteCond|RewriteRule|ROOT_RULE=" infra/terraform-kdt5/modules/base/user_data/web.sh
 # 3) 리다이렉트도 Apache 로그에 남는다 (302 · 301)
-aws logs tail /mc/web/access --since 5m --profile mc-deploy --region ap-northeast-2 --format short | grep -E '"(GET|HEAD) /petclinic/? HTTP' | tail -2
+aws logs tail /petclinic/web/access --since 5m --profile mc-deploy --region ap-northeast-2 --format short | grep -E '"(GET|HEAD) /petclinic/? HTTP' | tail -2
 ```
 
 기대: 1) `/petclinic/ 302 location: https://…/` · `/petclinic 301 location: https://…/petclinic/` 2) 조건 줄 3개(`X-Forwarded-Proto`)와 폴백 줄 3) `"HEAD /petclinic/ HTTP/1.1" 302` · `"HEAD /petclinic HTTP/1.1" 301`
@@ -318,16 +318,16 @@ grep -nE "ProxyPass|Alias" infra/terraform-kdt5/modules/base/user_data/web.sh
 aws elbv2 describe-load-balancers --names mc-alb-internal --profile mc-deploy --region ap-northeast-2 --query 'LoadBalancers[0].DNSName' --output text
 aws ec2 describe-network-interfaces --profile mc-deploy --region ap-northeast-2 --filters "Name=description,Values=ELB app/mc-alb-internal/*" --query 'NetworkInterfaces[].[AvailabilityZone,PrivateIpAddress,SubnetId]' --output table
 # 3) 프록시된 요청이 Internal ALB 노드 IP 로 Tomcat 에 닿는다 — WAS 로그 첫 필드
-aws logs tail /mc/was/access --since 5m --profile mc-deploy --region ap-northeast-2 --format short | grep -v '"GET /petclinic/ ' | awk '{print $2}' | sort | uniq -c
+aws logs tail /petclinic/was/access --since 5m --profile mc-deploy --region ap-northeast-2 --format short | grep -v '"GET /petclinic/ ' | awk '{print $2}' | sort | uniq -c
 # 4) 제외가 동작한다 — /health.html 은 WAS 로그에 없어야
-aws logs tail /mc/was/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c health.html
+aws logs tail /petclinic/was/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c health.html
 ```
 
 기대: 1) `!` 3줄이 `ProxyPass /petclinic/` 위 2) `internal-mc-alb-internal-692352220.ap-northeast-2.elb.amazonaws.com` · 2a `10.0.20.x` · 2c `10.0.21.x` 3) `10.0.20.193` · `10.0.21.43` 4) `0`
 ## 2-5. ⑤ 로그와 모듈 — 의도와 실측이 다른 곳
 **무슨 일이 일어나나**
 1. **의도**: `SetEnvIf Request_URI "^/health.html$" nolog` 로 헬스체크 요청에 환경 변수 `nolog` 를 붙이고, `CustomLog /var/log/httpd/access_log combined env=!nolog` 로 그 요청은 **안 찍는다**. 10초마다 노드 2개가 찍으면 로그가 헬스체크로 가득 차니까.
-2. **실측(9/17)**: `/mc/web/access` 에 헬스체크가 1시간 1,442줄 찍히고, 일반 요청은 **같은 줄이 2번**. 원인: AL2023 의 `/etc/httpd/conf/httpd.conf` 에 기본 `CustomLog "logs/access_log" combined` 가 살아 있다 → 같은 파일에 **두 CustomLog** 가 쓴다. 기본 것은 필터가 없어 헬스체크를 찍고, 일반 요청은 둘 다 찍어 중복.
+2. **실측(9/17)**: `/petclinic/web/access` 에 헬스체크가 1시간 1,442줄 찍히고, 일반 요청은 **같은 줄이 2번**. 원인: AL2023 의 `/etc/httpd/conf/httpd.conf` 에 기본 `CustomLog "logs/access_log" combined` 가 살아 있다 → 같은 파일에 **두 CustomLog** 가 쓴다. 기본 것은 필터가 없어 헬스체크를 찍고, 일반 요청은 둘 다 찍어 중복.
 3. **수정안**: web.sh 에서 기본 CustomLog 한 줄을 주석 처리(`sed -i 's∣^⧵s*CustomLog "logs/access_log" combined∣#&∣' /etc/httpd/conf/httpd.conf`) → conf.d 의 필터만 남는다. `user_data` 변경이라 **인스턴스 교체**가 따른다(`-replace` 한 대씩 · README 교훈).
 4. **모듈**: 프록시는 `mod_proxy` + `mod_proxy_http`(HTTP 로 전달). 옛 방식 `mod_jk`(AJP 바이너리)는 **ALB 를 중간에 못 둔다**(ALB 는 HTTP 만) → WEB 이 WAS IP 를 직접 알아야 해 교체·증설 때 WEB 설정을 바꿔야 한다. 3-Tier + ALB 면 mod_proxy_http 가 정답. `mod_rewrite` · `mod_alias` · `mod_setenvif` · `mod_log_config` 도 쓰인다(AL2023 기본 로드).
 5. 로그 형식은 `combined`(첫 필드 = 연결 상대 IP = ALB 노드). 사용자 IP 는 `X-Forwarded-For` 에 있는데 combined 는 안 찍는다 → 8단계 개선(`%｛X-Forwarded-For｝i`).
@@ -340,7 +340,7 @@ aws logs tail /mc/was/access --since 1h --profile mc-deploy --region ap-northeas
 	</tr>
 	<tr>
 		<td>로그 파일 · 그룹</td>
-		<td>`/var/log/httpd/access_log` → CloudWatch `/mc/web/access`(30일) · `error_log` → `/mc/web/error`</td>
+		<td>`/var/log/httpd/access_log` → CloudWatch `/petclinic/web/access`(30일) · `error_log` → `/petclinic/web/error`</td>
 	</tr>
 	<tr>
 		<td>헬스체크 줄</td>
@@ -374,10 +374,10 @@ aws logs tail /mc/was/access --since 1h --profile mc-deploy --region ap-northeas
 # 1) 의도 — web.sh 의 로그 필터 두 줄
 grep -nE "SetEnvIf|CustomLog" infra/terraform-kdt5/modules/base/user_data/web.sh
 # 2) 실측 — 헬스체크 줄 수(1h)와 일반 요청 중복
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c ELB-HealthChecker
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v ELB-HealthChecker | cut -d' ' -f2- | sort | uniq -c | awk '$1>1' | head -3
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c ELB-HealthChecker
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v ELB-HealthChecker | cut -d' ' -f2- | sort | uniq -c | awk '$1>1' | head -3
 # 3) error_log 에 오류가 없는지
-aws logs tail /mc/web/error --since 24h --profile mc-deploy --region ap-northeast-2 --format short | grep -viE "notice" | tail -3
+aws logs tail /petclinic/web/error --since 24h --profile mc-deploy --region ap-northeast-2 --format short | grep -viE "notice" | tail -3
 # 4) 모듈 (Bastion 허용 후): httpd -M 2>/dev/null | grep -E "proxy_http|rewrite|alias|setenvif|mpm"
 ```
 
@@ -436,7 +436,7 @@ aws logs tail /mc/web/error --since 24h --profile mc-deploy --region ap-northeas
 		<td>8</td>
 		<td>⑤ `SetEnvIf` / `CustomLog`</td>
 		<td>`nolog` 아님</td>
-		<td>access_log 기록(현재는 2번) → CloudWatch `/mc/web/access`</td>
+		<td>access_log 기록(현재는 2번) → CloudWatch `/petclinic/web/access`</td>
 	</tr>
 	<tr>
 		<td>9</td>

@@ -1,12 +1,12 @@
 # ---------- CloudWatch Logs (필수 5: 앱 로그 · ALB 액세스(S3) · WAF · CloudTrail · SSM 세션) ----------
 locals {
   log_groups = {
-    "/mc/web/access"   = 30
-    "/mc/web/error"    = 30
-    "/mc/was/catalina" = 30
-    "/mc/was/access"   = 30
-    "/mc/was/gc"       = 30
-    "/mc/ssm/sessions" = 90
+    "/petclinic/web/access"   = 30
+    "/petclinic/web/error"    = 30
+    "/petclinic/was/catalina" = 30
+    "/petclinic/was/access"   = 30
+    "/petclinic/was/gc"       = 30
+    "/petclinic/ssm/sessions" = 90
   }
 }
 
@@ -109,7 +109,7 @@ resource "aws_ssm_document" "session_prefs" {
     sessionType   = "Standard_Stream"
     inputs = {
       kmsKeyId                    = aws_kms_key.main.key_id
-      cloudWatchLogGroupName      = "/mc/ssm/sessions"
+      cloudWatchLogGroupName      = "/petclinic/ssm/sessions"
       cloudWatchEncryptionEnabled = true
       cloudWatchStreamingEnabled  = true
       idleSessionTimeout          = "20"

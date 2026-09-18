@@ -268,7 +268,7 @@
      "Resource": ["arn:aws:secretsmanager:ap-northeast-2:528821350786:secret:rds!db-…", "arn:aws:secretsmanager:ap-northeast-2:528821350786:secret:mc/petclinic/app-db-…"]},
     {"Sid": "DecryptSecret", "Effect": "Allow", "Action": "kms:Decrypt", "Resource": "arn:aws:kms:ap-northeast-2:528821350786:key/<aws/secretsmanager 키 ID>",
      "Condition": {"StringEquals": {"kms:ViaService": "secretsmanager.ap-northeast-2.amazonaws.com"}}},
-    {"Sid": "ReadCwAgentConfig", "Effect": "Allow", "Action": "ssm:GetParameter", "Resource": "arn:aws:ssm:ap-northeast-2:528821350786:parameter/mc/cwagent/*"},
+    {"Sid": "ReadCwAgentConfig", "Effect": "Allow", "Action": "ssm:GetParameter", "Resource": "arn:aws:ssm:ap-northeast-2:528821350786:parameter/petclinic/cwagent/*"},
     {"Sid": "SyncLogsToS3", "Effect": "Allow", "Action": "s3:PutObject", "Resource": ["arn:aws:s3:::mc-logs-528821350786/was/*", "arn:aws:s3:::mc-logs-528821350786/web/*"]},
     {"Sid": "ListLogsBucket", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::mc-logs-528821350786"},
     {"Sid": "CompleteAsgLifecycleHook", "Effect": "Allow", "Action": "autoscaling:CompleteLifecycleAction",
@@ -335,8 +335,8 @@
 
 ## 0-6. 비밀 · 파라미터 · 로그 그룹
 - **Secrets Manager** `mc/petclinic/app-db` (다른 유형): 키/값 `username` = `petclinic_app`, `password` = 32자 랜덤(특수문자는 `!#%^*()-_=+` 만 — XML·셸·JDBC URL 에서 탈 나지 않는 문자). **자동 교체 없음**. admin 비밀(`rds!db-…`)은 ⑧ 에서 RDS 가 만든다.
-- **Systems Manager → Parameter Store** 표준 String 3개: `/mc/cwagent/web` · `/mc/cwagent/was` · `/mc/cwagent/bastion` — 값은 ⑩ 의 JSON. (Parameter Store 는 Session Manager 와 무관 — 설정 배포용)
-- **CloudWatch → 로그 그룹** (서울 · KMS mc-cmk): `/mc/web/access` `/mc/web/error` `/mc/was/catalina` `/mc/was/access` `/mc/was/gc` 보존 30일 · `/mc/bastion/secure` 90일. **버지니아(us-east-1)** 에 `aws-waf-logs-mc` 30일(② WAF 로그, 이름이 `aws-waf-logs-` 로 시작해야 함).
+- **Systems Manager → Parameter Store** 표준 String 3개: `/petclinic/cwagent/web` · `/petclinic/cwagent/was` · `/petclinic/cwagent/bastion` — 값은 ⑩ 의 JSON. (Parameter Store 는 Session Manager 와 무관 — 설정 배포용)
+- **CloudWatch → 로그 그룹** (서울 · KMS mc-cmk): `/petclinic/web/access` `/petclinic/web/error` `/petclinic/was/catalina` `/petclinic/was/access` `/petclinic/was/gc` 보존 30일 · `/petclinic/bastion/secure` 90일. **버지니아(us-east-1)** 에 `aws-waf-logs-mc` 30일(② WAF 로그, 이름이 `aws-waf-logs-` 로 시작해야 함).
 
 # ① 사용자 → Route 53
 > 선행: 없음(존만) · 레코드는 ② 뒤 · 코드 `edge.tf`
@@ -786,7 +786,7 @@ setsebool -P httpd_can_network_connect 1 || true
 apachectl configtest && systemctl enable --now httpd && systemctl restart httpd
 
 for i in $(seq 1 12); do
-  /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c "ssm:/mc/cwagent/web" -s && { echo "cwagent configured"; break; }
+  /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c "ssm:/petclinic/cwagent/web" -s && { echo "cwagent configured"; break; }
   echo "cwagent config retry $i/12"; sleep 10
 done
 
@@ -794,7 +794,7 @@ curl -s -o /dev/null -w "root %{http_code} -> %{redirect_url}\n" http://localhos
 curl -s -o /dev/null -w "health %{http_code}\n" http://localhost/health.html
 ```
 
-무엇을 하나: Apache 설치 → test 브랜치 WAR 소스의 `index.html` 과 `resources/`·`images/` 를 `/var/www/html`(정적 서빙, 링크는 `/static/…`·`/petclinic/…` 로 치환) → `petclinic.conf`(ProxyPass `/petclinic/` → Internal ALB :8080 · ProxyPreserveHost · `/petclinic/` 은 랜딩 `/` 로 302 · `/health.html` 은 프록시 제외) → CloudWatch Agent 설정을 Parameter Store `/mc/cwagent/web` 에서 받아 시작.
+무엇을 하나: Apache 설치 → test 브랜치 WAR 소스의 `index.html` 과 `resources/`·`images/` 를 `/var/www/html`(정적 서빙, 링크는 `/static/…`·`/petclinic/…` 로 치환) → `petclinic.conf`(ProxyPass `/petclinic/` → Internal ALB :8080 · ProxyPreserveHost · `/petclinic/` 은 랜딩 `/` 로 302 · `/health.html` 은 프록시 제외) → CloudWatch Agent 설정을 Parameter Store `/petclinic/cwagent/web` 에서 받아 시작.
 mod_jk 가 아니라 mod_proxy_http 인 이유: AJP 는 ALB 를 통과할 수 없고 HTTP 리버스 프록시는 Internal ALB 뒤의 WAS 를 증설·교체해도 WEB 설정이 안 바뀐다.
 확인(Bastion 경유 SSH): `curl -sI http://localhost/` 와 `curl -sI http://localhost/health.html` 첫 줄 `HTTP/1.1 200 OK`, `/var/log/mc-userdata.log` 에 `index.html installed from test`.
 
@@ -907,9 +907,9 @@ WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload && systemctl enable --now tomcat
 
-# CloudWatch Agent (catalina · access · gc → /mc/was/*)
+# CloudWatch Agent (catalina · access · gc → /petclinic/was/*)
 for i in $(seq 1 12); do
-  /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c "ssm:/mc/cwagent/was" -s && { echo "cwagent configured"; break; }
+  /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c "ssm:/petclinic/cwagent/was" -s && { echo "cwagent configured"; break; }
   echo "cwagent config retry $i/12"; sleep 10
 done
 
@@ -932,7 +932,7 @@ unset DB_PASS DB_PASS_XML APP_SECRET
 1. admin 비밀(rds!db-…) 조회 → Proxy 3306 TCP 대기 → **admin 로그인 성공까지 대기**(Proxy 대상이 AVAILABLE 되기 전에 앱이 뜨면 Communications link failure).
 2. 앱 사용자 `petclinic_app` 생성/동기화(`CREATE USER IF NOT EXISTS` · `petclinic.*` 권한만) → **앱 사용자로 Proxy 경유 로그인 성공까지 대기**(Proxy 인증 목록 반영 전이면 Access denied → 컨텍스트 초기화 실패 404).
 3. Tomcat 9.0.121 설치(systemd · tomcat 사용자) → 저장소 test 브랜치 clone → `./mvnw -P MySQL -Djdbc.url=…sslMode=REQUIRED -Djdbc.username -Djdbc.password` 로 WAR 빌드(비밀은 WAR 안에만 · Java 수정 0줄) → 배포.
-4. CloudWatch Agent 설정(`/mc/cwagent/was`) → 앱 200 확인(404 면 재시작 최대 3회) → `vets/owners/pets` 건수 출력.
+4. CloudWatch Agent 설정(`/petclinic/cwagent/was`) → 앱 200 확인(404 면 재시작 최대 3회) → `vets/owners/pets` 건수 출력.
 DB 스키마는 앱이 첫 기동 때 `schema.sql`(CREATE TABLE IF NOT EXISTS) · `data.sql`(INSERT IGNORE) 로 만든다 — 멱등이라 2대가 동시에 떠도 안전(9/16 실측). 풀 설정(`datasource-config.xml`: testOnBorrow `SELECT 1` · 유휴 10분 회수)은 저장소에 이미 반영.
 확인: `curl -sI http://localhost:8080/petclinic/` 첫 줄 `HTTP/1.1 200`, `curl -s http://localhost:8080/petclinic/vets.json`, `/var/log/mc-userdata.log` 의 `app login via proxy OK` · `vets 6`.
 
@@ -1059,22 +1059,22 @@ CloudWatch Logs 는 계정에 하나인 리전 서비스이고 **로그 그룹**
 		<td>Apache access·error</td>
 		<td>WEB EC2</td>
 		<td>CloudWatch Agent(user_data 설치)</td>
-		<td>CW Logs `/mc/web/*` 30일</td>
-		<td>Parameter Store `/mc/cwagent/web`</td>
+		<td>CW Logs `/petclinic/web/*` 30일</td>
+		<td>Parameter Store `/petclinic/cwagent/web`</td>
 	</tr>
 	<tr>
 		<td>Tomcat catalina·access·gc</td>
 		<td>WAS EC2</td>
 		<td>CloudWatch Agent</td>
-		<td>CW Logs `/mc/was/*` 30일</td>
-		<td>`/mc/cwagent/was`</td>
+		<td>CW Logs `/petclinic/was/*` 30일</td>
+		<td>`/petclinic/cwagent/was`</td>
 	</tr>
 	<tr>
 		<td>sshd 로그인</td>
 		<td>Bastion</td>
 		<td>CloudWatch Agent</td>
-		<td>CW Logs `/mc/bastion/secure` 90일</td>
-		<td>`/mc/cwagent/bastion`</td>
+		<td>CW Logs `/petclinic/bastion/secure` 90일</td>
+		<td>`/petclinic/cwagent/bastion`</td>
 	</tr>
 	<tr>
 		<td>WAF 매치·차단</td>
@@ -1130,54 +1130,54 @@ S3 접두사      cwlogs/<tier>/!{timestamp:yyyy/MM/dd}/
 ```bash
 aws s3 ls s3://mc-logs-528821350786/cwlogs/was/ --recursive | tail -3
 aws s3 cp s3://mc-logs-528821350786/cwlogs/was/<yyyy/MM/dd/객체> - | zcat | head -c 300
-# 줄마다 {"messageType":"DATA_MESSAGE","logGroup":"/mc/was/catalina","logStream":"i-…","logEvents":[…]}
+# 줄마다 {"messageType":"DATA_MESSAGE","logGroup":"/petclinic/was/catalina","logStream":"i-…","logEvents":[…]}
 ```
 
 ## 10-1. Parameter Store 값 (Systems Manager → Parameter Store → 파라미터 생성 · 표준 · String)
-`/mc/cwagent/web`:
+`/petclinic/cwagent/web`:
 
 ```json
 {
   "agent": {"metrics_collection_interval": 60, "run_as_user": "root"},
   "logs": {"logs_collected": {"files": {"collect_list": [
-    {"file_path": "/var/log/httpd/access_log", "log_group_name": "/mc/web/access", "log_stream_name": "{instance_id}", "timezone": "LOCAL"},
-    {"file_path": "/var/log/httpd/error_log", "log_group_name": "/mc/web/error", "log_stream_name": "{instance_id}", "timezone": "LOCAL"}
+    {"file_path": "/var/log/httpd/access_log", "log_group_name": "/petclinic/web/access", "log_stream_name": "{instance_id}", "timezone": "LOCAL"},
+    {"file_path": "/var/log/httpd/error_log", "log_group_name": "/petclinic/web/error", "log_stream_name": "{instance_id}", "timezone": "LOCAL"}
   ]}}},
   "metrics": {"namespace": "MC/WEB", "append_dimensions": {"InstanceId": "${aws:InstanceId}", "AutoScalingGroupName": "${aws:AutoScalingGroupName}"},
     "metrics_collected": {"mem": {"measurement": ["mem_used_percent"]}, "disk": {"measurement": ["used_percent"], "resources": ["/"]}}}
 }
 ```
 
-`/mc/cwagent/was`:
+`/petclinic/cwagent/was`:
 
 ```json
 {
   "agent": {"metrics_collection_interval": 60, "run_as_user": "root"},
   "logs": {"logs_collected": {"files": {"collect_list": [
-    {"file_path": "/opt/tomcat/logs/catalina.out", "log_group_name": "/mc/was/catalina", "log_stream_name": "{instance_id}", "timezone": "LOCAL"},
-    {"file_path": "/opt/tomcat/logs/localhost_access_log.*.txt", "log_group_name": "/mc/was/access", "log_stream_name": "{instance_id}", "timezone": "LOCAL"},
-    {"file_path": "/opt/tomcat/logs/gc.log", "log_group_name": "/mc/was/gc", "log_stream_name": "{instance_id}", "timezone": "LOCAL"}
+    {"file_path": "/opt/tomcat/logs/catalina.out", "log_group_name": "/petclinic/was/catalina", "log_stream_name": "{instance_id}", "timezone": "LOCAL"},
+    {"file_path": "/opt/tomcat/logs/localhost_access_log.*.txt", "log_group_name": "/petclinic/was/access", "log_stream_name": "{instance_id}", "timezone": "LOCAL"},
+    {"file_path": "/opt/tomcat/logs/gc.log", "log_group_name": "/petclinic/was/gc", "log_stream_name": "{instance_id}", "timezone": "LOCAL"}
   ]}}},
   "metrics": {"namespace": "MC/WAS", "append_dimensions": {"InstanceId": "${aws:InstanceId}", "AutoScalingGroupName": "${aws:AutoScalingGroupName}"},
     "metrics_collected": {"mem": {"measurement": ["mem_used_percent"]}, "disk": {"measurement": ["used_percent"], "resources": ["/"]}}}
 }
 ```
 
-`/mc/cwagent/bastion`:
+`/petclinic/cwagent/bastion`:
 
 ```json
 {
   "agent": {"metrics_collection_interval": 60, "run_as_user": "root"},
   "logs": {"logs_collected": {"files": {"collect_list": [
-    {"file_path": "/var/log/secure", "log_group_name": "/mc/bastion/secure", "log_stream_name": "{instance_id}", "timezone": "LOCAL"}
+    {"file_path": "/var/log/secure", "log_group_name": "/petclinic/bastion/secure", "log_stream_name": "{instance_id}", "timezone": "LOCAL"}
   ]}}},
   "metrics": {"namespace": "MC/BASTION", "append_dimensions": {"InstanceId": "${aws:InstanceId}", "AutoScalingGroupName": "${aws:AutoScalingGroupName}"},
     "metrics_collected": {"mem": {"measurement": ["mem_used_percent"]}, "disk": {"measurement": ["used_percent"], "resources": ["/"]}}}
 }
 ```
 
-인스턴스는 부팅 스크립트 마지막에 `amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:/mc/cwagent/‹tier› -s` 로 받아간다(권한은 0-3 인라인의 `ssm:GetParameter` + 관리형 CloudWatchAgentServerPolicy). 설정을 바꾸면 파라미터만 고치고 각 서버에서 같은 명령을 다시 실행.
-확인: CloudWatch → 로그 그룹 `/mc/was/catalina` 에 스트림 = 인스턴스 ID 가 생기고, `aws logs tail /mc/was/catalina --since 10m`.
+인스턴스는 부팅 스크립트 마지막에 `amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:/petclinic/cwagent/‹tier› -s` 로 받아간다(권한은 0-3 인라인의 `ssm:GetParameter` + 관리형 CloudWatchAgentServerPolicy). 설정을 바꾸면 파라미터만 고치고 각 서버에서 같은 명령을 다시 실행.
+확인: CloudWatch → 로그 그룹 `/petclinic/was/catalina` 에 스트림 = 인스턴스 ID 가 생기고, `aws logs tail /petclinic/was/catalina --since 10m`.
 
 # ⑪ 감사 로그 — CloudTrail (계정 수준 · VPC 밖)
 > 선행: 0-5 mc-cloudtrail 버킷(정책) · 0-4 KMS · 코드 `observability.tf` `kms_s3.tf`
@@ -1224,7 +1224,7 @@ CloudTrail → 추적 생성: 이름 `mc-trail` · 스토리지 **기존 버킷*
 
 # ⑬ 운영자 접속 = Bastion (SSM Session Manager 안 씀)
 > 선행: 0-1 mc-public-a · 0-3 mc-ec2-profile · 코드 `modules/base/bastion.tf` `access.tf` `user_data/bastion.sh`
-팀 결정(9/16 저녁): 보안팀 설득이 쉬운 전통 방식 — 퍼블릭 서브넷의 Bastion 1대에만 SSH 를 열고, 나머지는 Bastion 에서만 들어간다. SSM 은 **인스턴스 프로파일에 AmazonSSMManagedInstanceCore 를 붙이지 않고**, Session Manager 기본 설정 문서(`SSM-SessionManagerRunShell`)·`/mc/ssm/sessions` 로그 그룹도 만들지 않는다.
+팀 결정(9/16 저녁): 보안팀 설득이 쉬운 전통 방식 — 퍼블릭 서브넷의 Bastion 1대에만 SSH 를 열고, 나머지는 Bastion 에서만 들어간다. SSM 은 **인스턴스 프로파일에 AmazonSSMManagedInstanceCore 를 붙이지 않고**, Session Manager 기본 설정 문서(`SSM-SessionManagerRunShell`)·`/petclinic/ssm/sessions` 로그 그룹도 만들지 않는다.
 ## 13-1. 키 페어 · SG
 - **EC2 → 키 페어 생성** `mc-ssh` · 유형 **ED25519** · `.pem` 다운로드(개인키는 팀 채널로 안전하게 전달 · 저장소에 넣지 않음). 이 **한 키를 Bastion·WEB·WAS 모두에** 부착한다(⑤⑦ 생성 시 선택).
 - `mc-sg-bastion`(0-2): 22 ← 운영자 공인 IP `/32`. `mc-sg-web`·`mc-sg-was` 에 22 ← mc-sg-bastion, `mc-sg-rds-proxy` 에 3306 ← mc-sg-bastion.
@@ -1262,14 +1262,14 @@ CloudTrail → 추적 생성: 이름 `mc-trail` · 스토리지 **기존 버킷*
 ```bash
 #!/bin/bash
 # Bastion (AL2023) — 운영자 SSH 진입점 (SSM Session Manager 대신). WEB·WAS 는 같은 키로 -J 점프, DB 는 mariadb 클라이언트로 RDS Proxy(TLS) 경유
-# sshd 로그(/var/log/secure)는 CloudWatch Agent 로 /mc/bastion/secure 에 남긴다 — 누가 언제 들어왔나 (서버에만 두지 않음)
+# sshd 로그(/var/log/secure)는 CloudWatch Agent 로 /petclinic/bastion/secure 에 남긴다 — 누가 언제 들어왔나 (서버에만 두지 않음)
 set -uo pipefail
 exec > >(tee -a /var/log/mc-userdata.log) 2>&1
 
 dnf install -y mariadb105 jq amazon-cloudwatch-agent
 
 for i in $(seq 1 12); do
-  /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c "ssm:/mc/cwagent/bastion" -s && { echo "cwagent configured"; break; }
+  /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c "ssm:/petclinic/cwagent/bastion" -s && { echo "cwagent configured"; break; }
   echo "cwagent config retry $i/12"; sleep 10
 done
 
@@ -1291,7 +1291,7 @@ mysql --ssl -h mc-rds-proxy.proxy-c7ku4mw88shn.ap-northeast-2.rds.amazonaws.com 
 ssh -i mc-ssh.pem -N -L 3306:mc-rds-proxy.proxy-c7ku4mw88shn.ap-northeast-2.rds.amazonaws.com:3306 ec2-user@52.78.145.87
 ```
 
-로그: `/var/log/secure`(누가 언제 로그인했나·실패 시도) → `/mc/bastion/secure` 90일. 팀원이 늘면 SG 에 `/32` 규칙 추가, 나가면 삭제.
+로그: `/var/log/secure`(누가 언제 로그인했나·실패 시도) → `/petclinic/bastion/secure` 90일. 팀원이 늘면 SG 에 `/32` 규칙 추가, 나가면 삭제.
 
 # 최종 검증 체크리스트
 

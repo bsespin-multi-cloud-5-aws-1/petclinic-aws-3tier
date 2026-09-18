@@ -70,7 +70,7 @@
 		<td>8</td>
 		<td>WEB 관측</td>
 		<td>ALB 액세스 로그 필드(elb vs target 상태 코드 · target_processing_time) · Apache 로그 XFF · HealthyHostCount · p95 · ELB_5XX vs Target_5XX</td>
-		<td>/mc/web/* · S3 alb/public · p95 알람</td>
+		<td>/petclinic/web/* · S3 alb/public · p95 알람</td>
 		<td>✅ 하위 페이지</td>
 	</tr>
 	<tr>

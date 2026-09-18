@@ -13,7 +13,7 @@ CloudFront → ALB(HTTPS 종단) → **Apache 80(평문·mod_proxy_http)** → I
 | 3 | **Shallow Health Check · 장애 격리** | WEB `mc-tg-web` `/health.html` 10s·5s·2/3 (`ProxyPass !` 라 WAS·DB 안 감) · WAS `mc-tg-was` `/petclinic/`(컨텍스트) · DB는 CloudWatch 알람 | 9/16 `was-a` Access denied → unhealthy, WEB 2대 healthy 유지, `was-c` 우회 · 무중단 |
 
 ## 3. 로그·모니터링 (WEB 담당 = WEB 로그)
-- Parameter Store `/mc/cwagent/web` → 부팅 시 `fetch-config` → CloudWatch Agent → `/mc/web/access` `/mc/web/error`(30일) + 메모리·디스크 지표(MC/WEB)
+- Parameter Store `/petclinic/cwagent/web` → 부팅 시 `fetch-config` → CloudWatch Agent → `/petclinic/web/access` `/petclinic/web/error`(30일) + 메모리·디스크 지표(MC/WEB)
 - ALB 액세스 로그 → S3 `mc-logs/alb/public|internal` 90일 · (9/17) CloudWatch Logs 사본 → Firehose → S3 `cwlogs/web/` 1년
 - 왜: 서버 교체·디스크 풀·침해 흔적 — 9/16 롤링 5회 유실 0
 

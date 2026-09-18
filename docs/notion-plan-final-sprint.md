@@ -34,10 +34,10 @@
 | 24 | 태스크 | DB 계층 미구현 정리 보고 | DB 담당 | 09/18 |
 | 31 | 태스크 | 취합·확정 → Jira 등록 · 오늘 멘토링 보고서 | 팀장(박준석) | 09/18 |
 | 35 | **에픽** | E2 콘솔 구현 마무리 — 로그 수집(CloudWatch Logs · S3) + 시연 시나리오 통과 (9/19~9/21) | 팀장(박준석) | 09/21 |
-| 36 | 태스크 | WEB 로그 수집: /mc/web/access · /mc/web/error | WEB 담당 | 09/20 |
-| 40 | 태스크 | WAS 로그 수집: /mc/was/catalina · access · gc | WAS 담당 | 09/20 |
+| 36 | 태스크 | WEB 로그 수집: /petclinic/web/access · /petclinic/web/error | WEB 담당 | 09/20 |
+| 40 | 태스크 | WAS 로그 수집: /petclinic/was/catalina · access · gc | WAS 담당 | 09/20 |
 | 43 | 태스크 | DB 로그 수집: RDS error · slowquery · Proxy 로그 | DB 담당 | 09/20 |
-| 46 | 태스크 | 공통 로그: Bastion sshd → /mc/bastion/secure · CloudTrail → S3 · CloudFront 로그 → S3 | 팀장(박준석) | 09/20 |
+| 46 | 태스크 | 공통 로그: Bastion sshd → /petclinic/bastion/secure · CloudTrail → S3 · CloudFront 로그 → S3 | 팀장(박준석) | 09/20 |
 | 51 | 태스크 | (P2) CloudWatch Logs → Firehose → S3 사본 (10-2) | 팀장(박준석) | 09/22 |
 | 53 | 태스크 | 알람 3 + SNS 이메일 4명 구독·승인 · WEB HealthyHost 알람 추가 | 팀장(박준석) | 09/21 |
 | 56 | 태스크 | 시연 시나리오 A(정상 흐름) · B(장애·복구) 1회 통과 + 캡처 | 시연 담당 | 09/21 |
@@ -73,16 +73,16 @@
 ## 3. "무엇을 수집하나" — 로그 수집 정의 (E2 의 기준)
 | 계층 | 소스 | 어디로 | 그룹·경로 | 보존 | 켜는 곳 |
 |---|---|---|---|---|---|
-| WEB | Apache access_log · error_log | CloudWatch Logs (Agent) | /mc/web/access · /mc/web/error | 30일 | Parameter Store /mc/cwagent/web → fetch-config |
-| WAS | catalina.out · localhost_access_log · gc.log | CloudWatch Logs (Agent) | /mc/was/catalina · access · gc | 30일 | /mc/cwagent/was |
+| WEB | Apache access_log · error_log | CloudWatch Logs (Agent) | /petclinic/web/access · /petclinic/web/error | 30일 | Parameter Store /petclinic/cwagent/web → fetch-config |
+| WAS | catalina.out · localhost_access_log · gc.log | CloudWatch Logs (Agent) | /petclinic/was/catalina · access · gc | 30일 | /petclinic/cwagent/was |
 | DB | RDS error · slowquery(2s) · RDS Proxy | CloudWatch Logs (서비스 내보내기) | /aws/rds/instance/‹id›/error · /slowquery · /aws/rds/proxy/‹name› | 30일 | RDS 수정 → 로그 내보내기 · 파라미터 slow_query_log=1 |
 | CDN·보안 | CloudFront 표준 로그 | S3 객체 | mc-logs/cloudfront/ | 90일 | 배포 → 표준 로깅(버킷 ACL 활성 필요) |
 | CDN·보안 | WAF 규칙 매치·차단 | CloudWatch Logs (us-east-1) | aws-waf-logs-mc | 30일 | Web ACL → 로깅 |
 | WEB·WAS | ALB 액세스 로그(외부·내부) | S3 객체 | mc-logs/alb/public · alb/internal | 90일 | ALB 속성 |
 | 공통 | CloudTrail 관리 이벤트 | S3 객체 | mc-cloudtrail-‹acct›/AWSLogs/ | 1년 | 추적 mc-trail |
-| 공통 | Bastion sshd | CloudWatch Logs (Agent) | /mc/bastion/secure | 90일 | /mc/cwagent/bastion |
+| 공통 | Bastion sshd | CloudWatch Logs (Agent) | /petclinic/bastion/secure | 90일 | /petclinic/cwagent/bastion |
 | (P2) | CloudWatch Logs 전부 | S3 사본 (Firehose) | mc-logs/cwlogs/‹tier›/ | 1년 | 구독 필터 → Firehose ×4 |
-확인 명령: `aws logs describe-log-groups --log-group-name-prefix /mc` · `aws logs tail /mc/was/catalina --since 10m` · `aws s3 ls s3://mc-logs-‹acct›/alb/public/ --recursive | tail -3`
+확인 명령: `aws logs describe-log-groups --log-group-name-prefix /mc` · `aws logs tail /petclinic/was/catalina --since 10m` · `aws s3 ls s3://mc-logs-‹acct›/alb/public/ --recursive | tail -3`
 
 ## 4. JMeter 읽기·쓰기 부하 테스트 (E3)
 - 읽기: `GET /petclinic/vets` · `GET /petclinic/owners?lastName=` (검색 → DB 조회) · 쓰기: `POST /petclinic/owners/new` (firstName·lastName·address·city·telephone 폼)

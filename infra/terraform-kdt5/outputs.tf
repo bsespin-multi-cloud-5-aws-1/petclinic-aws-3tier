@@ -37,9 +37,9 @@ output "sns_alerts_topic_arn" {
 output "log_locations" {
   description = "로그가 놓이는 곳 (앱·Bastion SSH·WAF = CloudWatch Logs, ALB·CloudFront·CloudTrail = S3 객체)"
   value = {
-    app_cloudwatch     = "/mc/web/* · /mc/was/*"
-    bastion_cloudwatch = var.create_base && var.base.create_bastion ? "/mc/bastion/secure" : null
-    ssm_cloudwatch     = var.enable_ssm ? "/mc/ssm/sessions" : null
+    app_cloudwatch     = "/petclinic/web/* · /petclinic/was/*"
+    bastion_cloudwatch = var.create_base && var.base.create_bastion ? "/petclinic/bastion/secure" : null
+    ssm_cloudwatch     = var.enable_ssm ? "/petclinic/ssm/sessions" : null
     waf_cloudwatch     = var.enable_waf ? "aws-waf-logs-${local.p} (us-east-1)" : null
     rds_cloudwatch     = "/aws/rds/instance/${local.db_identifier}/{error,slowquery} · /aws/rds/proxy/${local.p}-rds-proxy"
     archive_s3         = "s3://${local.buckets.logs}/cwlogs/{web,was,bastion,db}/ (CloudWatch Logs → Firehose 구독 사본 · 1년)"
@@ -88,7 +88,7 @@ output "manual_followups" {
     "1. 가비아 네임서버 → route53_name_servers 4개로 교체 (ACM DNS 검증·A 레코드가 그 뒤에 유효)",
     "2. 기존 ALB 두 개: 속성 → 액세스 로그 켜기 → s3://${local.buckets.logs}/alb/public, /alb/internal",
     "3. WEB ASG 시작 템플릿(web) · WAS-test-a: IAM 인스턴스 프로파일 mc-ec2-role 부착 → SSM 접속·CW Agent 동작",
-    "4. WEB·WAS 에 CloudWatch Agent 설치 후 `amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:/mc/cwagent/web|was -s`",
+    "4. WEB·WAS 에 CloudWatch Agent 설치 후 `amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:/petclinic/cwagent/web|was -s`",
     "5. WAS: was_jdbc_url 로 WAR 재빌드(mvnw -P MySQL -Djdbc.url=...) → RDS Proxy 경유. Proxy 전환 확인 후 petclinic-db-sg 의 3306 ← was-instance-sg 제거",
     "6. CloudFront 로 전환 확인 후: Public ALB 80 리스너 삭제, alb-public-sg 의 80/443 0.0.0.0/0 규칙 삭제 (CloudFront 프리픽스 443 만 남김)",
     "7. database-1 파라미터 그룹 교체는 유지관리 창에 재부팅됨(apply_immediately=false). 점검 시간에 바로 적용하려면 콘솔 재부팅",

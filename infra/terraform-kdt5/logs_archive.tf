@@ -10,9 +10,9 @@ locals {
   }
   # 계층(=Firehose 스트림 · S3 접두사) → 구독할 로그 그룹. WAF 로그는 us-east-1 이라 제외(구독은 같은 리전만)
   cwlogs_archive = {
-    web     = ["/mc/web/access", "/mc/web/error"]
-    was     = ["/mc/was/catalina", "/mc/was/access", "/mc/was/gc"]
-    bastion = var.create_base && var.base.create_bastion ? ["/mc/bastion/secure"] : []
+    web     = ["/petclinic/web/access", "/petclinic/web/error"]
+    was     = ["/petclinic/was/catalina", "/petclinic/was/access", "/petclinic/was/gc"]
+    bastion = var.create_base && var.base.create_bastion ? ["/petclinic/bastion/secure"] : []
     db      = [for k in sort(keys(local.rds_log_groups)) : local.rds_log_groups[k]]
   }
   cwlogs_subscriptions = {

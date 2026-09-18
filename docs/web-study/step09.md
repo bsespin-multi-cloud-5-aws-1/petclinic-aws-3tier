@@ -58,7 +58,7 @@
 # 2. 자세히 — 항목마다 "무슨 일 · 우리 값 · 없으면 · 눈으로 확인"
 ## 2-1. ① 5xx 는 누가 내나 — 코드는 사과하는 사람의 이름표
 **무슨 일이 일어나나**
-1. **500** 은 끝 서버(Tomcat 예외 · Apache 내부 오류)가 낸다. ALB 로그엔 `elb 500 · target 500`(같음). 서버 로그(`/mc/was/catalina` 스택 트레이스)를 본다.
+1. **500** 은 끝 서버(Tomcat 예외 · Apache 내부 오류)가 낸다. ALB 로그엔 `elb 500 · target 500`(같음). 서버 로그(`/petclinic/was/catalina` 스택 트레이스)를 본다.
 2. **502 Bad Gateway** 는 중간(ALB)이 "뒤와 얘기가 이상하게 끝났다" — 대상이 연결을 거부(httpd 죽음) · 먼저 닫음(keep-alive 5 ‹ 60) · 응답 형식 오류. ALB 로그 `elb 502 · target -` · `error_reason`. CloudFront 도 오리진과 TLS/연결이 깨지면 502 를 낸다(인증서 불일치 등).
 3. **503 Service Unavailable** 은 ALB 가 "보낼 정상 대상이 없다"(WEB 2대 unhealthy · 대상 그룹 비어 있음). `elb 503 · target -`. Apache 가 Internal ALB 의 503 을 **그대로 전달**하면 `elb 503 · target 503`(같음 = 서버가 준 것) — 이건 WAS 장애.
 4. **504 Gateway Timeout** 은 "기다리다 포기" — CloudFront 30s(사용자가 보는 것) 또는 ALB 60s(로그). 원인은 느린 WAS/DB.
@@ -78,14 +78,14 @@
 		<td>Tomcat / Apache</td>
 		<td>`500 500`</td>
 		<td>앱 예외 · DB 연결 실패(Proxy TLS · 자격 증명)</td>
-		<td>`/mc/was/catalina` · `/aws/rds/proxy/mc-rds-proxy`</td>
+		<td>`/petclinic/was/catalina` · `/aws/rds/proxy/mc-rds-proxy`</td>
 	</tr>
 	<tr>
 		<td>502</td>
 		<td>ALB</td>
 		<td>`502 -` · `error_reason`</td>
 		<td>httpd 죽음(판정 전 30s) · keep-alive 불일치 · 재시작 중</td>
-		<td>대상 상태 · `/mc/web/error` · 7단계 표</td>
+		<td>대상 상태 · `/petclinic/web/error` · 7단계 표</td>
 	</tr>
 	<tr>
 		<td>503</td>
@@ -354,7 +354,7 @@ timeout 5 ssh -i infra/terraform-kdt5/.keys/mc-ssh.pem -o BatchMode=yes ec2-user
 1. **1초**: 랜딩 `https://petclinic.mission-critical.site/` 를 연다. **200 이면 WEB · ALB · CloudFront 는 살아 있다** → C(WAS) 또는 D(느림). 점검 페이지면 B(WEB 전멸) 또는 ALB/CloudFront 문제. 흰 403 이면 E. 화면이 깨지면 F.
 2. **10초**: 대상 상태. `mc-tg-web` healthy 수(2/2?) · `mc-tg-was` healthy 수. 알람 상태.
 3. **1분**: ALB 로그 마지막 5분 — `elb / target` 코드 쌍과 `matched_rule_priority`. `503 -` 면 B, `503 503` 이면 C, `502 -` 면 A/keep-alive, `403 -` rule 0 이면 E, 200 인데 사용자는 504 면 D(CloudFront 30s).
-4. **5분**: 서버 로그 — `/mc/web/error`(httpd) · `/mc/was/catalina`(Tomcat 예외) · `/aws/rds/instance/mc-petclinic/slowquery`(느린 쿼리) · `/aws/rds/proxy/mc-rds-proxy`(연결 거부).
+4. **5분**: 서버 로그 — `/petclinic/web/error`(httpd) · `/petclinic/was/catalina`(Tomcat 예외) · `/aws/rds/instance/mc-petclinic/slowquery`(느린 쿼리) · `/aws/rds/proxy/mc-rds-proxy`(연결 거부).
 5. 복구는 **가장 싼 것부터**: 프로세스 재시작 → 인스턴스 교체(`terraform apply -replace` 한 대씩) → 설정 롤백(tfvars) → 캐시 무효화. 복구 뒤 **같은 순서로 다시 확인**하고 기록(콘솔 가이드 ⑬).
 
 **우리 값 — 진단 순서표**
@@ -386,7 +386,7 @@ timeout 5 ssh -i infra/terraform-kdt5/.keys/mc-ssh.pem -o BatchMode=yes ec2-user
 	<tr>
 		<td>5분</td>
 		<td>서버·DB 로그</td>
-		<td>`aws logs tail /mc/was/catalina` · `…/slowquery` · `…/proxy`</td>
+		<td>`aws logs tail /petclinic/was/catalina` · `…/slowquery` · `…/proxy`</td>
 		<td>예외 스택 · 느린 쿼리 · 연결 거부</td>
 	</tr>
 	<tr>
@@ -409,7 +409,7 @@ curl -s -o /dev/null -w "landing=%{http_code} " https://petclinic.mission-critic
 for tg in mc-tg-web mc-tg-was; do A=$(aws elbv2 describe-target-groups --names $tg --profile mc-deploy --region ap-northeast-2 --query 'TargetGroups[0].TargetGroupArn' --output text); printf "%s: " $tg; aws elbv2 describe-target-health --target-group-arn $A --profile mc-deploy --region ap-northeast-2 --query 'TargetHealthDescriptions[].TargetHealth.State' --output text; done
 aws cloudwatch describe-alarms --alarm-name-prefix mc- --profile mc-deploy --region ap-northeast-2 --query 'MetricAlarms[].[AlarmName,StateValue]' --output text
 K=$(aws s3 ls s3://mc-logs-528821350786/alb/public/ --recursive --profile mc-deploy | grep -v TestFile | tail -1 | awk '{print $4}'); aws s3 cp "s3://mc-logs-528821350786/$K" - --profile mc-deploy | zcat | awk '{print $9, $10}' | sort | uniq -c
-aws logs tail /mc/was/catalina --since 10m --profile mc-deploy --region ap-northeast-2 --format short | grep -iE "exception|error" | tail -3
+aws logs tail /petclinic/was/catalina --since 10m --profile mc-deploy --region ap-northeast-2 --format short | grep -iE "exception|error" | tail -3
 ```
 
 기대: `landing=200 app=200` · `mc-tg-web: healthy healthy` · `mc-tg-was: healthy healthy` · 알람 OK · `200 200` 다수 · catalina 에 exception 없음
@@ -453,7 +453,7 @@ aws logs tail /mc/was/catalina --since 10m --profile mc-deploy --region ap-north
 	</tr>
 	<tr>
 		<td>3m</td>
-		<td>`/mc/was/catalina` · `/aws/rds/proxy/…`</td>
+		<td>`/petclinic/was/catalina` · `/aws/rds/proxy/…`</td>
 		<td>예: `Communications link failure` / Proxy `Connections using insecure transport…`</td>
 		<td>원인: DB 연결(TLS · 자격 증명 · Proxy)</td>
 	</tr>

@@ -97,7 +97,7 @@
 # 1) 요청줄 · Host · 버전 — 브라우저 쪽은 HTTP/2
 curl -sv https://petclinic.mission-critical.site/ -o /dev/null 2>&1 | grep -E "^> (GET|Host)|^< HTTP"
 # 2) 서버 쪽은 HTTP/1.1 — Apache access_log (CloudWatch Logs · 서버 접속 불필요)
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v health.html | tail -3
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v health.html | tail -3
 # 3) CloudFront 가 Host 를 넘기는 정책 = AllViewer
 aws cloudfront get-origin-request-policy --id 216adef6-5c7f-47e4-b989-5492eafa07d3 --profile mc-deploy --query 'OriginRequestPolicy.OriginRequestPolicyConfig.[Name,HeadersConfig.HeaderBehavior]' --output text
 ```
@@ -246,9 +246,9 @@ for m in HTTPCode_ELB_5XX_Count HTTPCode_Target_5XX_Count; do printf "%s " $m; a
 
 ```bash
 # 1) Apache 로그 첫 IP 가 ALB 노드(10.0.0.212 / 10.0.1.212)인지 — CloudWatch Logs
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v health.html | tail -3 | awk '{print $2}'
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v health.html | tail -3 | awk '{print $2}'
 # 2) WAS 로그 첫 IP 는 Internal ALB 노드(10.0.20.x / 10.0.21.x)
-aws logs tail /mc/was/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | tail -2 | awk '{print $2}'
+aws logs tail /petclinic/was/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | tail -2 | awk '{print $2}'
 # 3) ALB 가 XFF 를 '덧붙이기' 모드로 처리하는지
 aws elbv2 describe-load-balancer-attributes --load-balancer-arn $(aws elbv2 describe-load-balancers --names mc-alb-public --profile mc-deploy --query 'LoadBalancers[0].LoadBalancerArn' --output text) --profile mc-deploy --query 'Attributes[?Key==`routing.http.xff_header_processing.mode`].Value' --output text
 # 4) X-Forwarded-Proto 가 실제로 동작한다는 간접 증거 — Location 이 https

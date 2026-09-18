@@ -27,7 +27,7 @@
 | 리스너 | 443 기본 액션 403 · 규칙10: `X-Origin-Verify` 일치 시만 `mc-tg-web` forward | 2차 우회 차단(헤더). 80 리스너 없음 |
 | 대상 그룹 | `mc-tg-web` :80 · 헬스체크 `/health.html` 10s·5s·2/3 · 등록취소 30s · 두 AZ 라운드로빈 | 얕은 헬스체크(Apache 생존만) → WAS 장애로 WEB 까지 연쇄 unhealthy 방지 |
 | Apache | `/` = WAR 소스(test 브랜치)의 `index.html` + `resources/`·`images/` 를 부팅 시 `/var/www/html/{index.html,static/}` 로 복사해 직접 서빙(자산 링크 `/static/…`, 앱 링크 `/petclinic/…`) · `ProxyPass /petclinic/ → Internal ALB:8080` · `ProxyPreserveHost On` · `/health.html` | 첫 화면(정적)은 WEB 이, 앱은 WAS 가. index.html 이 없는 브랜치(main)면 `/` → 302 `/petclinic/` 폴백 |
-| 로그 | access/error → CloudWatch Agent → `/mc/web/access`·`/mc/web/error` · ALB 액세스 로그 → S3 `mc-logs/alb/public` | 인스턴스 밖에 남아야 교체 뒤에도 조회 |
+| 로그 | access/error → CloudWatch Agent → `/petclinic/web/access`·`/petclinic/web/error` · ALB 액세스 로그 → S3 `mc-logs/alb/public` | 인스턴스 밖에 남아야 교체 뒤에도 조회 |
 
 ## 3. Apache → Internal ALB → Tomcat (WAS)
 | 단계 | 무엇이 | 왜 |
@@ -36,7 +36,7 @@
 | SG 체인 | `mc-sg-alb-internal` 8080 ← `mc-sg-web` · `mc-sg-was` 8080 ← `mc-sg-alb-internal` | 앞 단계 SG 만 허용. 22번 없음(SSM) |
 | Tomcat | 9.0.121 · Corretto(OpenJDK) 8 · `/opt/tomcat` · systemd · `petclinic.war` (test 브랜치 = Spring 5.3.39 + welcome.jsp mc-hero) | Green. Blue(main·9.0.53)로 복귀는 tfvars 2줄 |
 | 정적 파일 | WAR 안 `resources/` 를 Tomcat 이 서빙 → Apache 프록시 → CloudFront 캐시 | 캐시 미스 때만 WAS 도달 |
-| 로그 | catalina.out · localhost_access_log · gc.log → `/mc/was/*` | |
+| 로그 | catalina.out · localhost_access_log · gc.log → `/petclinic/was/*` | |
 
 ## 4. Tomcat → RDS Proxy → RDS (DB)
 | 단계 | 무엇이 | 왜 |
@@ -50,7 +50,7 @@
 
 ## 5. 운영 계층이 붙는 곳
 - CloudWatch Logs 6 그룹 · 알람 3(WAS unhealthy · ALB p95 · RDS 연결) → SNS `mc-alerts` (이메일 구독은 `alert_emails` 로 추가) · Slack 은 Grafana Alerting 한 경로
-- CloudTrail `mc-trail` → S3 `mc-cloudtrail-…` 1년 · SSM Session Manager 세션 로그 `/mc/ssm/sessions` · AWS Backup `mc-rds-daily` 04:00 KST
+- CloudTrail `mc-trail` → S3 `mc-cloudtrail-…` 1년 · SSM Session Manager 세션 로그 `/petclinic/ssm/sessions` · AWS Backup `mc-rds-daily` 04:00 KST
 
 ## 6. 정적 파일을 바꿨을 때
 CloudFront 가 `/petclinic/resources/*`·`/static/*`·`/images/*` 를 1일 캐시하므로 WAS/WEB 교체 뒤 CSS·이미지가 옛것으로 보이면 무효화: `aws cloudfront create-invalidation --distribution-id E2PWXW3LUYTDEE --paths "/petclinic/resources/*" "/static/*" "/images/*"`

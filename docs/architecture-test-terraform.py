@@ -106,12 +106,12 @@ d.svc("nat-c", "NAT Gateway", "mc-nat-c · EIP", "nat_gateway", "net", 1935, 300
 # web
 d.v("asg-web", "ASG mc-asg-web · min 2 / desired 2 / max 6 · health ELB · CPU 60% 목표추적 · LT mc-lt-web (AL2023 or var.web_ami_id · IMDSv2 · gp3 암호화)", "fillColor=none;strokeColor=#ED7100;dashed=1;dashPattern=8 4;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=11;fontColor=#ED7100;whiteSpace=wrap;html=1;" + FONT, 640, 480, 1440, 145)
 d.svc("web-a", "WEB (Apache 2.4)", "user_data/web.sh · ProxyPass /petclinic/ → Internal ALB<br>index.html · /petclinic → 301 https · health.html<br>SG mc-sg-web 80 ← sg-alb-public", "ec2", "compute", 660, 500, w=300)
-d.svc("web-c", "WEB (Apache 2.4)", "같은 LT · AZ C<br>CW Agent → /mc/web/access · error", "ec2", "compute", 1760, 500, w=300)
+d.svc("web-c", "WEB (Apache 2.4)", "같은 LT · AZ C<br>CW Agent → /petclinic/web/access · error", "ec2", "compute", 1760, 500, w=300)
 # was
 d.v("asg-was", "ASG mc-asg-was · min 2 / desired 2 / max 8 · health ELB · CPU 60% + ALBRequestCountPerTarget 300 · 예약 증설 desired 4 (KST 09:45~12:00) · 종료 훅 300s(로그 S3 sync) · Rolling 50%", "fillColor=none;strokeColor=#ED7100;dashed=1;dashPattern=8 4;strokeWidth=2;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=11;fontColor=#ED7100;whiteSpace=wrap;html=1;" + FONT, 640, 670, 1440, 155)
 d.svc("was-a", "WAS (Tomcat 9.0.121 · OpenJDK 8)", "user_data/was.sh · git test 브랜치 → mvnw -P MySQL 빌드<br>JDBC → RDS Proxy :3306 sslMode=REQUIRED<br>SG mc-sg-was 8080 ← sg-alb-internal · systemd", "ec2", "compute", 660, 695, w=330)
 d.svc("alb-int", "Internal ALB", "mc-alb-internal · :8080 · was 서브넷<br>tg-was :8080 /petclinic/ · lb_cookie 스티키<br>SG mc-sg-alb-internal 8080 ← sg-web", "application_load_balancer", "net", 1180, 695, w=350)
-d.svc("was-c", "WAS (Tomcat 9.0.121 · OpenJDK 8)", "같은 LT · AZ C<br>CW Agent → /mc/was/catalina · access · gc", "ec2", "compute", 1760, 695, w=300)
+d.svc("was-c", "WAS (Tomcat 9.0.121 · OpenJDK 8)", "같은 LT · AZ C<br>CW Agent → /petclinic/was/catalina · access · gc", "ec2", "compute", 1760, 695, w=300)
 # db
 d.svc("proxy", "RDS Proxy", "mc-rds-proxy · JDBC 3306 TLS 진입점<br>MYSQL · require_tls · SECRETS 인증<br>idle 1800s · max_conn 90% · SG 3306 ← sg-was", "rds_proxy", "db", 660, 880, w=250, h=125)
 d.svc("rds-a", "RDS MySQL Primary", "mc-petclinic · engine_version <b>8.0</b> · db.t3.small<br>gp3 20→100 · KMS 암호화 · 관리형 비밀(rds!db-…)<br>백업 7일 · deletion_protection=false", "rds", "db", 660, 1025, w=250, h=125)
@@ -123,14 +123,14 @@ d.note("db-why", "<b>왜 RDS Proxy</b> — Phase 3 폭주 시 WAS 증설로 커�
 
 # ---- Ops (right) ----
 d.v("ops", "운영 계층 (observability.tf · kms_s3.tf · iam.tf · rds.tf backup)", "fillColor=none;strokeColor=#E7157B;dashed=1;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;fontColor=#E7157B;whiteSpace=wrap;html=1;" + FONT, 2160, 150, 530, 1170)
-d.svc("cwlogs", "CloudWatch Logs", "/mc/web/access·error · /mc/was/catalina·access·gc (30일)<br>/mc/ssm/sessions (90일) · aws-waf-logs-mc<br>CW Agent(EC2 역할 CloudWatchAgentServerPolicy)", "cloudwatch", "ops", 2190, 190, w=240, h=125)
+d.svc("cwlogs", "CloudWatch Logs", "/petclinic/web/access·error · /petclinic/was/catalina·access·gc (30일)<br>/petclinic/ssm/sessions (90일) · aws-waf-logs-mc<br>CW Agent(EC2 역할 CloudWatchAgentServerPolicy)", "cloudwatch", "ops", 2190, 190, w=240, h=125)
 d.svc("alarms", "CloudWatch 알람 ×3", "mc-was-unhealthy-host (≥1, 2분)<br>mc-alb-p95-latency (&gt;2s, 3분)<br>mc-rds-connections-high (&gt;60, 3분)", "cloudwatch", "ops", 2445, 190, w=225, h=125)
 d.svc("sns", "SNS", "mc-alerts (KMS)<br>email 구독 = var.alert_emails<br>(Slack 은 Grafana Alerting 에서 · 백업 경로)", "simple_notification_service", "ops", 2190, 335, w=240, h=118)
 d.svc("grafana", "Amazon Managed Grafana (선택)", "enable_grafana=false<br>mc-ops · CLOUDWATCH 데이터소스<br>mc-grafana-role", "managed_service_for_grafana", "ops", 2445, 335, w=225, h=118, optional=True)
 d.svc("trail", "CloudTrail", "mc-trail · 다중리전 · 로그 파일 검증<br>→ S3 mc-cloudtrail-&lt;account&gt;<br>(KMS · 90일 후 IA · 365일 만료)", "cloudtrail", "ops", 2190, 475, w=240, h=118)
 d.svc("s3-logs", "S3 로그 버킷", "mc-logs-&lt;account&gt; · SSE-S3<br>alb/public · alb/internal · was/* · web/*<br>90일 만료(alb) · 30일(was/web)", "simple_storage_service", "stor", 2445, 475, w=225, h=118)
 d.svc("backup", "AWS Backup", "mc-backup-vault (KMS) · mc-rds-daily<br>daily-7d 규칙 → RDS 선택 · mc-backup-role<br>(RDS 자동백업 7일과 별개 볼트)", "backup", "ops", 2190, 615, w=240, h=118)
-d.svc("ssm", "SSM Session Manager", "SSM-SessionManagerRunShell 문서<br>세션 로그 → /mc/ssm/sessions (KMS)<br>22번 포트·키페어 없음", "systems_manager", "sec", 2445, 615, w=225, h=118)
+d.svc("ssm", "SSM Session Manager", "SSM-SessionManagerRunShell 문서<br>세션 로그 → /petclinic/ssm/sessions (KMS)<br>22번 포트·키페어 없음", "systems_manager", "sec", 2445, 615, w=225, h=118)
 d.svc("iam", "IAM mc-ec2-role", "SSM Core · CW Agent · 인라인:<br>GetSecretValue(rds!db-…) · kms:Decrypt<br>ASG 훅 Complete/Heartbeat · s3:PutObject logs", "identity_and_access_management", "sec", 2190, 755, w=240, h=118)
 d.svc("secrets", "Secrets Manager", "rds!db-… (RDS 관리형 · 7일 교체)<br>WAS 부팅 시 조회 → mvnw 빌드 주입<br>RDS Proxy 도 같은 비밀로 인증(mc-rds-proxy-role)", "secrets_manager", "sec", 2445, 755, w=225, h=118)
 d.note("ops-why", "<b>왜</b><br>• 로그 5종(앱·ALB·WAF·CloudTrail·SSM) 은 OT 필수 — 앱 로그는 CW Agent, ALB 는 S3 직접, WAF/SSM 은 CW Logs<br>• 알림은 SNS email 백업 + Grafana Alerting(Slack) 이중화 · Cognito·Lambda·Chatbot 은 9/15 제거<br>• KMS 1개 CMK 로 S3·RDS·Secrets·Logs·SNS 통일 (키 정책에 CloudFront OAC·로그 전송 서비스 허용)<br>• EC2 종료 훅 300s: ASG 축소 시 마지막 로그를 S3 로 sync 후 종료", 2190, 895, 480, 170)

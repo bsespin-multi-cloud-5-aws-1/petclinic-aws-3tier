@@ -139,8 +139,8 @@ d.note("db-why", "<b>왜 import</b> — 파라미터 그룹·백업·삭제 방�
 
 # ---- ⑤ Ops (new, right) ----
 d.v("ops", "⑤ 운영 계층 — 전부 코드 신규 (observability.tf · kms_s3.tf · iam.tf)", "fillColor=none;strokeColor=#E7157B;dashed=1;verticalAlign=top;align=left;spacingLeft=8;fontStyle=1;fontSize=12;fontColor=#E7157B;whiteSpace=wrap;html=1;" + FONT, 2170, 150, 590, 1000)
-d.svc("cwlogs", "CloudWatch Logs ×6", "/mc/web/access·error · /mc/was/catalina·access·gc<br>/mc/ssm/sessions (90일) · KMS", "cloudwatch", "ops", 2200, 190, w=270, h=115)
-d.svc("cwparam", "CW Agent 설정 (SSM 파라미터)", "/mc/cwagent/web · /mc/cwagent/was<br>ⓜ4 fetch-config 로 기존 인스턴스에 적용", "systems_manager", "ops", 2485, 190, w=255, h=115)
+d.svc("cwlogs", "CloudWatch Logs ×6", "/petclinic/web/access·error · /petclinic/was/catalina·access·gc<br>/petclinic/ssm/sessions (90일) · KMS", "cloudwatch", "ops", 2200, 190, w=270, h=115)
+d.svc("cwparam", "CW Agent 설정 (SSM 파라미터)", "/petclinic/cwagent/web · /petclinic/cwagent/was<br>ⓜ4 fetch-config 로 기존 인스턴스에 적용", "systems_manager", "ops", 2485, 190, w=255, h=115)
 badge("b4b", 4, 2715, 180)
 d.svc("alarms", "CloudWatch 알람 ×3", "mc-was-unhealthy-host(alb-internal-test)<br>mc-alb-p95-latency(test-Public-ALB)<br>mc-rds-connections-high(database-1)", "cloudwatch", "ops", 2200, 325, w=270, h=115)
 d.svc("sns", "SNS mc-alerts", "KMS · email = var.alert_emails<br>(Slack 은 Grafana Alerting)", "simple_notification_service", "ops", 2485, 325, w=255, h=115)
@@ -148,7 +148,7 @@ d.svc("trail", "CloudTrail mc-trail", "다중 리전 · 로그 검증 → S3<br>
 d.svc("s3-logs", "S3 mc-logs-723165663216", "alb/public · alb/internal (ⓜ2 콘솔에서 켜기)<br>was/* · web/* (인스턴스 로그)", "simple_storage_service", "stor", 2485, 460, w=255, h=115)
 badge("b2c", 2, 2715, 450)
 d.svc("backup", "AWS Backup", "mc-backup-vault(KMS) · mc-rds-daily<br>daily-7d → database-1", "backup", "ops", 2200, 595, w=270, h=115)
-d.svc("ssm", "SSM Session Manager", "SSM-SessionManagerRunShell → /mc/ssm/sessions<br>ⓜ3 프로파일 부착돼야 접속 가능", "systems_manager", "sec", 2485, 595, w=255, h=115)
+d.svc("ssm", "SSM Session Manager", "SSM-SessionManagerRunShell → /petclinic/ssm/sessions<br>ⓜ3 프로파일 부착돼야 접속 가능", "systems_manager", "sec", 2485, 595, w=255, h=115)
 d.svc("iam", "IAM mc-ec2-role (그대로) + 인라인", "SSM Core·CW Agent 이미 부착<br><b>코드: mc-ec2-inline</b> 비밀 조회·kms·ssm 파라미터·s3 put<br>인스턴스 미부착 → ⓜ3", "identity_and_access_management", "exist", 2200, 730, w=270, h=125)
 badge("b3c", 3, 2445, 720)
 d.svc("secrets", "Secrets Manager (그대로)", "rds!db-0e2be729… (RDS 관리형)<br>Proxy 역할 mc-rds-proxy-role 이 조회", "secrets_manager", "exist", 2485, 730, w=255, h=125)
@@ -160,7 +160,7 @@ d.note("manual", "<b>수동 후속 ⓜ1~7 (output manual_followups · infra/terr
        "ⓜ1 가비아 네임서버 → route53_name_servers 4개 (apply 중 ACM 검증이 이걸 기다림)<br>"
        "ⓜ2 test-Public-ALB · alb-internal-test 속성 → 액세스 로그 → s3://mc-logs-723165663216/alb/public · /alb/internal<br>"
        "ⓜ3 시작 템플릿 web 새 버전 + WAS-test-a: IAM 인스턴스 프로파일 mc-ec2-role 부착 → ASG 인스턴스 새로 고침<br>"
-       "ⓜ4 WEB(AMI 빌더)·WAS: amazon-cloudwatch-agent 설치 → fetch-config -c ssm:/mc/cwagent/web|was → AMI web-appache v2<br>"
+       "ⓜ4 WEB(AMI 빌더)·WAS: amazon-cloudwatch-agent 설치 → fetch-config -c ssm:/petclinic/cwagent/web|was → AMI web-appache v2<br>"
        "ⓜ5 WAS: was_jdbc_url 로 WAR 재빌드(mvnw -P MySQL -Djdbc.*) → test.jsp 에서 Ssl_cipher 확인 → petclinic-db-sg 의 3306 ← was-instance-sg 삭제<br>"
        "ⓜ6 CloudFront 로 접속 확인 후: Public ALB 80 리스너 삭제 · alb-public-sg 80/443 0.0.0.0/0 · 22 규칙 삭제 (CloudFront 프리픽스 443 만)<br>"
        "ⓜ7 database-1 재부팅(점검 시간) → mc-mysql80 적용 (apply_immediately=false 라 안 하면 월 13:01 UTC 유지관리 창)",

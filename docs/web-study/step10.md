@@ -95,7 +95,7 @@ aws_instance was-a · was-c  ──attach──▶ mc-tg-was     ② 시작 템�
 	</tr>
 	<tr>
 		<td>종료 시 로그</td>
-		<td>Agent 실시간 (`/mc/*`)</td>
+		<td>Agent 실시간 (`/petclinic/*`)</td>
 		<td>+ WAS 종료 훅 300s · `mc-lifecycle-watch` → S3 `was/` sync → CONTINUE</td>
 	</tr>
 	<tr>
@@ -345,7 +345,7 @@ grep -nE "CompleteLifecycleAction|mc-asg" infra/terraform-kdt5/iam.tf
 	</tr>
 	<tr>
 		<td>비밀 위치</td>
-		<td>Secrets Manager(앱 DB 자격) · Parameter Store(`/mc/cwagent/*` Agent 설정) — AMI · user_data 에 없음</td>
+		<td>Secrets Manager(앱 DB 자격) · Parameter Store(`/petclinic/cwagent/*` Agent 설정) — AMI · user_data 에 없음</td>
 	</tr>
 	<tr>
 		<td>Notion 옛 스크립트와의 차이</td>

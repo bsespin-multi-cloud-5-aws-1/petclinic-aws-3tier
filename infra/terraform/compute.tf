@@ -28,7 +28,7 @@ resource "aws_launch_template" "web" {
   user_data = base64encode(templatefile("${path.module}/user_data/web.sh", {
     internal_alb_dns = aws_lb.internal.dns_name
     app_context      = local.app_context
-    log_group_prefix = "/mc/web"
+    log_group_prefix = "/petclinic/web"
   }))
 
   tag_specifications {
@@ -67,7 +67,7 @@ resource "aws_launch_template" "was" {
     db_secret_arn      = aws_db_instance.main.master_user_secret[0].secret_arn
     region             = var.region
     logs_bucket        = aws_s3_bucket.logs.bucket
-    log_group_prefix   = "/mc/was"
+    log_group_prefix   = "/petclinic/was"
   }))
 
   tag_specifications {

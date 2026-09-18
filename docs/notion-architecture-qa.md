@@ -26,17 +26,17 @@
 - **SQS: 지금은 불필요.** 비동기 작업(메일·SMS·파일 처리)이 없음. 예약 폭주 시 쓰기(`/visits/new`)를 큐로 완충하는 설계는 가능하지만 producer/consumer 코드 필요 → 로드맵. 현재 폭주 흡수는 WAF rate → CloudFront 캐시 → (ASG) → RDS Proxy 커넥션 다중화 → RDS Multi-AZ 순.
 
 ## 4. CloudWatch Agent 를 init script(user_data)에 쓰나
-- **예 (현재)**: WEB·WAS user_data 가 `dnf install amazon-cloudwatch-agent` → `amazon-cloudwatch-agent-ctl -a fetch-config -c ssm:/mc/cwagent/web|was -s`. 설정 JSON 은 코드(Terraform `aws_ssm_parameter`)가 SSM 파라미터로 배포 → AMI 재생성 없이 로그 경로 변경 가능.
-- Golden AMI 로 가면 **설치는 AMI 굽는 단계**, 부팅 시엔 fetch-config 만. IAM: `CloudWatchAgentServerPolicy` + 인라인 `ssm:GetParameter(/mc/cwagent/*)`.
-- 수집 항목: WEB access/error → `/mc/web/*`, WAS catalina/access/gc → `/mc/was/*`, 메모리·디스크 지표(`MC/WEB`, `MC/WAS` 네임스페이스).
+- **예 (현재)**: WEB·WAS user_data 가 `dnf install amazon-cloudwatch-agent` → `amazon-cloudwatch-agent-ctl -a fetch-config -c ssm:/petclinic/cwagent/web|was -s`. 설정 JSON 은 코드(Terraform `aws_ssm_parameter`)가 SSM 파라미터로 배포 → AMI 재생성 없이 로그 경로 변경 가능.
+- Golden AMI 로 가면 **설치는 AMI 굽는 단계**, 부팅 시엔 fetch-config 만. IAM: `CloudWatchAgentServerPolicy` + 인라인 `ssm:GetParameter(/petclinic/cwagent/*)`.
+- 수집 항목: WEB access/error → `/petclinic/web/*`, WAS catalina/access/gc → `/petclinic/was/*`, 메모리·디스크 지표(`MC/WEB`, `MC/WAS` 네임스페이스).
 
 ## 5. CloudTrail · CloudWatch Logs 수집
 | 로그 | 어디로 | 보관 |
 |---|---|---|
-| WEB·WAS 앱 로그 | CW Agent → CloudWatch Logs `/mc/web/*` `/mc/was/*` (KMS) | 30일 |
+| WEB·WAS 앱 로그 | CW Agent → CloudWatch Logs `/petclinic/web/*` `/petclinic/was/*` (KMS) | 30일 |
 | ALB 액세스 로그(외부·내부) | S3 `mc-logs-<acct>/alb/public|internal` | 90일 만료 |
 | WAF | CloudWatch Logs `aws-waf-logs-mc`(us-east-1) | 30일 |
-| SSM 세션 | CloudWatch Logs `/mc/ssm/sessions` (KMS) | 90일 |
+| SSM 세션 | CloudWatch Logs `/petclinic/ssm/sessions` (KMS) | 90일 |
 | CloudTrail(관리 이벤트·다중 리전·로그 파일 검증) | S3 `mc-cloudtrail-<acct>` (KMS·버저닝·CloudTrail 만 쓰기) | 90일 후 Glacier IR → 1년 만료 |
 - 왜 인스턴스 밖에: ASG 축소·교체 뒤에도 남아야 하고, 한 곳(CloudWatch/S3)에서 Athena·Logs Insights 로 조회.
 - 강화 로드맵: CloudTrail → CloudWatch Logs 연결 + 지표 필터(SG·RDS·IAM 변경 알람), S3 Object Lock(변조 방지), VPC Flow Logs.
@@ -62,7 +62,7 @@
 - 만약 진료 파일이 요구되면: S3(KMS·버킷 키) + Object Lock(Compliance) + 수명 주기(IA 90일 → Glacier 1년 → 파기) + 데이터 이벤트 CloudTrail — 코드 골격은 이전 `infra/terraform` 이력에 있음.
 
 ## 9. 권한 — 모두 거부 + 명시적 허용, 태그 기반 정책
-- IAM 은 기본 암묵적 거부. 코드의 역할들은 **필요한 ARN 만 허용**: EC2 역할 = SSM Core·CW Agent + 인라인(비밀 ARN 1개·KMS ViaService·`/mc/cwagent/*`·S3 `mc-logs/was|web/*`), Proxy 역할 = 비밀 1개, Backup 역할 = 서비스 정책. 명시적 거부: 버킷 정책 `aws:SecureTransport=false` Deny, 점검 버킷은 CloudFront OAC(`SourceArn`) 만.
+- IAM 은 기본 암묵적 거부. 코드의 역할들은 **필요한 ARN 만 허용**: EC2 역할 = SSM Core·CW Agent + 인라인(비밀 ARN 1개·KMS ViaService·`/petclinic/cwagent/*`·S3 `mc-logs/was|web/*`), Proxy 역할 = 비밀 1개, Backup 역할 = 서비스 정책. 명시적 거부: 버킷 정책 `aws:SecureTransport=false` Deny, 점검 버킷은 CloudFront OAC(`SourceArn`) 만.
 - **태그 기반(ABAC)**: Terraform `default_tags` 로 모든 리소스에 `Project=petclinic-3tier · Team=mc-1 · Env=lab · Tier=edge|web|was|db|ops · ManagedBy`. 사람용 정책 예시 —
 ```json
 {"Effect":"Allow","Action":["ec2:StartInstances","ec2:StopInstances","ec2:RebootInstances"],"Resource":"*",
@@ -84,7 +84,7 @@
 | 인스턴스 | `mc-<tier>-<az>` (ASG 는 `mc-asg-<tier>`, LT `mc-lt-<tier>`) | `mc-was-c` |
 | DB | `mc-petclinic`(인스턴스) · `mc-mysql84`(파라미터 그룹) · `mc-rds-proxy` | |
 | 버킷(전역 유일) | `mc-<용도>-<계정ID>` | `mc-logs-528821350786` |
-| 로그 그룹 · SSM 파라미터 | `/mc/<tier>/<stream>` · `/mc/<용도>/<이름>` | `/mc/was/catalina`, `/mc/cwagent/was` |
+| 로그 그룹 · SSM 파라미터 | `/petclinic/<tier>/<stream>` · `/petclinic/<용도>/<이름>` | `/petclinic/was/catalina`, `/petclinic/cwagent/was` |
 | IAM · KMS · SNS · CloudTrail | `mc-<대상>-role`, `alias/mc-cmk`, `mc-alerts`, `mc-trail` | |
 | 태그 | Project · Team · Owner · Env · Tier · ManagedBy · (Name) | |
 kdt5 콘솔 구축본(`test-vpc`, `Targetgroup-web`, `alb-internal-test`, `web-appache`)은 규칙 밖 → 정리 대상.

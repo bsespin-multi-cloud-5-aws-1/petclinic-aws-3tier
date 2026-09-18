@@ -14,7 +14,7 @@
 | plan 결과 (2026-09-15 확인) | `1 to import, 67 to add, 1 to change` (database-1 in-place: parameter_group · backup 7 · deletion_protection · copy_tags · tags) | `127 to add` (module.base 59 + 68) |
 | tfvars 예시 | `terraform.tfvars.example` | `terraform.tfvars.mc-deploy.example` |
 
-create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw -P MySQL -Djdbc.*` 빌드 → 도면 ④ 경로가 처음부터 적용. CloudWatch Agent 도 SSM 파라미터(`/mc/cwagent/web|was`)로 설정. Apache 첫 화면은 `base.web_index_branch` 브랜치의 `src/main/webapp/index.html` + `resources/`·`images/` 를 `/var/www/html/{index.html,static/}` 로 복사해 직접 서빙(자산 링크는 `/static/…`, 앱 링크는 `/petclinic/…` 로 치환 · `/static/*` 은 CloudFront 캐시). Blue(main) WAR 에는 리디자인 자산이 없으므로 랜딩 페이지 자산을 WAS 에 의존시키지 않는다. 그 브랜치에 index.html 이 없으면(main=Blue) `/` → 302 `/petclinic/` 폴백.
+create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw -P MySQL -Djdbc.*` 빌드 → 도면 ④ 경로가 처음부터 적용. CloudWatch Agent 도 SSM 파라미터(`/petclinic/cwagent/web|was`)로 설정. Apache 첫 화면은 `base.web_index_branch` 브랜치의 `src/main/webapp/index.html` + `resources/`·`images/` 를 `/var/www/html/{index.html,static/}` 로 복사해 직접 서빙(자산 링크는 `/static/…`, 앱 링크는 `/petclinic/…` 로 치환 · `/static/*` 은 CloudFront 캐시). Blue(main) WAR 에는 리디자인 자산이 없으므로 랜딩 페이지 자산을 WAS 에 의존시키지 않는다. 그 브랜치에 index.html 이 없으면(main=Blue) `/` → 302 `/petclinic/` 폴백.
 랜딩 자산(`/static/*`·`/images/*`)은 9/16 저녁부터 S3 mc-static(OAC) 오리진이 서빙(아래 절). 설계 경로가 CloudFront → 443 이라 Public ALB 80 리스너는 기본 없음 — NS 위임 전 ALB DNS 로 직접 확인하려면 `base.public_http_listener = true`.
 
 ## 무엇을 건드리고 무엇을 안 건드리나
@@ -52,11 +52,11 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 ## 운영자 접속 = Bastion (팀 결정 9/16 저녁 · SSM Session Manager 는 안 씀)
 | 항목 | 값 |
 |---|---|
-| 스위치 | `base.create_bastion`(기본 true) · `enable_ssm`(기본 **false**: Session Manager 문서 · `/mc/ssm/sessions` · `AmazonSSMManagedInstanceCore` 제거. Parameter Store 로 CW Agent 설정을 받는 건 그대로) |
+| 스위치 | `base.create_bastion`(기본 true) · `enable_ssm`(기본 **false**: Session Manager 문서 · `/petclinic/ssm/sessions` · `AmazonSSMManagedInstanceCore` 제거. Parameter Store 로 CW Agent 설정을 받는 건 그대로) |
 | 위치 | 퍼블릭 서브넷 A · `t3.micro` · EIP · SG `mc-sg-bastion` 22 ← **`base.bastion_allowed_cidrs`(운영자 공인 IP /32)만**. 팀원은 tfvars 에 `/32` 추가 후 apply |
 | 키 | `base.ssh_key_name` 이 비면 ED25519 키 페어 `mc-ssh` 를 만들고 개인키를 `.keys/mc-ssh.pem`(0600 · gitignore)에 저장. 같은 키가 Bastion·WEB·WAS(·시작 템플릿)에 붙음 → `key_name` 변경이라 **고정 EC2 4대는 교체**(AZ-a → AZ-c 롤링) |
 | 접속 | `ssh -i .keys/mc-ssh.pem ec2-user@<bastion_public_ip>` · WEB/WAS: `ssh -i .keys/mc-ssh.pem -J ec2-user@<bastion> ec2-user@10.0.2x.x` (SG: web/was 22 ← Bastion SG) · DB: Bastion 에서 `mysql --ssl -h <rds_proxy_endpoint> -u petclinic_app -p` (SG: rds-proxy 3306 ← Bastion SG) — output `bastion` 에 명령이 그대로 나옴 |
-| 로그 | `/var/log/secure`(sshd 로그인 성공·실패) → CloudWatch Agent → `/mc/bastion/secure` 90일 |
+| 로그 | `/var/log/secure`(sshd 로그인 성공·실패) → CloudWatch Agent → `/petclinic/bastion/secure` 90일 |
 
 ## 정적 자산 S3 (`mc-static-<계정>` · OAC)
 `/static/*`(랜딩 페이지 css·이미지) · `/images/*`(hero 영상)은 CloudFront → **S3 mc-static** (OAC · SSE-KMS · 공개 차단). Apache 를 거치지 않는다. 내용은 저장소 `src/main/webapp/resources`·`images` 를 `aws_s3_object`(23개 · `.less` 제외 · `source_hash`)가 apply 때 동기화하므로 **자산을 바꾸면 apply + invalidation** (`/static/*` `/images/*`). `/images/*` 는 같은 버킷의 두 번째 오리진(`origin_path = /static`)이라 키는 `static/images/…` 하나만 둔다. WAR 안의 `/petclinic/resources/*` 는 여전히 ALB(Tomcat) 캐시.
@@ -72,7 +72,7 @@ create_base 모드의 WAS 는 부팅 시 RDS Proxy 엔드포인트(TLS)로 `mvnw
 왜 Firehose 인가: CloudWatch Logs 는 자체 저장소라 S3 에 "저장"되지 않는다. S3 사본은 (a) 내보내기 작업(수동·느림), (b) 구독 → Firehose(실시간 · 관리형), (c) 구독 → Lambda 중 (b) 가 운영 부담이 가장 적다. 비용은 GB 당 몇 십 원 수준(우리 로그 양 MB 단위).
 
 ## 9/18 도면 최종본 대조 (apply 전 · 코드만)
-팀 최종 도면(`0917 아키텍쳐 다이어그램 최종본`)은 저장소 `docs/architecture-current-tiered-v2.drawio` 0번 탭과 동일. WAS → CloudWatch Logs 화살표는 Agent(`/mc/cwagent/was` → catalina·access·gc)로 이미 구현돼 있어 코드 변경 없음. 도면과 어긋나 있던 두 가지를 코드로 맞춤:
+팀 최종 도면(`0917 아키텍쳐 다이어그램 최종본`)은 저장소 `docs/architecture-current-tiered-v2.drawio` 0번 탭과 동일. WAS → CloudWatch Logs 화살표는 Agent(`/petclinic/cwagent/was` → catalina·access·gc)로 이미 구현돼 있어 코드 변경 없음. 도면과 어긋나 있던 두 가지를 코드로 맞춤:
 | 도면 | 전엔 | 지금 코드 | apply 하면 |
 |---|---|---|---|
 | KMS → Secrets Manager 화살표 | app-db 비밀이 AWS 관리형 키(aws/secretsmanager) | `aws_secretsmanager_secret.app_db` 에 `kms_key_id = mc-cmk` + EC2·Proxy 역할 `kms:Decrypt` 에 mc-cmk 추가(ViaService 조건 유지) | 비밀·정책 in-place. **기존 버전은 옛 키로 남고 새 버전부터 mc-cmk** — 지금 값을 바꿀 일이 없으니 실효는 다음 비밀 갱신 때. admin(RDS 관리형) 비밀은 그대로 |

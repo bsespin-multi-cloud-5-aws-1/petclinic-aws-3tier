@@ -100,9 +100,9 @@ Internal ALB 노드 ────────GET /petclinic/:8080 · 10s 마다�
 # 1) 헬스체크 설정 — 경로 · 포트 · 간격 · 타임아웃 · 임계값 · 코드
 for tg in mc-tg-web mc-tg-was; do aws elbv2 describe-target-groups --names $tg --profile mc-deploy --region ap-northeast-2 --query 'TargetGroups[0].[TargetGroupName,HealthCheckProtocol,HealthCheckPort,HealthCheckPath,HealthCheckIntervalSeconds,HealthCheckTimeoutSeconds,HealthyThresholdCount,UnhealthyThresholdCount,Matcher.HttpCode]' --output text; done
 # 2) 서버에 실제로 오는 요청 — CloudWatch Logs (서버 접속 불필요)
-aws logs tail /mc/web/access --since 1m --profile mc-deploy --region ap-northeast-2 --format short | grep health.html | tail -4
+aws logs tail /petclinic/web/access --since 1m --profile mc-deploy --region ap-northeast-2 --format short | grep health.html | tail -4
 # 3) 빈도 — 1시간에 몇 줄
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c health.html
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c health.html
 # 4) 같은 파일을 CloudFront 를 거쳐도 열 수 있다 (헬스체크와 같은 200 ok)
 curl -s https://petclinic.mission-critical.site/health.html; echo
 ```
@@ -162,8 +162,8 @@ grep -n "health.html" infra/terraform-kdt5/modules/base/user_data/web.sh
 # 2) WAS 헬스체크 — 슬래시 없는 경로는 301 (CloudFront 경유로 같은 동작 확인)
 curl -sI https://petclinic.mission-critical.site/petclinic | grep -iE "^HTTP"
 # 3) 오늘 발견 — 헬스체크가 로그에 찍히고(있으면 안 됨) 일반 요청이 두 번씩(중복) 찍힌다
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c health.html
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v health.html | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -3
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c health.html
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v health.html | cut -d' ' -f2- | sort | uniq -c | sort -rn | head -3
 # 4) 수정안 미리보기 — 기본 CustomLog 한 줄을 끄면 conf.d 의 필터만 남는다 (인스턴스 교체 필요 · 지금은 실행 안 함)
 echo 'sed -i "s|^\s*CustomLog \"logs/access_log\" combined|#&|" /etc/httpd/conf/httpd.conf'
 ```

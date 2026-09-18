@@ -6,7 +6,7 @@
 ```text
 브라우저 ─▶ CloudFront ─▶ WAF ─▶ ALB ─▶ Apache ─▶ Internal ALB ─▶ Tomcat
              │ ① CloudFront 로그   │ ① WAF 로그      │ ① ALB 로그(34필드)  │ ② Apache access_log        │ ② Tomcat access log
-             │ S3 cloudfront/      │ us-east-1 LogGroup │ S3 alb/public/      │ CloudWatch /mc/web/access  │ CloudWatch /mc/was/access
+             │ S3 cloudfront/      │ us-east-1 LogGroup │ S3 alb/public/      │ CloudWatch /petclinic/web/access  │ CloudWatch /petclinic/was/access
              └────────────────────────── ③ 지표: ELB_5XX · Target_5XX · TargetResponseTime · Healthy/UnHealthyHostCount ──▶ ④ 알람 3개 → SNS mc-alerts(구독 0!) ──▶ ⑤ 보관: S3 1년(cwlogs/) · 로그 그룹 30일
 ```
 
@@ -47,7 +47,7 @@
 		<td>⑤</td>
 		<td>로그 지도 — 어디에 얼마나</td>
 		<td>실시간(CloudWatch Logs 30일) → 구독 필터 → Firehose → S3 `cwlogs/‹tier›/yyyy/MM/dd/` 1년. ALB · CloudFront 는 S3 직접. WAF 는 us-east-1</td>
-		<td>로그 그룹 9개(`/mc/*` 6 · `/aws/rds/*` 3) · Firehose 4개(`mc-cwlogs-web/was/bastion/db`) · S3 프리픽스 `alb/ cloudfront/ cwlogs/ web/ was/ bastion/ db/` · `aws-waf-logs-mc`(us-east-1 · 30일)</td>
+		<td>로그 그룹 9개(`/petclinic/*` 6 · `/aws/rds/*` 3) · Firehose 4개(`mc-cwlogs-web/was/bastion/db`) · S3 프리픽스 `alb/ cloudfront/ cwlogs/ web/ was/ bastion/ db/` · `aws-waf-logs-mc`(us-east-1 · 30일)</td>
 	</tr>
 </table>
 # 2. 자세히 — 항목마다 "무슨 일 · 우리 값 · 없으면 · 눈으로 확인"
@@ -160,8 +160,8 @@ aws s3 cp "s3://mc-logs-528821350786/$K" - --profile mc-deploy | zcat | awk '$9 
 1. Apache `combined` 형식: `연결IP - - [시각] "요청줄" 코드 바이트 "Referer" "User-Agent"`. 첫 필드는 **연결 상대** = ALB 노드 사설 IP(`10.0.0.212` / `10.0.1.212`). 사용자 IP 는 `X-Forwarded-For` 헤더 안에 있는데 combined 는 그걸 **안 찍는다**.
 2. Tomcat AccessLogValve(`common` 류): 첫 필드 = Internal ALB 노드(`10.0.20.193` / `10.0.21.43`). 같은 문제.
 3. 두 가지 해법(로드맵): (a) LogFormat 에 `%｛X-Forwarded-For｝i` 를 추가한 `combined_xff` · (b) `mod_remoteip` 로 `%h` 자체를 XFF 의 사용자 IP 로 바꾸기(`RemoteIPHeader X-Forwarded-For` · `RemoteIPInternalProxy 10.0.0.0/16`). Tomcat 은 `RemoteIpValve`. XFF 값 형태: `221.148.195.245, 15.158.254.101` — **맨 앞이 사용자**.
-4. 로그는 CloudWatch Agent 가 실시간으로 `/mc/web/access` · `/mc/web/error` · `/mc/was/access` · `/mc/was/catalina` · `/mc/was/gc` 로 올린다(스트림 = 인스턴스 ID). **서버 접속 없이** `aws logs tail` 로 본다 — Bastion 이 막혀도 관측 가능.
-5. **오늘 발견(5·6단계)**: `/mc/web/access` 에 헬스체크가 시간당 1,442줄, 일반 요청은 같은 줄이 2번(httpd.conf 기본 CustomLog 중복). 로그로 요청 수를 세면 2배 — 요청 수는 ALB 로그·지표로 센다.
+4. 로그는 CloudWatch Agent 가 실시간으로 `/petclinic/web/access` · `/petclinic/web/error` · `/petclinic/was/access` · `/petclinic/was/catalina` · `/petclinic/was/gc` 로 올린다(스트림 = 인스턴스 ID). **서버 접속 없이** `aws logs tail` 로 본다 — Bastion 이 막혀도 관측 가능.
+5. **오늘 발견(5·6단계)**: `/petclinic/web/access` 에 헬스체크가 시간당 1,442줄, 일반 요청은 같은 줄이 2번(httpd.conf 기본 CustomLog 중복). 로그로 요청 수를 세면 2배 — 요청 수는 ALB 로그·지표로 센다.
 
 **우리 값 — 같은 요청의 서버 쪽 줄**
 <table header-row="true" fit-page-width="true">
@@ -171,17 +171,17 @@ aws s3 cp "s3://mc-logs-528821350786/$K" - --profile mc-deploy | zcat | awk '$9 
 		<td>첫 IP 의 정체</td>
 	</tr>
 	<tr>
-		<td>Apache (web-a) `/mc/web/access`</td>
+		<td>Apache (web-a) `/petclinic/web/access`</td>
 		<td>`10.0.1.212 - - [17/Sep/2026:05:19:56 +0000] "HEAD /petclinic/vets HTTP/1.1" 200 - "-" "curl/8.5.0"`</td>
 		<td>ALB 2c 노드(교차 영역으로 web-a 에)</td>
 	</tr>
 	<tr>
-		<td>Tomcat (was) `/mc/was/access`</td>
+		<td>Tomcat (was) `/petclinic/was/access`</td>
 		<td>`10.0.21.43 - - [17/Sep/2026:05:19:57 +0000] "HEAD /petclinic/vets HTTP/1.1" 200 -`</td>
 		<td>Internal ALB 2c 노드</td>
 	</tr>
 	<tr>
-		<td>Apache error `/mc/web/error`</td>
+		<td>Apache error `/petclinic/web/error`</td>
 		<td>9/16 10:47 `AH00489 … resuming normal operations` 이후 없음</td>
 		<td>—</td>
 	</tr>
@@ -205,13 +205,13 @@ aws s3 cp "s3://mc-logs-528821350786/$K" - --profile mc-deploy | zcat | awk '$9 
 
 ```bash
 # 1) Apache 로그 — 첫 IP 가 ALB 노드
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v ELB-HealthChecker | tail -3
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v ELB-HealthChecker | tail -3
 # 2) Tomcat 로그 — 첫 IP 가 Internal ALB 노드
-aws logs tail /mc/was/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v '"GET /petclinic/ ' | tail -3
+aws logs tail /petclinic/was/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v '"GET /petclinic/ ' | tail -3
 # 3) 스트림 = 인스턴스 ID (서버가 바뀌어도 로그는 남는다)
-aws logs describe-log-streams --log-group-name /mc/web/access --profile mc-deploy --region ap-northeast-2 --query 'logStreams[].[logStreamName,lastEventTimestamp]' --output table
+aws logs describe-log-streams --log-group-name /petclinic/web/access --profile mc-deploy --region ap-northeast-2 --query 'logStreams[].[logStreamName,lastEventTimestamp]' --output table
 # 4) 발견 재확인 — 헬스체크 줄 수 · 중복
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c ELB-HealthChecker
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -c ELB-HealthChecker
 # 5) 개선안 미리보기 — XFF 를 찍는 LogFormat (web.sh 에 넣을 줄 · 지금은 실행 안 함)
 echo 'LogFormat "%{X-Forwarded-For}i %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined_xff'
 ```
@@ -221,7 +221,7 @@ echo 'LogFormat "%{X-Forwarded-For}i %h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \
 **무슨 일이 일어나나**
 1. ALB 는 `AWS/ApplicationELB` 네임스페이스에 1분 단위 지표를 **무료**로 낸다. 차원은 로드 밸런서(`app/mc-alb-public/0780e6e7d84abe76`) 와 대상 그룹(`targetgroup/mc-tg-web/5ae742de9f467369`).
 2. **`HTTPCode_ELB_5XX_Count`** = ALB 가 **만든** 5xx(503 대상 없음 · 504 유휴 초과 · 502 대상 연결 실패). 오르면 대상 그룹 · 타임아웃 · 헬스체크를 본다(5·7단계).
-3. **`HTTPCode_Target_5XX_Count`** = 대상이 **돌려준** 5xx(Apache/Tomcat 500 · Apache 가 전달한 Internal ALB 503). 오르면 서버 로그(`/mc/web/error` · `/mc/was/catalina`)를 본다.
+3. **`HTTPCode_Target_5XX_Count`** = 대상이 **돌려준** 5xx(Apache/Tomcat 500 · Apache 가 전달한 Internal ALB 503). 오르면 서버 로그(`/petclinic/web/error` · `/petclinic/was/catalina`)를 본다.
 4. **`TargetResponseTime`** = 대상이 답하는 데 걸린 시간 분포. 평균이 아니라 **p95/p99** 로 본다(알람은 p95 › 2s). ALB 로그의 target_processing_time 과 같은 것.
 5. **`HealthyHostCount` / `UnHealthyHostCount`**(대상 그룹 차원) = 정상/비정상 대상 수. WEB 2/0 · WAS 2/0 이어야. + `RequestCount` · `ActiveConnectionCount` 는 부하 기준선(Phase 3 폭주 실험).
 
@@ -347,10 +347,10 @@ grep -n "alert_emails" infra/terraform-kdt5/variables.tf infra/terraform-kdt5/ob
 기대: 1) 3줄 · 전부 `arn:aws:sns:…:mc-alerts` 2) `0` 3) `variable "alert_emails"` 와 `for_each = toset(var.alert_emails)` 류
 ## 2-5. ⑤ 로그 지도 — 어디에 얼마나 남나
 **무슨 일이 일어나나**
-1. **서버 로그**: CloudWatch Agent → 로그 그룹(`/mc/web/access` 등 · 보존 30일 · KMS) → **구독 필터** → Kinesis Firehose(`mc-cwlogs-‹tier›` · 5MB/300s 버퍼 · GZIP · 압축 해제 + 줄바꿈) → S3 `cwlogs/‹tier›/yyyy/MM/dd/` (수명 주기 **1년**). 실시간은 로그 그룹, 장기는 S3.
+1. **서버 로그**: CloudWatch Agent → 로그 그룹(`/petclinic/web/access` 등 · 보존 30일 · KMS) → **구독 필터** → Kinesis Firehose(`mc-cwlogs-‹tier›` · 5MB/300s 버퍼 · GZIP · 압축 해제 + 줄바꿈) → S3 `cwlogs/‹tier›/yyyy/MM/dd/` (수명 주기 **1년**). 실시간은 로그 그룹, 장기는 S3.
 2. **ALB 로그**: ALB → S3 `alb/public/` 직접(5분). **CloudFront 로그**: 표준 로깅 → S3 `cloudfront/`(시간별 · 최대 24h 지연 · 오늘은 ≈30분). 둘 다 CloudWatch Logs 를 안 거친다.
 3. **WAF 로그**: 배포가 글로벌이라 **us-east-1** 로그 그룹 `aws-waf-logs-mc`(30일)로만 간다 — 서울 Firehose 아카이브엔 없다. 필요하면 us-east-1 에 Firehose 를 하나 더.
-4. **DB 로그**(9/17): RDS `error` · `slowquery`(`long_query_time=2`) 내보내기 + Proxy 로그 → `/aws/rds/…` 그룹 → Firehose `mc-cwlogs-db` → S3 `cwlogs/db/`. **Bastion**: sshd → `/mc/bastion/secure`(90일) → `cwlogs/bastion/`.
+4. **DB 로그**(9/17): RDS `error` · `slowquery`(`long_query_time=2`) 내보내기 + Proxy 로그 → `/aws/rds/…` 그룹 → Firehose `mc-cwlogs-db` → S3 `cwlogs/db/`. **Bastion**: sshd → `/petclinic/bastion/secure`(90일) → `cwlogs/bastion/`.
 5. 로그 그룹 스트림 이름 = 인스턴스 ID 라서 인스턴스가 사라져도 로그는 남고, ASG(10단계)에서도 그대로 동작한다.
 
 **우리 값 — 지도**
@@ -362,17 +362,17 @@ grep -n "alert_emails" infra/terraform-kdt5/variables.tf infra/terraform-kdt5/ob
 	</tr>
 	<tr>
 		<td>Apache access / error</td>
-		<td>`/mc/web/access` · `/mc/web/error` (30일)</td>
+		<td>`/petclinic/web/access` · `/petclinic/web/error` (30일)</td>
 		<td>Firehose `mc-cwlogs-web` → `s3://mc-logs-528821350786/cwlogs/web/` (1년)</td>
 	</tr>
 	<tr>
 		<td>Tomcat access / catalina / gc</td>
-		<td>`/mc/was/access` · `/mc/was/catalina` · `/mc/was/gc` (30일)</td>
+		<td>`/petclinic/was/access` · `/petclinic/was/catalina` · `/petclinic/was/gc` (30일)</td>
 		<td>`mc-cwlogs-was` → `cwlogs/was/`</td>
 	</tr>
 	<tr>
 		<td>Bastion sshd</td>
-		<td>`/mc/bastion/secure` (90일)</td>
+		<td>`/petclinic/bastion/secure` (90일)</td>
 		<td>`mc-cwlogs-bastion` → `cwlogs/bastion/`</td>
 	</tr>
 	<tr>
@@ -397,7 +397,7 @@ grep -n "alert_emails" infra/terraform-kdt5/variables.tf infra/terraform-kdt5/ob
 	</tr>
 	<tr>
 		<td>구독 필터 확인</td>
-		<td>`/mc/web/access → mc-cwlogs-web` · `/mc/web/error → mc-cwlogs-web` · `/mc/was/catalina → mc-cwlogs-was` · `/aws/rds/…/error → mc-cwlogs-db`</td>
+		<td>`/petclinic/web/access → mc-cwlogs-web` · `/petclinic/web/error → mc-cwlogs-web` · `/petclinic/was/catalina → mc-cwlogs-was` · `/aws/rds/…/error → mc-cwlogs-db`</td>
 		<td>실측</td>
 	</tr>
 </table>
@@ -410,17 +410,17 @@ grep -n "alert_emails" infra/terraform-kdt5/variables.tf infra/terraform-kdt5/ob
 
 ```bash
 # 1) 로그 그룹 9개 · 보존
-aws logs describe-log-groups --log-group-name-prefix /mc/ --profile mc-deploy --region ap-northeast-2 --query 'logGroups[].[logGroupName,retentionInDays]' --output text
+aws logs describe-log-groups --log-group-name-prefix /petclinic/ --profile mc-deploy --region ap-northeast-2 --query 'logGroups[].[logGroupName,retentionInDays]' --output text
 aws logs describe-log-groups --log-group-name-prefix /aws/rds --profile mc-deploy --region ap-northeast-2 --query 'logGroups[].[logGroupName,retentionInDays]' --output text
 # 2) 구독 필터 → Firehose
-for g in /mc/web/access /mc/was/catalina /aws/rds/instance/mc-petclinic/error; do aws logs describe-subscription-filters --log-group-name $g --profile mc-deploy --region ap-northeast-2 --query 'subscriptionFilters[].[logGroupName,destinationArn]' --output text; done
+for g in /petclinic/web/access /petclinic/was/catalina /aws/rds/instance/mc-petclinic/error; do aws logs describe-subscription-filters --log-group-name $g --profile mc-deploy --region ap-northeast-2 --query 'subscriptionFilters[].[logGroupName,destinationArn]' --output text; done
 # 3) S3 아카이브 — 오늘 프리픽스
 aws s3 ls s3://mc-logs-528821350786/cwlogs/web/$(date -u +%Y/%m/%d)/ --profile mc-deploy | tail -2
 # 4) WAF 로그는 us-east-1 에
 aws logs tail aws-waf-logs-mc --region us-east-1 --since 10m --profile mc-deploy --format short | tail -1 | cut -c1-200
 ```
 
-기대: 1) `/mc/*` 6개(30·90일) · `/aws/rds/*` 3개(30일) 2) `… mc-cwlogs-web` · `… mc-cwlogs-was` · `… mc-cwlogs-db` 3) `mc-cwlogs-web-1-2026-09-17-…gz` 류 4) `｛"timestamp":…,"action":"ALLOW",…｝`
+기대: 1) `/petclinic/*` 6개(30·90일) · `/aws/rds/*` 3개(30일) 2) `… mc-cwlogs-web` · `… mc-cwlogs-was` · `… mc-cwlogs-db` 3) `mc-cwlogs-web-1-2026-09-17-…gz` 류 4) `｛"timestamp":…,"action":"ALLOW",…｝`
 ## 2-6. 한 요청이 남기는 흔적 다섯 곳 — 14:19:57 KST `HEAD /petclinic/vets`
 <table header-row="true" fit-page-width="true">
 	<tr>
@@ -444,12 +444,12 @@ aws logs tail aws-waf-logs-mc --region us-east-1 --since 10m --profile mc-deploy
 		<td>엣지 IP · **대상 web-a** · 대상 처리 55ms · **규칙 10** · **노드 2c**</td>
 	</tr>
 	<tr>
-		<td>② Apache `/mc/web/access` (web-a)</td>
+		<td>② Apache `/petclinic/web/access` (web-a)</td>
 		<td>`10.0.1.212 - - [17/Sep/2026:05:19:56 +0000] "HEAD /petclinic/vets HTTP/1.1" 200 -`</td>
 		<td>ALB 2c 노드가 왔다 · Apache 가 프록시했다</td>
 	</tr>
 	<tr>
-		<td>② Tomcat `/mc/was/access`</td>
+		<td>② Tomcat `/petclinic/was/access`</td>
 		<td>`10.0.21.43 - - [17/Sep/2026:05:19:57 +0000] "HEAD /petclinic/vets HTTP/1.1" 200 -`</td>
 		<td>Internal ALB 2c 노드 · Tomcat 이 200</td>
 	</tr>

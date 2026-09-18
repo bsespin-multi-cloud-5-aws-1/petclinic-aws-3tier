@@ -124,6 +124,6 @@ variable "ebs_kms_key_arn" {
 }
 
 variable "cwagent_param_prefix" {
-  description = "CloudWatch Agent 설정 SSM 파라미터 접두사 (루트 observability.tf 가 /mc/cwagent/web|was 생성)"
+  description = "CloudWatch Agent 설정 SSM 파라미터 접두사 (루트 observability.tf 가 /petclinic/cwagent/web|was 생성)"
   type        = string
 }

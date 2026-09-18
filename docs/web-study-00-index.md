@@ -10,7 +10,7 @@
 | 5 | 헬스체크 설계 | 얕게 vs 깊게 · 10s·5s·2/3 의 의미 · 등록 취소 지연 30s · WEB 을 얕게 보는 이유(연쇄 unhealthy 방지) | mc-tg-web /health.html vs mc-tg-was /petclinic/ | 예정 |
 | 6 | Apache 리버스 프록시 | mod_proxy_http vs mod_jk · ProxyPass/Reverse · ProxyPreserveHost · ProxyPass ! · Alias · RewriteCond X-Forwarded-Proto · SetEnvIf nolog | web.sh 의 petclinic.conf 한 줄씩 | 예정 |
 | 7 | 분산 동작 · 타임아웃 | 라운드로빈 · 교차 영역 · 스티키(안 씀) · ALB 유휴 60s 와 Apache KeepAlive 정렬 · HTTP/2 는 CloudFront 까지 | ④ 속성 · web.sh MPM | 예정 |
-| 8 | WEB 관측 | ALB 액세스 로그 필드(elb vs target 상태 코드 · target_processing_time) · Apache 로그 XFF · HealthyHostCount · p95 · ELB_5XX vs Target_5XX | /mc/web/* · S3 alb/public · p95 알람 | 예정 |
+| 8 | WEB 관측 | ALB 액세스 로그 필드(elb vs target 상태 코드 · target_processing_time) · Apache 로그 XFF · HealthyHostCount · p95 · ELB_5XX vs Target_5XX | /petclinic/web/* · S3 alb/public · p95 알람 | 예정 |
 | 9 | 장애 모드 | 502 · 503 · 504 가 각각 언제 · CloudFront 오류 응답이 걸리는 코드 · httpd 한 대 내리고 관찰 | ② custom error → /maintenance.html | 예정 |
 | 10 | ASG · AMI | 고정 EC2 2대 → 시작 템플릿 + ASG · Golden AMI | base.enable_asg · modules/base/compute.tf | 예정 |
 > 0 = 네트워크 지도(먼저), 1~5 = ALB 쪽, 6~9 = Apache 쪽. 이틀씩 나누면 닷새에 한 바퀴.

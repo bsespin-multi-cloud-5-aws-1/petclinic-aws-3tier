@@ -20,7 +20,7 @@
 - **멘토**: 원칙은 SSM이 맞지만 현장에선 보안팀 정책(접속 통제 장비·망 분리)이 Bastion을 요구하는 경우가 많다.
 - **결정**: **코드 기본은 SSM 유지 + Bastion을 옵션으로 제공.** 발표는 "SSM으로 22번 포트·키를 없앴고, 조직 정책이 요구하면 Bastion을 켤 수 있다(한 줄 변수)"로.
 - **바뀌는 것**: `terraform-kdt5`에 `create_bastion`(phase1과 동일 패턴: 퍼블릭 서브넷 t3.micro, SG 22 ← 팀 IP, WEB/WAS SG 22 ← bastion) 옵션 추가. kdt5 콘솔 구축본은 이미 Bastion 사용 중이라 그대로.
-- **영향**: Bastion 켜면 +$8/월, 키 관리·패치 부담. SSM 세션 로그(`/mc/ssm/sessions`)는 Bastion 경로엔 안 남으므로 Bastion을 쓰면 **CloudTrail + Bastion의 sshd 로그**로 보완.
+- **영향**: Bastion 켜면 +$8/월, 키 관리·패치 부담. SSM 세션 로그(`/petclinic/ssm/sessions`)는 Bastion 경로엔 안 남으므로 Bastion을 쓰면 **CloudTrail + Bastion의 sshd 로그**로 보완.
 - **할 일**: 옵션 코드 추가(적용은 팀 결정).
 
 ## 4. KMS · S3 보안(SSE-S3 등)
@@ -63,9 +63,9 @@
 - **어디서 쓰나(우리 구성)**:
   | 소스 | 로그 그룹 | 보내는 주체 |
   |---|---|---|
-  | WEB Apache access/error | `/mc/web/access` `/mc/web/error` | CloudWatch Agent(EC2 안) |
-  | WAS Tomcat catalina/access/gc | `/mc/was/catalina` `/mc/was/access` `/mc/was/gc` | CloudWatch Agent |
-  | SSM 세션 기록 | `/mc/ssm/sessions` | Session Manager |
+  | WEB Apache access/error | `/petclinic/web/access` `/petclinic/web/error` | CloudWatch Agent(EC2 안) |
+  | WAS Tomcat catalina/access/gc | `/petclinic/was/catalina` `/petclinic/was/access` `/petclinic/was/gc` | CloudWatch Agent |
+  | SSM 세션 기록 | `/petclinic/ssm/sessions` | Session Manager |
   | (제거 예정) WAF | `aws-waf-logs-mc` | WAF |
   | RDS 에러 로그 | `/aws/rds/instance/mc-petclinic/error` | RDS 내보내기 |
   | CloudWatch 알람 3개(WAS unhealthy · ALB p95 · RDS 연결) | → SNS `mc-alerts` | 지표 기반(로그 그룹과 별개) |

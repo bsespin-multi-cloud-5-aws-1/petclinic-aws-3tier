@@ -65,11 +65,11 @@ box("waf", "① WAF Web ACL (us-east-1)", "mc-web-acl<br>규칙 매치 · 차단
 box("alb", "②③ ALB ×2", "mc-alb-public · mc-alb-internal<br>액세스 로그", "application_load_balancer", "net", 70, 900)
 box("cf", "① CloudFront", "E2PWXW3LUYTDEE<br>표준 액세스 로그", "cloudfront", "net", 300, 900)
 box("trail", "계정 · CloudTrail", "mc-trail · 다중 리전<br>관리 이벤트 (누가 무엇을 바꿨나)", "cloudtrail", "ops", 70, 1040)
-text("agent-note", "CloudWatch Agent (user_data 설치 · 설정은 Parameter Store /mc/cwagent/*)", 290, 228, 220, 44, size=11, color=PINK, bold=True)
+text("agent-note", "CloudWatch Agent (user_data 설치 · 설정은 Parameter Store /petclinic/cwagent/*)", 290, 228, 220, 44, size=11, color=PINK, bold=True)
 
 # ---------- ② CloudWatch Logs ----------
 box("cwl", "CloudWatch Logs (서울) · KMS mc-cmk", "로그 이벤트 저장소<br>스트림 = 인스턴스 ID", "cloudwatch_logs", "ops", 590, 380, w=200, h=118)
-note("groups", "<b>로그 그룹 (보존)</b><br>/mc/web/access · /mc/web/error · 30일<br>/mc/was/catalina · access · gc · 30일<br>/mc/bastion/secure · 90일<br><b>/aws/rds/instance/mc-petclinic/error · /slowquery · 30일</b><br><b>/aws/rds/proxy/mc-rds-proxy · 30일</b><br><i>(RDS·Proxy 그룹은 이름이 고정 → 코드가 먼저 만들어 보존·KMS 적용)</i>", 800, 212, 240, 160, color=PINK, fill="#FCE4EC")
+note("groups", "<b>로그 그룹 (보존)</b><br>/petclinic/web/access · /petclinic/web/error · 30일<br>/petclinic/was/catalina · access · gc · 30일<br>/petclinic/bastion/secure · 90일<br><b>/aws/rds/instance/mc-petclinic/error · /slowquery · 30일</b><br><b>/aws/rds/proxy/mc-rds-proxy · 30일</b><br><i>(RDS·Proxy 그룹은 이름이 고정 → 코드가 먼저 만들어 보존·KMS 적용)</i>", 800, 212, 240, 160, color=PINK, fill="#FCE4EC")
 box("cwl-waf", "CloudWatch Logs (us-east-1)", "aws-waf-logs-mc · 30일<br>리전이 달라 사본 제외", "cloudwatch_logs", "ops", 590, 580, w=200, h=118)
 note("cw-note", "<b>S3 가 아니다</b> — 파일·객체·블록 어느 것도 아닌 로그 이벤트 DB. 검색은 Logs Insights. 아래 ③은 <b>사본</b>을 S3 에 두는 것이고 원본은 여기 남는다.", 590, 132, 450, 70)
 

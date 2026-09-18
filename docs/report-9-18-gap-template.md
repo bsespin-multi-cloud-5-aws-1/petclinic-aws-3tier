@@ -29,7 +29,7 @@
 | 15 | KMS 고객 관리형 키 mc-cmk (S3·SNS·Logs·Backup·app-db 비밀) | 0-4 | ☐ 있음 ☐ 부분 ☐ 없음 | 키 생성 → 키 정책 2문장(CloudFront·로그 서비스) → 각 리소스에 지정 | 0.7 | P2 | |
 | 16 | IAM mc-ec2-role + 인라인 정책 · 인스턴스 프로파일 | 0-3 | ☐ 있음 ☐ 부분 ☐ 없음 | 역할 → CloudWatchAgentServerPolicy + 인라인(비밀 2·kms·ssm:GetParameter·s3) → WEB·WAS·Bastion 부착 | 0.5 | P0 | |
 | 17 | CloudWatch 알람 3(+WEB HealthyHost) → SNS mc-alerts 이메일 4명 | ⑫ | ☐ 있음 ☐ 부분 ☐ 없음 | 주제 → 구독 4 → 승인 → 알람 4개 생성 → 테스트 1회 | 0.7 | P1 | |
-| 18 | Bastion sshd 로그 → /mc/bastion/secure | ⑩ · 10-1 | ☐ 있음 ☐ 부분 ☐ 없음 | 로그 그룹 → 파라미터 /mc/cwagent/bastion → Agent fetch-config | 0.3 | P1 | |
+| 18 | Bastion sshd 로그 → /petclinic/bastion/secure | ⑩ · 10-1 | ☐ 있음 ☐ 부분 ☐ 없음 | 로그 그룹 → 파라미터 /petclinic/cwagent/bastion → Agent fetch-config | 0.3 | P1 | |
 
 소계: 항목 18 · 전부 없을 때 9.9h (P0 5.4h) — 있는 건 0 으로 고쳐 합산
 
@@ -41,7 +41,7 @@
 | 3 | httpd.conf 기본 CustomLog 중복 제거 (헬스체크 필터 동작) | ⑤-2 | ☐ 있음 ☐ 부분 ☐ 없음 | 기본 CustomLog 주석 → conf.d 의 env=!nolog 하나만 → `?dup=1` 1줄 확인 | 0.2 | P1 | |
 | 4 | mc-tg-web 헬스체크 /health.html 10s·5s·2/3 · 대상 2대 healthy | ④-2 | ☐ 있음 ☐ 부분 ☐ 없음 | TG 설정 확인 · 대상 등록 | 0.2 | P0 | |
 | 5 | SG mc-sg-web: 80 ← alb-public · 22 ← bastion 만 | 0-2 | ☐ 있음 ☐ 부분 ☐ 없음 | 불필요 규칙(0.0.0.0/0 등) 삭제 | 0.2 | P0 | |
-| 6 | CloudWatch Agent → /mc/web/access · /mc/web/error | ⑩ · 10-1 | ☐ 있음 ☐ 부분 ☐ 없음 | 로그 그룹 2 → 파라미터 /mc/cwagent/web → Agent 설치·fetch-config → 스트림 확인 | 0.5 | P1 | |
+| 6 | CloudWatch Agent → /petclinic/web/access · /petclinic/web/error | ⑩ · 10-1 | ☐ 있음 ☐ 부분 ☐ 없음 | 로그 그룹 2 → 파라미터 /petclinic/cwagent/web → Agent 설치·fetch-config → 스트림 확인 | 0.5 | P1 | |
 | 7 | ALB 액세스 로그 (외부·내부) → S3 mc-logs/alb/ | ④-3 · ⑥ | ☐ 있음 ☐ 부분 ☐ 없음 | 로그 버킷 정책(ALB 계정) → ALB 속성 켬 ×2 → 첫 객체 | 0.3 | P1 | |
 | 8 | 시작 템플릿 $Latest · ASG 인스턴스 새로 고침 (ASG 로 운영 시) | ⑤-1 | ☐ 있음 ☐ 부분 ☐ 없음 | LT 새 버전 → ASG 기본 버전 → 새로 고침(50% 유지) | 0.5 | P2 | |
 
@@ -56,7 +56,7 @@
 | 4 | 부팅 대기 로직 (Proxy 로그인 성공까지 대기 · 404 면 재시작 3회) | ⑦-2 | ☐ 있음 ☐ 부분 ☐ 없음 | user_data 에 포함 (was.sh) — 수동 설치면 재시작 절차만 문서화 | 0.3 | P1 | |
 | 5 | 풀 검증 testOnBorrow · 유휴 10분 회수 (datasource-config.xml) | ⑦-2 | ☐ 있음 ☐ 부분 ☐ 없음 | test 브랜치 소스에 포함 → 빌드 브랜치 확인 | 0.1 | P1 | |
 | 6 | Internal ALB mc-alb-internal :8080 · mc-tg-was 헬스체크 /petclinic/ · SG 체인 | ⑥ · 0-2 | ☐ 있음 ☐ 부분 ☐ 없음 | TG 경로 슬래시 확인 · sg-alb-internal 8080 ← web · sg-was 8080 ← alb-internal · 22 ← bastion | 0.3 | P0 | |
-| 7 | CloudWatch Agent → /mc/was/catalina · access · gc | ⑩ · 10-1 | ☐ 있음 ☐ 부분 ☐ 없음 | 로그 그룹 3 → /mc/cwagent/was → Agent → 스트림 | 0.5 | P1 | |
+| 7 | CloudWatch Agent → /petclinic/was/catalina · access · gc | ⑩ · 10-1 | ☐ 있음 ☐ 부분 ☐ 없음 | 로그 그룹 3 → /petclinic/cwagent/was → Agent → 스트림 | 0.5 | P1 | |
 | 8 | /petclinic/test.jsp 로 WEB→WAS→DB 연동 확인 (Ssl_cipher · vets) | ⑦ | ☐ 있음 ☐ 부분 ☐ 없음 | curl 결과 캡처 | 0.1 | P0 | |
 | 9 | JMeter 부하 테스트 준비 (계획서 · 발생기 IP → WAF IP set) | 4절 | ☐ 있음 ☐ 부분 ☐ 없음 | 시나리오·스레드·지표 정의 → IP set 등록 | 1.0 | P1 | |
 

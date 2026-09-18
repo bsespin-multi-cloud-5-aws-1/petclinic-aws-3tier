@@ -189,10 +189,10 @@ service("rds-p", "관계형 DB (주) · 개인정보", "RDS MySQL 8.0 Primary", 
 service("rds-s", "관계형 DB (대기)", "RDS Standby", "동기 복제<br>자동 failover 60~120s", "rds", "db", 1030, 1410)
 
 # ---------- ops column (per tier) ----------
-service("cwl-web", "WEB 로그", "CloudWatch Logs", "/mc/web/* · Agent<br>보존 30일", "cloudwatch_logs", "integ", 1550, 935, kind="sub")
+service("cwl-web", "WEB 로그", "CloudWatch Logs", "/petclinic/web/* · Agent<br>보존 30일", "cloudwatch_logs", "integ", 1550, 935, kind="sub")
 service("s3-logs", "액세스 · 종료 로그", "Amazon S3", "mc-logs · ALB 액세스 90일<br>ASG 종료 훅 로그", "s3", "storage", 1710, 935)
-service("ssm", "운영자 접속", "SSM Session Manager", "22번 포트 없음<br>세션 로그 /mc/ssm 90일", "systems_manager_session_manager", "integ", 1870, 935, kind="sub")
-service("cwl-was", "WAS 로그", "CloudWatch Logs", "/mc/was catalina · access · gc<br>보존 30일", "cloudwatch_logs", "integ", 1550, 1180, kind="sub")
+service("ssm", "운영자 접속", "SSM Session Manager", "22번 포트 없음<br>세션 로그 /petclinic/ssm 90일", "systems_manager_session_manager", "integ", 1870, 935, kind="sub")
+service("cwl-was", "WAS 로그", "CloudWatch Logs", "/petclinic/was catalina · access · gc<br>보존 30일", "cloudwatch_logs", "integ", 1550, 1180, kind="sub")
 service("asg", "증설 정책", "Auto Scaling", "대상 추적 · 예약 증설<br>종료 수명 주기 훅", "autoscaling", "compute", 1710, 1180)
 service("secrets", "비밀 관리", "Secrets Manager", "RDS 관리형 비밀<br>7일 자동 로테이션", "secrets_manager", "sec", 1550, 1410)
 service("kms", "암호화 키", "AWS KMS", "CMK · 버킷 키<br>S3 점검·로그 · RDS · Secrets", "key_management_service", "sec", 1710, 1410)
@@ -261,10 +261,10 @@ steps = [
  ("③→④ WAS → RDS Proxy → RDS", "JDBC sslMode=REQUIRED + 파라미터 그룹 require_secure_transport. Proxy가 커넥션 다중화(풀×서버 수 > DB 상한 방지)·failover 중 연결 유지·Require TLS"),
  ("④ RDS Multi-AZ", "개인정보(이름·전화번호·예약)의 저장소. 동기 복제 Standby(RPO 0), failover 60~120s, 엔드포인트 동일. 자동 백업 7일·PITR(5분)·Phase 전 수동 스냅샷·삭제 방지"),
  ("④ Secrets Manager + KMS", "RDS 관리형 비밀 7일 로테이션, Proxy가 직접 조회하므로 앱 무영향. KMS CMK로 S3 의료파일·RDS·Secrets 암호화, 버킷 키로 비용 절감"),
- ("계층별 로그 (필수 5 중 4)", "WEB·WAS: CloudWatch Agent → /mc/web·/mc/was 30일. ALB 액세스 로그 → S3 mc-logs 90일. WAF 로그 → CloudWatch Logs. ASG 종료 훅으로 마지막 로그 S3 sync. VPC Flow Logs·RDS 로그는 제외"),
+ ("계층별 로그 (필수 5 중 4)", "WEB·WAS: CloudWatch Agent → /petclinic/web·/petclinic/was 30일. ALB 액세스 로그 → S3 mc-logs 90일. WAF 로그 → CloudWatch Logs. ASG 종료 훅으로 마지막 로그 S3 sync. VPC Flow Logs·RDS 로그는 제외"),
  ("감사 로그", "CloudTrail 추적(관리 이벤트 · 다중 리전 · 로그 파일 검증) → S3 mc-cloudtrail 1년. 누가 SG·RDS·ASG를 바꿨나. 진료 파일 저장을 뺐으므로 S3 데이터 이벤트는 불필요"),
  ("관측 · 알림 (공통)", "CloudWatch 지표·로그 → Amazon Managed Grafana(Identity Center) 대시보드. Slack 알림은 Grafana Alerting → Slack webhook 한 경로. CloudWatch 알람 3개(HealthyHost·p95·DB 연결)는 SNS 이메일로 기본 통보. 대상 추적 알람이 ASG 증설 트리거"),
- ("② ③ 운영자 접속", "Bastion·22번 포트 없음. SSM Session Manager(IAM 인증), 세션 로그 → CloudWatch Logs /mc/ssm 90일, DB 접속은 포트 포워딩. NAT는 아웃바운드(dnf·Agent·SSM)용이라 별개로 필요"),
+ ("② ③ 운영자 접속", "Bastion·22번 포트 없음. SSM Session Manager(IAM 인증), 세션 로그 → CloudWatch Logs /petclinic/ssm 90일, DB 접속은 포트 포워딩. NAT는 아웃바운드(dnf·Agent·SSM)용이라 별개로 필요"),
 ]
 y = 36
 for i, (title, desc) in enumerate(steps, 1):

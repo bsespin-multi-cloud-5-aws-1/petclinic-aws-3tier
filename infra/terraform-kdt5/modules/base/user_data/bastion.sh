@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bastion (AL2023) — 운영자 SSH 진입점 (SSM Session Manager 대신). WEB·WAS 는 같은 키로 -J 점프, DB 는 mariadb 클라이언트로 RDS Proxy(TLS) 경유
-# sshd 로그(/var/log/secure)는 CloudWatch Agent 로 /mc/bastion/secure 에 남긴다 — 누가 언제 들어왔나 (서버에만 두지 않음)
+# sshd 로그(/var/log/secure)는 CloudWatch Agent 로 /petclinic/bastion/secure 에 남긴다 — 누가 언제 들어왔나 (서버에만 두지 않음)
 set -uo pipefail
 exec > >(tee -a /var/log/mc-userdata.log) 2>&1
 

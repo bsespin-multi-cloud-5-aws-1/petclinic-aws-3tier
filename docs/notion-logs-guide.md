@@ -27,17 +27,17 @@
 ### 1-3. 어디서 쓰나 — 우리 로그 그룹 6개 (실측)
 | 로그 그룹 | 무엇이 들어오나 | 보내는 주체 | 보관 | 암호화 | 지금 크기 |
 |---|---|---|---|---|---|
-| `/mc/web/access` | Apache 접속 로그(누가 어떤 URL을, 응답 코드) | CloudWatch Agent(WEB 2대) | 30일 | KMS `mc-cmk` | 1.8 MB |
-| `/mc/web/error` | Apache 오류(프록시 실패 502 등) | CloudWatch Agent | 30일 | KMS | 3 KB |
-| `/mc/was/catalina` | Tomcat 기동 로그·Spring 예외(DB 접속 실패 등) | CloudWatch Agent(WAS 2대) | 30일 | KMS | 19 KB |
-| `/mc/was/access` | Tomcat 접속 로그(Internal ALB→WAS 요청) | CloudWatch Agent | 30일 | KMS | 1.6 MB |
-| `/mc/was/gc` | JVM GC 로그(메모리 압박·멈춤 시간) | CloudWatch Agent | 30일 | KMS | 12 KB |
-| `/mc/ssm/sessions` | SSM으로 서버에 들어가 친 명령·출력 | Session Manager | 90일 | KMS | (아직 0) |
+| `/petclinic/web/access` | Apache 접속 로그(누가 어떤 URL을, 응답 코드) | CloudWatch Agent(WEB 2대) | 30일 | KMS `mc-cmk` | 1.8 MB |
+| `/petclinic/web/error` | Apache 오류(프록시 실패 502 등) | CloudWatch Agent | 30일 | KMS | 3 KB |
+| `/petclinic/was/catalina` | Tomcat 기동 로그·Spring 예외(DB 접속 실패 등) | CloudWatch Agent(WAS 2대) | 30일 | KMS | 19 KB |
+| `/petclinic/was/access` | Tomcat 접속 로그(Internal ALB→WAS 요청) | CloudWatch Agent | 30일 | KMS | 1.6 MB |
+| `/petclinic/was/gc` | JVM GC 로그(메모리 압박·멈춤 시간) | CloudWatch Agent | 30일 | KMS | 12 KB |
+| `/petclinic/ssm/sessions` | SSM으로 서버에 들어가 친 명령·출력 | Session Manager | 90일 | KMS | (아직 0) |
 | `/aws/rds/instance/mc-petclinic/error` | MySQL 에러 로그 | RDS 내보내기 | 무기한 | — | 3 KB |
 | `/aws/rds/proxy/mc-rds-proxy` | RDS Proxy 인증·연결 로그 | RDS Proxy | 무기한 | — | 5 KB |
-- 로그 **스트림** = 로그 그룹 안에서 서버 1대당 1줄(이름 = 인스턴스 ID). 오늘 `/mc/was/catalina` 에는 교체 전후 인스턴스 3개 스트림이 있어 "옛 서버 로그"도 그대로 조회된다.
-- **어떻게 들어오나**: WEB·WAS 부팅 스크립트가 `amazon-cloudwatch-agent` 를 설치하고, 설정(어떤 파일을 어느 그룹으로)은 SSM 파라미터 `/mc/cwagent/web`·`/mc/cwagent/was` 에서 받는다(Terraform이 배포). 서버 → NAT → CloudWatch API(HTTPS).
-- **권한**: 인스턴스 역할 `mc-ec2-role` 에 `CloudWatchAgentServerPolicy`(로그 쓰기) + `ssm:GetParameter(/mc/cwagent/*)`.
+- 로그 **스트림** = 로그 그룹 안에서 서버 1대당 1줄(이름 = 인스턴스 ID). 오늘 `/petclinic/was/catalina` 에는 교체 전후 인스턴스 3개 스트림이 있어 "옛 서버 로그"도 그대로 조회된다.
+- **어떻게 들어오나**: WEB·WAS 부팅 스크립트가 `amazon-cloudwatch-agent` 를 설치하고, 설정(어떤 파일을 어느 그룹으로)은 SSM 파라미터 `/petclinic/cwagent/web`·`/petclinic/cwagent/was` 에서 받는다(Terraform이 배포). 서버 → NAT → CloudWatch API(HTTPS).
+- **권한**: 인스턴스 역할 `mc-ec2-role` 에 `CloudWatchAgentServerPolicy`(로그 쓰기) + `ssm:GetParameter(/petclinic/cwagent/*)`.
 
 ### 1-4. 안 쓰는 곳 (왜)
 - **ALB 액세스 로그** → S3 `mc-logs-…/alb/` 로만 간다. ALB는 CloudWatch Logs 전송을 지원하지 않고, 양이 많아 S3가 싸다(Athena로 조회).
@@ -54,14 +54,14 @@
 알람 → SNS `mc-alerts` → 이메일(구독은 `alert_emails` 변수에 넣으면 생성). Slack은 Grafana Alerting 경로.
 
 ### 1-6. 실제로 보는 법
-- 콘솔: CloudWatch → 로그 그룹 → `/mc/was/catalina` → 스트림 클릭. 또는 **Logs Insights** 에서 그룹 여러 개 선택 후:
+- 콘솔: CloudWatch → 로그 그룹 → `/petclinic/was/catalina` → 스트림 클릭. 또는 **Logs Insights** 에서 그룹 여러 개 선택 후:
 ```sql
 fields @timestamp, @logStream, @message
 | filter @message like /Exception|SEVERE|Access denied/
 | sort @timestamp desc | limit 50
 ```
-- CLI: `aws logs tail /mc/was/catalina --since 30m --follow --profile mc-deploy`
-- 오늘 실제 사례: `/mc/was/catalina` 에서 `Access denied for user 'petclinic_app'@'10.0.20.216'` 를 찾아 was-a 장애 원인(Proxy 인증 목록 반영 전 기동)을 확정했다 — 서버에 안 들어가고.
+- CLI: `aws logs tail /petclinic/was/catalina --since 30m --follow --profile mc-deploy`
+- 오늘 실제 사례: `/petclinic/was/catalina` 에서 `Access denied for user 'petclinic_app'@'10.0.20.216'` 를 찾아 was-a 장애 원인(Proxy 인증 목록 반영 전 기동)을 확정했다 — 서버에 안 들어가고.
 
 ---
 
@@ -106,4 +106,4 @@ fields @timestamp, @logStream, @message
 - **비용**: CloudWatch Logs 수집 $0.76/GB + 보관 $0.03/GB·월(지금 총 3.5 MB ≈ $0), CloudTrail 첫 추적 무료(S3 저장 ≈ $0.02/월).
 
 ## 4. 발표용 한 줄
-"서버가 남기는 로그는 CloudWatch Logs로 서버 밖에 모아 교체·증설에도 잃지 않고, AWS 계정 조작은 CloudTrail로 S3에 1년 보관·변조 검증한다. 오늘 was-a 장애도 서버에 들어가지 않고 `/mc/was/catalina`에서 원인을 찾았다."
+"서버가 남기는 로그는 CloudWatch Logs로 서버 밖에 모아 교체·증설에도 잃지 않고, AWS 계정 조작은 CloudTrail로 S3에 1년 보관·변조 검증한다. 오늘 was-a 장애도 서버에 들어가지 않고 `/petclinic/was/catalina`에서 원인을 찾았다."

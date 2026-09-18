@@ -40,5 +40,5 @@ module "base" {
   app_db_secret_ready  = aws_secretsmanager_secret_version.app_db.version_id
   db_name              = "petclinic"
   jdbc_host            = aws_db_proxy.main.endpoint # WAS 는 Proxy 가 생긴 뒤 부팅 → TLS 로 접속
-  cwagent_param_prefix = "/mc/cwagent"
+  cwagent_param_prefix = "/petclinic/cwagent"
 }

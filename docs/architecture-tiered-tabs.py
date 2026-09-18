@@ -149,9 +149,9 @@ p.service("nat-c", "아웃바운드", "NAT Gateway", "AZ당 1개<br>AZ 손실 �
 p.service("web-a", "WEB", "WEB-A · Apache 2.4", "AL2023 · MPM event<br>정적 직접 서빙 · /health.html", "ec2", "compute", 350, 560)
 p.service("web-c", "WEB", "WEB-C · Apache 2.4", "CloudWatch Agent · SSM Agent<br>ProxyPass /petclinic/", "ec2", "compute", 1140, 560)
 p.stub("to-was", "→ ③ WAS 계층<br>Internal ALB 8080<br>ProxyPass /petclinic/ · ProxyPreserveHost On", 840, 780, 200, 80)
-p.service("cwl-web", "WEB 로그", "CloudWatch Logs", "/mc/web/access · error<br>Agent · 30일", "cloudwatch_logs", "integ", 1680, 280, kind="sub")
+p.service("cwl-web", "WEB 로그", "CloudWatch Logs", "/petclinic/web/access · error<br>Agent · 30일", "cloudwatch_logs", "integ", 1680, 280, kind="sub")
 p.service("s3-logs", "액세스 로그", "Amazon S3", "mc-logs/alb · 90일<br>p95 · 5XX 대상별", "s3", "storage", 1680, 480)
-p.service("ssm", "운영자 접속", "SSM Session Manager", "22번 없음 · IAM 인증<br>세션 로그 /mc/ssm 90일", "systems_manager_session_manager", "integ", 1680, 680, kind="sub")
+p.service("ssm", "운영자 접속", "SSM Session Manager", "22번 없음 · IAM 인증<br>세션 로그 /petclinic/ssm 90일", "systems_manager_session_manager", "integ", 1680, 680, kind="sub")
 p.actor("ops", "운영자 (관리자)", 1930, 690, res="user")
 p.edge("e1", "from-cf", "igw", EDGE, pts=[(230,335),(230,160),(920,160)], exit=(1,0.5), entry=(0.5,0))
 p.edge("e2", "igw", "alb", EDGE, exit=(0.5,1), entry=(0.5,0))
@@ -169,8 +169,8 @@ p.legend(2080, 30, 1000, "WEB 계층 · 흐름과 설정", [
  ("헬스체크 (얕게)", "tg-web 경로 /health.html(정적, Apache 생존만) 10s·5s·정상 2/비정상 3, 등록 취소 30s. WAS 장애는 Internal ALB·RDS 알람이 잡음(연쇄 unhealthy 방지)"),
  ("Auto Scaling — WEB", "CPU 60% 대상 추적, min 2·max 6, 두 AZ 균등, 워밍업 180s, 헬스체크 유형 ELB. 골든 AMI(AL2023·Apache MPM event·CloudWatch Agent) 기동"),
  ("Apache → Internal ALB", "ProxyPass /petclinic/ → 내부 ALB DNS:8080, ProxyPreserveHost On(Host·X-Forwarded-For 유지). 정적 /resources는 Apache가 직접 서빙(캐시 미스 시)"),
- ("로그", "CloudWatch Agent → /mc/web/access·error 30일(EC2 종료돼도 남음). ALB 액세스 로그 → S3 mc-logs 90일(p95·5XX 대상별). 헬스체크 요청은 access log 제외"),
- ("운영자 접속 (SSM)", "Bastion·22번 없음. 인스턴스 프로파일 AmazonSSMManagedInstanceCore, 아웃바운드 443은 NAT. 세션 로그 → CloudWatch Logs /mc/ssm 90일"),
+ ("로그", "CloudWatch Agent → /petclinic/web/access·error 30일(EC2 종료돼도 남음). ALB 액세스 로그 → S3 mc-logs 90일(p95·5XX 대상별). 헬스체크 요청은 access log 제외"),
+ ("운영자 접속 (SSM)", "Bastion·22번 없음. 인스턴스 프로파일 AmazonSSMManagedInstanceCore, 아웃바운드 443은 NAT. 세션 로그 → CloudWatch Logs /petclinic/ssm 90일"),
 ], note="NAT Gateway는 아웃바운드 전용(dnf·Agent·SSM). SSM은 사람이 들어가는 길, NAT는 서버가 나가는 길 — 둘 다 필요.")
 mxfile.append(p.d)
 
@@ -188,7 +188,7 @@ p.service("ialb", "부하 분산 (내부)", "Internal ALB", "8080 · tg-was<br>�
 p.service("was-a", "WAS", "WAS-A · Tomcat 9.0.121", "OpenJDK 8 · Tomcat 9.0.121<br>maxThreads·acceptCount 튜닝<br>/test.jsp: 헤더·DB 연동 점검", "ec2", "compute", 350, 470)
 p.service("was-c", "WAS", "WAS-C · Tomcat 9.0.121", "AZ당 2대<br>한 AZ 손실 시 피크 100%", "ec2", "compute", 1140, 470)
 p.stub("to-db", "→ ④ DB 계층<br>RDS Proxy 3306 · JDBC sslMode=REQUIRED", 840, 780, 200, 70)
-p.service("cwl-was", "WAS 로그", "CloudWatch Logs", "/mc/was catalina·access·gc<br>보존 30일", "cloudwatch_logs", "integ", 1680, 280, kind="sub")
+p.service("cwl-was", "WAS 로그", "CloudWatch Logs", "/petclinic/was catalina·access·gc<br>보존 30일", "cloudwatch_logs", "integ", 1680, 280, kind="sub")
 p.service("asg-svc", "증설 정책", "Auto Scaling", "대상당 요청 수 300/분 + CPU 60%<br>예약: 이벤트 15분 전 desired 4", "autoscaling", "compute", 1680, 480)
 p.service("s3-logs", "종료 로그", "Amazon S3", "mc-logs/was · 종료 수명 주기 훅<br>마지막 로그 · 힙 덤프 sync", "s3", "storage", 1680, 680)
 p.stub("cw", "⑤ CloudWatch 알람<br>→ 증설 · 축소 트리거", 1950, 505, 170, 70)
@@ -207,7 +207,7 @@ p.legend(2080, 30, 1000, "WAS 계층 · 흐름과 설정", [
  ("Tomcat 튜닝", "maxThreads·acceptCount 상향, connectionTimeout 단축, JVM -Xms=-Xmx. 커넥션 풀 크기 = maxThreads와 DB 상한 사이"),
  ("WAS → RDS Proxy", "JDBC sslMode=REQUIRED, 풀 validationQuery. 8대로 늘어도 Proxy가 DB 연결 상한을 지킴(④ 탭)"),
  ("연동 점검 /test.jsp", "WAR에 포함. WAS 호스트·OpenJDK 버전·X-Forwarded-For/Proto·Via 헤더·vets 행 수·Ssl_cipher 출력 → WEB→WAS 전달과 WAS→Proxy→RDS TLS 연동을 한 화면에서 확인"),
- ("로그", "Agent → /mc/was catalina·access·gc 30일. 종료 수명 주기 훅(300s)으로 마지막 로그·덤프를 S3 mc-logs/was에 sync 후 종료"),
+ ("로그", "Agent → /petclinic/was catalina·access·gc 30일. 종료 수명 주기 훅(300s)으로 마지막 로그·덤프를 S3 mc-logs/was에 sync 후 종료"),
  ("증설", "대상당 요청 수 + CPU 대상 추적, 예약 증설(영상 공개 15분 전 4대), min 2·max 8, AZ당 2대. 알람은 ⑤ CloudWatch에서"),
 ], note="Redis(Spring Session)는 로드맵. 로그인이 없으므로 세션 유지 요구 없음. DB 자격증명은 빌드 시점 주입(Secrets Manager → mvnw -Djdbc.*), 명령줄·setenv.sh에 평문 없음.")
 mxfile.append(p.d)
@@ -247,12 +247,12 @@ mxfile.append(p.d)
 p = Page("5. 운영 · 관측 공통", "tab-ops", 2720, 1100)
 p.title("⑤ 운영 · 관측 공통 — CloudWatch · Grafana · Slack · CloudTrail · SSM", "계층별 로그 5종 → CloudWatch / S3 → Managed Grafana 대시보드 → Slack(Alerting) | 기본 알람 → SNS 이메일 · Auto Scaling 트리거", 2200)
 p.vertex("cloud", "AWS Cloud (ap-northeast-2)", STY["cloud"], 260, 150, 1330, 780)
-p.stub("in-web", "② WEB Agent 로그<br>/mc/web", 60, 200, 170, 60)
-p.stub("in-was", "③ WAS Agent 로그<br>/mc/was catalina·access·gc", 60, 290, 170, 60)
+p.stub("in-web", "② WEB Agent 로그<br>/petclinic/web", 60, 200, 170, 60)
+p.stub("in-was", "③ WAS Agent 로그<br>/petclinic/was catalina·access·gc", 60, 290, 170, 60)
 p.stub("in-alb", "② ALB 액세스 로그<br>S3 mc-logs", 60, 380, 170, 60)
 p.stub("in-waf", "① WAF 로그<br>aws-waf-logs-mc", 60, 470, 170, 60)
-p.stub("in-ssm", "② SSM 세션 로그<br>/mc/ssm", 60, 560, 170, 60)
-p.service("cwl", "로그 저장", "CloudWatch Logs", "/mc/* · aws-waf-logs-mc<br>보존 30~90일 · Logs Insights", "cloudwatch_logs", "integ", 340, 330, kind="sub")
+p.stub("in-ssm", "② SSM 세션 로그<br>/petclinic/ssm", 60, 560, 170, 60)
+p.service("cwl", "로그 저장", "CloudWatch Logs", "/petclinic/* · aws-waf-logs-mc<br>보존 30~90일 · Logs Insights", "cloudwatch_logs", "integ", 340, 330, kind="sub")
 p.service("cw", "지표 · 알람", "Amazon CloudWatch", "RequestCount · p95 · 5XX · HealthyHost<br>DB 연결 · CPU · DaysToExpiry", "cloudwatch", "integ", 640, 330)
 p.service("grafana", "대시보드", "Amazon Managed Grafana", "Identity Center 로그인<br>계층별 행 · 전/후 비교", "managed_service_for_grafana", "integ", 940, 200)
 p.service("sns", "알림 주제", "Amazon SNS", "mc-alerts · 이메일<br>Grafana 도입 전 기본", "sns", "integ", 940, 460)

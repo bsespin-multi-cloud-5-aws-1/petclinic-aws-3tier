@@ -164,7 +164,7 @@ variable "enable_waf" {
 }
 
 variable "enable_ssm" {
-  description = "SSM Session Manager(세션 설정 문서 · /mc/ssm/sessions · AmazonSSMManagedInstanceCore). 팀 결정 9/16: Bastion 을 쓰므로 기본 false. Parameter Store(CW Agent 설정)는 이 값과 무관"
+  description = "SSM Session Manager(세션 설정 문서 · /petclinic/ssm/sessions · AmazonSSMManagedInstanceCore). 팀 결정 9/16: Bastion 을 쓰므로 기본 false. Parameter Store(CW Agent 설정)는 이 값과 무관"
   type        = bool
   default     = false
 }

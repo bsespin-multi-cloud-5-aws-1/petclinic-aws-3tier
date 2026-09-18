@@ -82,7 +82,7 @@ CloudFront ──연결 3회×10s · 응답 30s · keep-alive 5s──▶ ALB(�
 	<tr>
 		<td>실측 — 서버가 보는 노드</td>
 		<td>Apache 로그 첫 IP `10.0.0.212` / `10.0.1.212` 번갈아</td>
-		<td>`/mc/web/access`</td>
+		<td>`/petclinic/web/access`</td>
 	</tr>
 </table>
 **없으면 · 오해**
@@ -101,7 +101,7 @@ aws elbv2 describe-load-balancer-attributes --load-balancer-arn $ALB --profile m
 # 2) 분산 실측 — 오늘 ALB 로그에서 (노드 IP, 대상) 조합 세기 (34번째 필드 = 노드 · 5번째 = 대상)
 for K in $(aws s3 ls s3://mc-logs-528821350786/alb/public/ --recursive --profile mc-deploy | grep -v TestFile | grep "$(date -u +%Y/%m/%d)" | awk '{print $4}'); do aws s3 cp "s3://mc-logs-528821350786/$K" - --profile mc-deploy | zcat; done | awk -F'"' '{split($1,h," "); n=split($0,w," "); print "node="w[n-2]" target="h[5]}' | sort | uniq -c
 # 3) 서버 쪽 — 두 노드 IP 가 섞여 오는지
-aws logs tail /mc/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v ELB-HealthChecker | awk '{print $2}' | sort | uniq -c
+aws logs tail /petclinic/web/access --since 1h --profile mc-deploy --region ap-northeast-2 --format short | grep -v ELB-HealthChecker | awk '{print $2}' | sort | uniq -c
 ```
 
 기대: 1) `round_robin` · `use_load_balancer_configuration` · `true` 2) `node=3.34.116.99 target=10.0.10.189:80`(2c 노드 → 2a 서버 = 교차) · `node=13.124.71.239 target=10.0.11.89:80`(2a 노드 → 2c 서버) 등 네 조합 전부 3) `10.0.0.212` 와 `10.0.1.212` 둘 다
@@ -325,7 +325,7 @@ aws cloudwatch get-metric-statistics --namespace AWS/ApplicationELB --metric-nam
 		<td>점검 페이지 (원래 502)</td>
 		<td>ALB</td>
 		<td>Apache 가 연결을 먼저 닫음(keep-alive 5 ‹ 60) · httpd 재시작 중 · 응답 깨짐</td>
-		<td>ALB 로그 `elb 502 · target -` · `error_reason` · `/mc/web/error`</td>
+		<td>ALB 로그 `elb 502 · target -` · `error_reason` · `/petclinic/web/error`</td>
 	</tr>
 	<tr>
 		<td>점검 페이지 (원래 503)</td>

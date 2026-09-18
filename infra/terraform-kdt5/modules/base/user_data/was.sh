@@ -136,7 +136,7 @@ UNIT
 systemctl daemon-reload && systemctl enable --now mc-lifecycle-watch
 %{ endif ~}
 
-# CloudWatch Agent (catalina · access · gc → /mc/was/*)
+# CloudWatch Agent (catalina · access · gc → /petclinic/was/*)
 for i in $(seq 1 12); do
   /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c "ssm:${cwagent_param}" -s && { echo "cwagent configured"; break; }
   echo "cwagent config retry $i/12"; sleep 10

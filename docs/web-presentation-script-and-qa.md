@@ -28,7 +28,7 @@
 셋째, 헬스체크 깊이 분리예요. WEB은 정적 /health.html, WAS는 앱 컨텍스트 /petclinic/, DB는 CloudWatch 알람으로 나눴어요. 9월 16일 was-a 장애 때 WEB 두 대는 healthy를 유지하고 was-c로 트래픽이 넘어가 서비스가 끊기지 않았어요. 헬스체크 로그 제외 필터도 두었는데, 기본 로그 설정과 겹쳐 실제로는 안 걸러지는 걸 발견해 고치는 중이에요 — 트러블슈팅 장에서 말씀드릴게요."
 
 ### (멘토가 로그를 물으면 붙이는) 로그·모니터링 30초
-"웹서버 로그는 서버에 두지 않아요. Parameter Store `/mc/cwagent/web` 에 access·error 로그 경로와 메모리 지표 설정을 두고, 부팅 때 fetch-config 로 받아 CloudWatch Agent가 `/mc/web/access`·`/mc/web/error` 로 실시간 전송해요. 서버가 교체돼도 로그가 남고, 기본 EC2 지표엔 없는 메모리 사용률까지 봐요."
+"웹서버 로그는 서버에 두지 않아요. Parameter Store `/petclinic/cwagent/web` 에 access·error 로그 경로와 메모리 지표 설정을 두고, 부팅 때 fetch-config 로 받아 CloudWatch Agent가 `/petclinic/web/access`·`/petclinic/web/error` 로 실시간 전송해요. 서버가 교체돼도 로그가 남고, 기본 EC2 지표엔 없는 메모리 사용률까지 봐요."
 
 ---
 
@@ -65,7 +65,7 @@
 ### ④ 로그·모니터링 (멘토 단골)
 | 질문 | 3초 답 | 근거 | 확인 |
 |---|---|---|---|
-| 웹서버 로그·모니터링 구성? | 로컬에 안 두고 CloudWatch Logs로, 설정은 Parameter Store | `/mc/cwagent/web` → fetch-config → `/mc/web/access`·`/mc/web/error` · 메모리·디스크 지표 | 로그 그룹 스트림 = 인스턴스 ID |
+| 웹서버 로그·모니터링 구성? | 로컬에 안 두고 CloudWatch Logs로, 설정은 Parameter Store | `/petclinic/cwagent/web` → fetch-config → `/petclinic/web/access`·`/petclinic/web/error` · 메모리·디스크 지표 | 로그 그룹 스트림 = 인스턴스 ID |
 | 왜 로컬에 안 두나? | 디스크 풀 방지 · 서버 교체 시 유실 방지 · 침해 흔적 보존 | ASG/교체 시 인스턴스 사라짐 (9/16 롤링 5회 유실 0) | 옛 인스턴스 스트림 조회 |
 | 왜 설정을 Parameter Store에? | 서버마다 수정·AMI 재빌드 없이 한 곳만 고침 | 부팅 시 fetch-config | 파라미터 값 |
 | 왜 Agent로 메모리? | 기본 EC2 지표는 하이퍼바이저 밖에서 재서 RAM을 못 봄, OOM 감지 | `mem_used_percent` 네임스페이스 MC/WEB | CloudWatch 지표 |
@@ -87,5 +87,5 @@
 - [ ] Bastion: `curl -m 5 http://10.0.20.x:8080/petclinic/` → timeout · WEB: Internal ALB 경유 200
 - [ ] `curl -I https://…/static/resources/css/petclinic.css` → `server: AmazonS3` · 두 번째 `x-cache: Hit`
 - [ ] 대상 그룹 `mc-tg-web` 상태 검사 설정 화면 · healthy 2/2
-- [ ] CloudWatch `/mc/web/access` 스트림(인스턴스 ID) · 알람 목록
+- [ ] CloudWatch `/petclinic/web/access` 스트림(인스턴스 ID) · 알람 목록
 - [ ] ⚠ 도메인: 가비아 NS가 새 존으로 바뀌어 **현재 `petclinic.mission-critical.site` 미해석** — 새 존에 A/AAAA alias 넣기 전엔 CloudFront 도메인으로 시연
