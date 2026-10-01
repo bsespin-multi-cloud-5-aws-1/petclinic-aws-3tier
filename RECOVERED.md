@@ -18,7 +18,7 @@ AWS 정리(2026-10-01) 뒤 남아 있던 WAS AMI v6(`was-goldenImage-v6`, ami-0e
 | `service/ClinicServiceImpl.java` | 라우팅용 수정 1줄 |
 | `pom.xml` | AWS RDS 프로필(주 DB `database` · 복제본 `db-readonly` 주소) 등 |
 | `logback.xml` | 로그 설정 |
-| `deploy/fetch_db_secret.py` | Tomcat 시작 전(ExecStartPre) Secrets Manager 에서 DB 계정을 받아 `/run/petclinic/data-access.properties` 를 만드는 스크립트 (AMI 의 `/opt/petclinic-bootstrap`) |
+| `deploy/` (서버 실행 설정, `deploy/README.md`) | `tomcat.service` · `bootstrap.env.example`(값은 자리표시자) · `setenv.sh` 와 함께 — Tomcat 시작 전(ExecStartPre) Secrets Manager 에서 DB 계정을 받아 `/run/petclinic/data-access.properties` 를 만드는 스크립트 (AMI 의 `/opt/petclinic-bootstrap`) |
 
 ## 지운 것
 
