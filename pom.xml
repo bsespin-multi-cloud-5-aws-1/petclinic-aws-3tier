@@ -303,13 +303,25 @@
     <build>
         <defaultGoal>install</defaultGoal>
         <finalName>petclinic</finalName>
-        <resources>
-            <resource>
-                <directory>${basedir}/src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
-        <testResources>
+	<resources>
+		<resource>
+			<directory>${basedir}/src/main/resources</directory>
+			<filtering>true</filtering>
+			<excludes>
+				<exclude>spring/datasource-config.xml</exclude>
+			</excludes>
+		</resource>
+
+		<resource>
+          		<directory>${basedir}/src/main/resources</directory>
+          		<filtering>false</filtering>
+          		<includes>
+              			<include>spring/datasource-config.xml</include>
+          		</includes>
+      		</resource>
+  	</resources>
+	
+	<testResources>
             <testResource>
                 <!-- declared explicitly so Spring config files can be placed next to their corresponding JUnit test class  -->
                 <directory>${project.basedir}/src/test/java</directory>
@@ -323,19 +335,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
-            </plugin>
-
-	    <plugin>
-                <groupId>org.apache.tomcat.maven</groupId>
-                <artifactId>tomcat7-maven-plugin</artifactId>
-                <version>2.2</version>
-                <configuration>
-                    <url>http://localhost:8080/manager/text</url>
-                    <server>TomcatServer</server>
-                    <path>/${project.build.finalName}</path>
-                    <username>tomcat</username>
-                    <password>tomcat</password>
-                </configuration>
             </plugin>
 
             <plugin>
@@ -544,9 +543,10 @@
                 <db.script>mysql</db.script>
                 <jpa.database>MYSQL</jpa.database>
                 <jdbc.driverClassName>com.mysql.cj.jdbc.Driver</jdbc.driverClassName>
-                <jdbc.url>jdbc:mysql://[Change Me]:3306/petclinic?useUnicode=true</jdbc.url>
-                <jdbc.username>root</jdbc.username>
-                <jdbc.password>petclinic</jdbc.password>
+                <jdbc.url>jdbc:mysql://WRITE_DB_HOST:3306/petclinic?useUnicode=true</jdbc.url>
+                <jdbc.read.url>jdbc:mysql://READ_DB_HOST:3306/petclinic?useUnicode=true</jdbc.read.url>
+                <jdbc.username>admin</jdbc.username>
+                <jdbc.password></jdbc.password>
             </properties>
             <dependencies>
                 <dependency>
@@ -565,7 +565,7 @@
                 <jdbc.driverClassName>org.postgresql.Driver</jdbc.driverClassName>
                 <jdbc.url>jdbc:postgresql://localhost:5432/petclinic</jdbc.url>
                 <jdbc.username>postgres</jdbc.username>
-                <jdbc.password>petclinic</jdbc.password>
+                <jdbc.password></jdbc.password>
             </properties>
             <dependencies>
                 <dependency>
