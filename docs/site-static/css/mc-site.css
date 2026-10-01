@@ -1,0 +1,139 @@
+/* ============================================================
+   미션 동물병원 (Mission Animal Hospital) — 사이트 스타일
+   Bootstrap 3.3.6 위에 얹는 테마 (그리드·navbar 기본·glyphicon은 Bootstrap 사용)
+
+   구조
+   1. 팔레트·타이포     2. 내비게이션 바     3. 히어로(배경 영상)
+   4. 홈 본문(정보 띠·카드)   5. 표·버튼 테마   6. 푸터   7. 반응형·접근성
+
+   히어로 원리 (aaha.org 패턴을 참고해 자체 작성)
+   .mc-hero(grid 1칸, position:relative)
+     ├ .mc-hero-video  position:absolute; inset:0  ← <video object-fit:cover> + ::after 그라데이션 막
+     ├ .mc-hero-main   텍스트(flex 가운데)         ← 문서 흐름에 있어 높이를 결정
+     └ .mc-hero-controls 재생/정지 버튼
+   ============================================================ */
+
+/* 1. 팔레트 · 타이포 ------------------------------------------------ */
+:root {
+  --mc-plum:   #400035;   /* 헤더·푸터·히어로 바탕 */
+  --mc-purple: #69045c;   /* 주 강조·활성 메뉴·링크 */
+  --mc-mint:   #91d7d2;   /* CTA·밑줄·아이콘 */
+  --mc-cream:  #f5eee8;   /* 본문 배경 */
+  --mc-sand:   #ede2d8;   /* 카드 테두리 */
+  --mc-ink:    #2a2d33;   /* 본문 글자 */
+  --mc-muted:  #5a5e66;
+  --mc-font:   "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+body, h1, h2, h3, h4, p, input, .btn { font-family: var(--mc-font); }
+body { margin: 0; background: var(--mc-cream); color: var(--mc-ink); }
+h2 { color: var(--mc-plum); font-weight: 700; }
+a { color: var(--mc-purple); }
+a:hover, a:focus { color: var(--mc-plum); }
+
+/* 2. 내비게이션 바 --------------------------------------------------- */
+.navbar {
+  border-top: 4px solid var(--mc-mint);
+  background-color: var(--mc-plum);
+  margin-bottom: 0; border-bottom: 0; border-left: 0; border-right: 0; border-radius: 0;
+}
+.navbar a.navbar-brand.mc-brand {
+  height: auto; margin: 14px 0 0; padding: 0;
+  color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 40px; text-decoration: none;
+}
+.navbar a.navbar-brand.mc-brand .mc-brand-paw { display: inline-block; width: 30px; height: 30px; margin-right: 8px; vertical-align: -8px; }
+.navbar a.navbar-brand.mc-brand small { display: block; font-size: 11px; font-weight: 400; letter-spacing: .12em; opacity: .75; line-height: 12px; text-transform: uppercase; }
+.navbar li > a, .navbar-default .navbar-nav > li > a { color: var(--mc-cream); font-size: 15px; padding: 24px 16px; transition: all .15s; }
+.navbar li:hover > a, .navbar li.active > a, .navbar-default .navbar-nav > .active > a { color: #fff; background: var(--mc-purple); }
+.navbar .mc-nav-cta > a { background: var(--mc-mint); color: var(--mc-plum) !important; font-weight: 700; margin: 14px 0 0 8px; padding: 10px 18px; border-radius: 4px; }
+.navbar .mc-nav-cta:hover > a { background: #b3e3e0; }
+.navbar-toggle { border-width: 0; }
+.navbar-toggle .icon-bar { width: 19px; height: 3px; background: var(--mc-cream); }
+.navbar-toggle .icon-bar + .icon-bar { margin-top: 3px; }
+
+/* 3. 히어로 (풀블리드 + 배경 영상) ---------------------------------- */
+.mc-hero { display: grid; position: relative; overflow: hidden; min-height: 78vh; background: var(--mc-plum); }
+.mc-hero > * { grid-area: 1 / 1 / 2 / 2; }
+
+.mc-hero .mc-hero-video {
+  position: absolute; inset: 0; display: block;
+  background-color: var(--mc-plum); background-position: center; background-size: cover; background-repeat: no-repeat; /* 포스터 */
+}
+.mc-hero .mc-hero-video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mc-hero .mc-hero-video::after {          /* 가독성용 그라데이션 막: 영상 위, 텍스트 아래 */
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(64,0,53,.35) 0%, rgba(64,0,53,.65) 100%);
+}
+
+.mc-hero .mc-hero-main { position: relative; display: flex; align-items: center; justify-content: center; text-align: center; padding: 96px 20px 120px; color: #fff; }
+.mc-hero .mc-hero-wrap { max-width: 820px; }
+.mc-hero .mc-hero-eyebrow { display: inline-block; margin-bottom: 16px; padding: 6px 14px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; font-size: 13px; letter-spacing: .1em; }
+.mc-hero h1 { color: #fff; font-size: 44px; line-height: 1.25; font-weight: 700; margin: 0 0 18px; text-shadow: 0 2px 12px rgba(0,0,0,.35); }
+.mc-hero h1 span {                          /* 민트 밑줄 */
+  background-image: linear-gradient(var(--mc-mint), var(--mc-mint));
+  background-repeat: no-repeat; background-position: 0 92%; background-size: 100% 0.08em;
+}
+.mc-hero p.mc-hero-lead { color: rgba(255,255,255,.9); font-size: 18px; line-height: 1.7; margin: 0 0 30px; }
+.mc-hero .mc-hero-actions .btn { margin: 4px 6px; padding: 12px 26px; font-size: 16px; font-weight: 700; border-radius: 4px; border-width: 2px; }
+.mc-hero .btn-mc-primary { background: var(--mc-mint); border-color: var(--mc-mint); color: var(--mc-plum); }
+.mc-hero .btn-mc-primary:hover { background: #b3e3e0; }
+.mc-hero .btn-mc-ghost { background: transparent; border-color: rgba(255,255,255,.7); color: #fff; }
+.mc-hero .btn-mc-ghost:hover { background: rgba(255,255,255,.12); color: #fff; }
+
+.mc-hero .mc-hero-controls { position: absolute; left: 24px; bottom: 24px; z-index: 2; margin: 0; }
+.mc-hero .mc-hero-controls button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #fff; background: rgba(0,0,0,.25); color: #fff; font-size: 14px; }
+
+/* 4. 홈 본문 ---------------------------------------------------------- */
+.mc-home-body {                              /* 히어로 위로 둥글게 올라오는 본문 */
+  position: relative; z-index: 1; margin-top: -48px; padding: 56px 5px 40px;
+  background: var(--mc-cream); border-top-left-radius: 48px; border-top-right-radius: 48px;
+}
+.mc-hero + .container-fluid .xd-container { margin-top: 0; padding-left: 0; padding-right: 0; }
+.xd-container { margin-bottom: 40px; }
+
+/* 정보 띠 */
+.mc-info-strip { background: #fff; border: 1px solid var(--mc-sand); border-radius: 12px; padding: 22px 26px; margin-bottom: 48px; }
+.mc-info-strip .mc-info-item { display: flex; gap: 14px; align-items: flex-start; padding: 8px 0; }
+.mc-info-strip .mc-info-icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; background: var(--mc-mint); color: var(--mc-plum); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.mc-info-strip strong { display: block; color: var(--mc-plum); margin-bottom: 2px; }
+.mc-info-strip p { margin: 0; color: var(--mc-muted); font-size: 14px; line-height: 1.6; }
+
+/* 섹션 제목 · 카드 */
+.mc-section-title { text-align: center; margin: 0 0 8px; font-size: 28px; }
+.mc-section-lead { text-align: center; color: var(--mc-muted); margin: 0 0 32px; }
+.mc-card-row { display: flex; flex-wrap: wrap; }
+.mc-card-row > div { display: flex; }
+.mc-card {
+  display: block; width: 100%; background: #fff; border: 1px solid var(--mc-sand); border-radius: 16px; padding: 28px 24px; margin-bottom: 24px;
+  text-decoration: none; color: var(--mc-ink); transition: transform .15s, box-shadow .15s;
+}
+.mc-card:hover, .mc-card:focus { text-decoration: none; color: var(--mc-ink); transform: translateY(-3px); box-shadow: 0 12px 30px rgba(64,0,53,.12); }
+.mc-card .mc-card-icon { width: 56px; height: 56px; border-radius: 14px; background: rgba(105,4,92,.10); color: var(--mc-purple); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 18px; }
+.mc-card h3 { font-size: 19px; font-weight: 700; color: var(--mc-plum); margin: 0 0 8px; }
+.mc-card p { color: var(--mc-muted); line-height: 1.7; margin: 0 0 14px; font-size: 14px; }
+.mc-card .mc-card-link { color: var(--mc-purple); font-weight: 700; }
+
+/* 5. 표 · 버튼 (owners / vets 페이지) -------------------------------- */
+.table > thead > tr > th { background-color: var(--mc-ink); color: var(--mc-cream); }
+.btn-default { color: var(--mc-cream); background: var(--mc-ink); border: 2px solid var(--mc-purple); border-radius: 0; }
+.btn-default:hover, .btn-default:focus { background: var(--mc-purple); border-color: var(--mc-purple); color: #fff; }
+
+/* 6. 푸터 --------------------------------------------------------------- */
+.mc-footer { background: var(--mc-plum); color: rgba(255,255,255,.85); padding: 44px 0 28px; margin-top: 60px; }
+.mc-footer h4 { color: #fff; font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+.mc-footer p, .mc-footer li { font-size: 14px; line-height: 1.8; margin: 0; color: rgba(255,255,255,.8); }
+.mc-footer ul { list-style: none; padding: 0; }
+.mc-footer a { color: var(--mc-mint); }
+.mc-footer .mc-footer-bottom { border-top: 1px solid rgba(255,255,255,.15); margin-top: 28px; padding-top: 18px; font-size: 12px; color: rgba(255,255,255,.55); }
+
+/* 7. 반응형 · 접근성 ---------------------------------------------------- */
+@media (max-width: 768px) {
+  .navbar a.navbar-brand.mc-brand { float: none; display: block; text-align: center; margin: 10px auto; }
+  .navbar-toggle { position: absolute; z-index: 9999; left: 0; top: 0; }
+  .mc-hero { min-height: 70vh; }
+  .mc-hero h1 { font-size: 30px; }
+  .mc-hero p.mc-hero-lead { font-size: 16px; }
+  .mc-hero .mc-hero-main { padding: 72px 16px 96px; }
+  .mc-home-body { border-radius: 28px 28px 0 0; margin-top: -28px; padding-top: 36px; }
+}
+@media (prefers-reduced-motion: reduce) { .mc-hero .mc-hero-video video { display: none; } }

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>미션 동물병원 · Mission Animal Hospital</title>
+    <meta name="description" content="미션 동물병원 — 반려동물 진료·예방접종·건강검진. 보호자 조회와 진료 예약을 온라인으로.">
+
+    <!-- 폰트 · Bootstrap 3.3.6 (그리드 · navbar 기본 · glyphicon) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 사이트 테마 -->
+    <link href="css/mc-site.css" rel="stylesheet">
+
+    <!--
+      정적 버전 안내
+      - PetClinic(JSP)에서는 welcome.jsp + WEB-INF/tags/{layout,menu,footer,htmlHeader}.tag + less/mc-site.less 로 나뉘어 있음
+      - 이 파일은 그 결과 HTML을 한 장으로 펼친 것. Apache WEB 계층의 index.html 로도 그대로 사용 가능
+      - 링크는 /petclinic/... 절대 경로 (WEB Apache가 ProxyPass /petclinic/ → Internal ALB → WAS)
+      - 배경 영상은 WAS가 아니라 CloudFront → S3(mc-images) 에서 서빙: /images/hero/hero.mp4
+    -->
+</head>
+<body>
+
+<!-- ===== 1. 내비게이션 바 ===== -->
+<nav class="navbar navbar-default" role="navigation">
+    <div class="container">
+        <div class="navbar-header">
+            <a class="navbar-brand mc-brand" href="/petclinic/">
+                <svg class="mc-brand-paw" viewBox="0 0 32 32" aria-hidden="true" fill="currentColor">
+                    <ellipse cx="9" cy="10" rx="3.2" ry="4"/><ellipse cx="23" cy="10" rx="3.2" ry="4"/>
+                    <ellipse cx="4.5" cy="17" rx="2.8" ry="3.6"/><ellipse cx="27.5" cy="17" rx="2.8" ry="3.6"/>
+                    <path d="M16 15c-5 0-9 4.2-9 8.3 0 2.6 1.9 4.2 4.3 4.2 1.9 0 3.1-1 4.7-1s2.8 1 4.7 1c2.4 0 4.3-1.6 4.3-4.2C25 19.2 21 15 16 15z"/>
+                </svg>미션 동물병원<small>Mission Animal Hospital</small>
+            </a>
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+                <span class="sr-only">메뉴 열기</span>
+                <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
+            </button>
+        </div>
+        <div class="navbar-collapse collapse" id="main-navbar">
+            <ul class="nav navbar-nav navbar-right">
+                <li class="active"><a href="/petclinic/" title="홈"><span class="glyphicon glyphicon-home" aria-hidden="true"></span> <span>홈</span></a></li>
+                <li><a href="/petclinic/owners/find" title="보호자·반려동물 조회"><span class="glyphicon glyphicon-search" aria-hidden="true"></span> <span>보호자 조회</span></a></li>
+                <li><a href="/petclinic/vets" title="수의사 소개"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> <span>수의사</span></a></li>
+                <li><a href="/petclinic/oups" title="오류 페이지 테스트"><span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span> <span>오류 테스트</span></a></li>
+                <li class="mc-nav-cta"><a href="/petclinic/owners/new" title="보호자 등록 후 진료 예약">진료 예약</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- ===== 2. 히어로 (배경 영상) ===== -->
+<section class="mc-hero" id="mc-hero">
+    <!-- 레이어 1: 영상 (포스터는 background-image, 영상 로드 전·실패 시 표시) -->
+    <div class="mc-hero-video" style="background-image: url('images/hero-poster.jpg')">
+        <video id="mc-hero-video" src="/images/hero/hero.mp4" poster="images/hero-poster.jpg"
+               muted autoplay loop playsinline preload="metadata" aria-hidden="true"></video>
+        <!-- ::after 가 그라데이션 막 (CSS) -->
+    </div>
+
+    <!-- 레이어 2: 텍스트 -->
+    <div class="mc-hero-main">
+        <div class="mc-hero-wrap">
+            <span class="mc-hero-eyebrow">MISSION ANIMAL HOSPITAL · 24H EMERGENCY</span>
+            <h1>가족의 <span>건강한 하루</span>를 함께 지키는<br>미션 동물병원</h1>
+            <p class="mc-hero-lead">예방접종·건강검진부터 응급 진료까지.<br class="hidden-xs">
+                보호자 정보를 등록하면 반려동물의 진료 기록을 한곳에서 관리할 수 있습니다.</p>
+            <p class="mc-hero-actions">
+                <a class="btn btn-mc-primary" href="/petclinic/owners/new">진료 예약하기</a>
+                <a class="btn btn-mc-ghost" href="/petclinic/vets">수의사 소개</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- 레이어 3: 재생/정지 -->
+    <p class="mc-hero-controls">
+        <button type="button" id="mc-hero-toggle" aria-label="배경 영상 일시정지"><span class="glyphicon glyphicon-pause"></span></button>
+    </p>
+</section>
+
+<!-- ===== 3. 홈 본문 ===== -->
+<div class="container-fluid">
+    <div class="container xd-container">
+        <div class="mc-home-body">
+
+            <!-- 3-1. 정보 띠 -->
+            <div class="mc-info-strip">
+                <div class="row">
+                    <div class="col-md-4"><div class="mc-info-item">
+                        <div class="mc-info-icon"><span class="glyphicon glyphicon-time"></span></div>
+                        <div><strong>진료 시간</strong><p>평일 09:00–20:00 · 토 09:00–17:00<br>일·공휴일은 응급 진료</p></div>
+                    </div></div>
+                    <div class="col-md-4"><div class="mc-info-item">
+                        <div class="mc-info-icon"><span class="glyphicon glyphicon-earphone"></span></div>
+                        <div><strong>24시간 응급</strong><p>02-1234-5678<br>야간·주말 응급 010-1234-5678</p></div>
+                    </div></div>
+                    <div class="col-md-4"><div class="mc-info-item">
+                        <div class="mc-info-icon"><span class="glyphicon glyphicon-map-marker"></span></div>
+                        <div><strong>오시는 길</strong><p>서울 강남구 테헤란로 123 미션빌딩 1층<br>지하 주차 2시간 무료</p></div>
+                    </div></div>
+                </div>
+            </div>
+
+            <!-- 3-2. 진료 안내 카드 (PetClinic 기능 연결) -->
+            <h2 class="mc-section-title">진료 안내</h2>
+            <p class="mc-section-lead">반려동물의 생애 주기에 맞춘 진료를 제공합니다.</p>
+            <div class="row mc-card-row">
+                <div class="col-md-4 col-sm-6">
+                    <a class="mc-card" href="/petclinic/owners/find">
+                        <div class="mc-card-icon"><span class="glyphicon glyphicon-search"></span></div>
+                        <h3>보호자 · 반려동물 조회</h3>
+                        <p>보호자 성(姓)으로 등록된 반려동물과 진료(방문) 이력을 확인합니다.</p>
+                        <span class="mc-card-link">조회하기 →</span>
+                    </a>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <a class="mc-card" href="/petclinic/owners/new">
+                        <div class="mc-card-icon"><span class="glyphicon glyphicon-calendar"></span></div>
+                        <h3>진료 예약 · 보호자 등록</h3>
+                        <p>처음 방문이라면 보호자 정보를 등록하고 반려동물을 추가한 뒤 방문 일정을 잡습니다.</p>
+                        <span class="mc-card-link">등록하기 →</span>
+                    </a>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <a class="mc-card" href="/petclinic/vets">
+                        <div class="mc-card-icon"><span class="glyphicon glyphicon-user"></span></div>
+                        <h3>수의사 소개</h3>
+                        <p>내과·외과·치과·방사선 전문 수의사가 함께 진료합니다. 전문 분야를 확인해 보세요.</p>
+                        <span class="mc-card-link">수의사 보기 →</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 3-3. 진료 과목 카드 (정보성) -->
+            <div class="row mc-card-row">
+                <div class="col-md-4 col-sm-6">
+                    <div class="mc-card">
+                        <div class="mc-card-icon"><span class="glyphicon glyphicon-heart"></span></div>
+                        <h3>예방접종 · 건강검진</h3>
+                        <p>연령별 종합 백신, 심장사상충 예방, 연 1회 혈액·영상 검진 프로그램.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="mc-card">
+                        <div class="mc-card-icon"><span class="glyphicon glyphicon-plus-sign"></span></div>
+                        <h3>내과 · 외과 수술</h3>
+                        <p>중성화, 슬개골, 종양 제거 등 외과 수술과 입원 집중 관리.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="mc-card">
+                        <div class="mc-card-icon"><span class="glyphicon glyphicon-bell"></span></div>
+                        <h3>24시간 응급 진료</h3>
+                        <p>야간·주말에도 응급 수의사가 상주합니다. 내원 전 전화 주시면 준비해 두겠습니다.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ===== 4. 푸터 ===== -->
+<footer class="mc-footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h4>미션 동물병원</h4>
+                <p>서울특별시 강남구 테헤란로 123 미션빌딩 1층<br>대표전화 02-1234-5678 · 응급 010-1234-5678</p>
+            </div>
+            <div class="col-md-4">
+                <h4>진료 시간</h4>
+                <ul><li>평일 09:00 – 20:00</li><li>토요일 09:00 – 17:00</li><li>일요일·공휴일 응급 진료만</li></ul>
+            </div>
+            <div class="col-md-4">
+                <h4>바로가기</h4>
+                <ul>
+                    <li><a href="/petclinic/owners/find">보호자·반려동물 조회</a></li>
+                    <li><a href="/petclinic/owners/new">보호자 등록 (진료 예약)</a></li>
+                    <li><a href="/petclinic/vets">수의사 소개</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="mc-footer-bottom">
+            © 2026 Mission Animal Hospital · KDT 베스핀글로벌 멀티클라우드 5기 1팀 Mission Critical ·
+            Built on Spring PetClinic · AWS 3-Tier (CloudFront → ALB → Apache → Tomcat → RDS)
+        </div>
+    </div>
+</footer>
+
+<!-- ===== 스크립트 ===== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.6/js/bootstrap.min.js"></script>
+<script>
+    // 배경 영상 재생/정지 · 로드 실패 시 포스터로 대체
+    (function () {
+        var v = document.getElementById('mc-hero-video'), b = document.getElementById('mc-hero-toggle');
+        if (!v || !b) return;
+        v.addEventListener('error', function () { v.style.display = 'none'; b.style.display = 'none'; });
+        b.addEventListener('click', function () {
+            if (v.paused) { v.play(); b.firstChild.className = 'glyphicon glyphicon-pause'; b.setAttribute('aria-label', '배경 영상 일시정지'); }
+            else { v.pause(); b.firstChild.className = 'glyphicon glyphicon-play'; b.setAttribute('aria-label', '배경 영상 재생'); }
+        });
+    })();
+</script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+<%@ tag pageEncoding="UTF-8" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
 
 <%--
@@ -14,7 +15,10 @@ PetClinic :: a Spring Framework demonstration
     <spring:url value="/resources/images/favicon.png" var="favicon"/>
     <link rel="shortcut icon" type="image/x-icon" href="${favicon}">
 
-    <title>PetClinic :: a Spring Framework demonstration</title>
+    <title>미션 동물병원 · Mission Animal Hospital</title>
+    <meta name="description" content="미션 동물병원 — 반려동물 진료·예방접종·건강검진. 보호자 조회와 진료 예약을 온라인으로.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 
     <%-- CSS generated from LESS --%>
     <spring:url value="/resources/css/petclinic.css" var="petclinicCss"/>

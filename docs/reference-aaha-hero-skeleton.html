@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Critical Pet Clinic — 히어로 영상 구조 예시</title>
+<!--
+  aaha.org 홈페이지의 레이아웃 구조를 자체 CSS로 재구성한 독립 실행 예시.
+  · 원본 CSS/이미지/영상은 사용하지 않음. 영상 URL(VIDEO_SRC)만 교체하면 동작.
+  · 구조: header(투명, 진자주) → section.hero(grid 겹침: 영상 / 어둠막 / 텍스트 / 컨트롤) → 둥근 모서리로 올라오는 다음 섹션 → 카드 3열 → footer
+-->
+<style>
+  /* ---------- 1. 디자인 토큰 (aaha.org 팔레트 3색 + 자체 값) ---------- */
+  :root {
+    --c-brand:   #69045c;   /* 자주   (aaha --c_b6) */
+    --c-deep:    #400035;   /* 진자주 (aaha --c_b7) */
+    --c-mint:    #91d7d2;   /* 민트   (aaha --c_b5) — 제목 밑줄 */
+    --c-sand:    #f5eee8;   /* 연베이지 섹션 배경 */
+    --c-text:    #2a2d33;
+    --c-invert:  #ffffff;
+    --ff:        "Helvetica Neue", Arial, "Noto Sans KR", sans-serif;
+    --container: 1190px;
+    --radius:    2.4rem;    /* 히어로 아래 섹션이 올라오는 둥근 모서리 */
+    --s1: 2rem; --s2: 4rem; --s3: 6.4rem;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 62.5%; }
+  body { margin: 0; font: 400 1.7rem/1.5 var(--ff); color: var(--c-text); background: #fff; }
+  a { color: inherit; }
+  .restrain { max-width: var(--container); margin: 0 auto; padding: 0 var(--s1); }
+
+  /* ---------- 2. 헤더: 히어로 위에 겹치는 투명 헤더 ---------- */
+  .top { position: absolute; inset: 0 0 auto 0; z-index: 3; color: var(--c-invert); }
+  .top-wrap { display: flex; align-items: center; gap: var(--s2); padding-top: 1.8rem; }
+  .logo { font-weight: 800; font-size: 2.4rem; letter-spacing: .04em; text-decoration: none; }
+  .nav-main { display: flex; gap: 2.4rem; margin: 0 0 0 auto; padding: 0; list-style: none; font-weight: 700; }
+  .nav-main a { text-decoration: none; opacity: .9; }
+  .nav-main a:hover { opacity: 1; text-decoration: underline; text-underline-offset: .4em; text-decoration-color: var(--c-mint); }
+
+  /* ---------- 3. 히어로: grid 한 칸에 레이어 겹치기 (aaha .hero1 방식) ---------- */
+  .hero {
+    display: grid; position: relative; overflow: hidden;
+    min-height: calc(100svh - 6rem);
+    margin-bottom: calc(var(--radius) * -1);           /* 다음 섹션이 올라올 공간 */
+    background: var(--c-deep);                          /* 영상 로드 전 배경 */
+  }
+  .hero > * { grid-area: 1 / 1 / 2 / 2; }               /* 모든 자식이 같은 칸 */
+
+  /* 3-a. 영상 레이어 */
+  .hero-video { position: relative; overflow: hidden; background: #000; }
+  .hero-video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .hero-video::after { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.55); } /* 어둠막 */
+
+  /* 3-b. 텍스트 레이어 */
+  .hero-main { position: relative; display: flex; align-items: center; justify-content: center;
+               padding: var(--s3) 0 calc(var(--radius) + var(--s2)); color: var(--c-invert); text-align: center; }
+  .hero-wrap { max-width: 82rem; }
+  .hero-title { margin: 0 0 var(--s1); font-size: clamp(2.8rem, 4vw + 1rem, 4.6rem); font-weight: 700; line-height: 1.15; }
+  .hero-title span { background: linear-gradient(var(--c-mint), var(--c-mint)) 0 90% / 100% .08em no-repeat; }
+  .btn { display: inline-flex; align-items: center; gap: .8rem; padding: 1rem 2rem 1rem 1.2rem;
+         border: 1px solid currentColor; border-radius: .4rem; font-weight: 700; font-size: 1.5rem; text-decoration: none; }
+  .btn.-solid { background: var(--c-brand); border-color: var(--c-brand); }
+  .btn:hover { background: var(--c-invert); color: var(--c-deep); border-color: var(--c-invert); }
+
+  /* 3-c. 재생/정지 컨트롤: 왼쪽 아래 */
+  .hero-controls { position: relative; z-index: 2; align-self: end; justify-self: start;
+                   margin: 0 0 calc(var(--radius) + 2rem) 2rem; }
+  .hero-controls button { width: 3.6rem; height: 3.6rem; border-radius: 50%; border: 1px solid var(--c-invert);
+                          background: transparent; color: var(--c-invert); cursor: pointer; font-size: 1.4rem; }
+
+  /* ---------- 4. 히어로 아래 첫 섹션: 둥근 모서리로 겹쳐 올라옴 ---------- */
+  .section { position: relative; padding: var(--s3) 0; }
+  .section.-brand { background: var(--c-brand); color: var(--c-invert); border-top-right-radius: var(--radius); }
+  .section.-sand  { background: var(--c-sand); }
+  .section h2 { margin: 0 0 var(--s1); font-size: 3rem; }
+
+  /* 카드 3열 */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr)); gap: 2.4rem; margin: 0; padding: 0; list-style: none; }
+  .card { background: #fff; color: var(--c-text); border-radius: 1.6rem; padding: 2.4rem; box-shadow: 0 .6rem 2rem rgba(0,0,0,.08); }
+  .card h3 { margin: 0 0 .8rem; color: var(--c-brand); }
+  .card a { font-weight: 700; color: var(--c-brand); }
+
+  /* ---------- 5. 푸터 ---------- */
+  .footer { background: var(--c-deep); color: var(--c-invert); padding: var(--s2) 0; font-size: 1.4rem; }
+  .footer-wrap { display: flex; flex-wrap: wrap; gap: var(--s2); justify-content: space-between; }
+
+  /* ---------- 6. 반응형 · 접근성 ---------- */
+  @media (max-width: 719px) {
+    .nav-main { display: none; }                         /* 모바일은 햄버거 메뉴로 대체 */
+    .hero-main { padding-top: var(--s2); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-video video { display: none; }                 /* 움직임 줄이기: 영상 대신 배경색/poster */
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="restrain top-wrap">
+    <a class="logo" href="/petclinic/">MC PET CLINIC</a>
+    <ul class="nav-main">
+      <li><a href="/petclinic/">Home</a></li>
+      <li><a href="/petclinic/owners/find">Find owners</a></li>
+      <li><a href="/petclinic/vets">Veterinarians</a></li>
+      <li><a href="/petclinic/oups">Error</a></li>
+    </ul>
+  </div>
+</header>
+
+<!-- ★ 히어로: 영상 → 어둠막 → 텍스트 → 컨트롤 순으로 같은 grid 칸에 쌓임 -->
+<section class="hero">
+  <div class="hero-video">
+    <!-- VIDEO_SRC: S3 mc-images → CloudFront /images/* 로 서빙 권장. poster는 첫 프레임 이미지. -->
+    <video id="heroVideo" src="VIDEO_SRC" poster="POSTER_SRC" muted autoplay loop playsinline preload="metadata"></video>
+  </div>
+
+  <div class="hero-main">
+    <div class="hero-wrap">
+      <h1 class="hero-title">Mission Critical Pet Clinic은 <span>진료 예약부터 기록까지</span> 한 곳에서 관리합니다.</h1>
+      <p><a class="btn -solid" href="/petclinic/owners/find">▶ 예약 조회하기</a></p>
+    </div>
+  </div>
+
+  <p class="hero-controls">
+    <button id="heroToggle" type="button" aria-label="배경 영상 일시정지">❚❚</button>
+  </p>
+</section>
+
+<section class="section -brand">
+  <div class="restrain">
+    <h2>진료 안내</h2>
+    <ul class="cards">
+      <li class="card"><h3>보호자 · 반려동물</h3><p>보호자 검색, 반려동물 등록, 진료 기록 조회.</p><a href="/petclinic/owners/find">보호자 찾기 →</a></li>
+      <li class="card"><h3>수의사</h3><p>진료 과목별 수의사 명단.</p><a href="/petclinic/vets">수의사 보기 →</a></li>
+      <li class="card"><h3>방문 예약</h3><p>반려동물 페이지에서 새 방문을 등록합니다.</p><a href="/petclinic/owners/find">예약하기 →</a></li>
+    </ul>
+  </div>
+</section>
+
+<section class="section -sand">
+  <div class="restrain">
+    <h2>운영 정보</h2>
+    <p>평일 09:00–19:00 · 토요일 09:00–14:00 · 응급 진료 24시간.</p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="restrain footer-wrap">
+    <div>© 2026 Mission Critical Pet Clinic · 1팀</div>
+    <div>WEB Apache 2.4 → WAS Tomcat 9 / OpenJDK 8 → RDS MySQL 8</div>
+  </div>
+</footer>
+
+<script>
+  // aaha.org는 Alpine.js x-data/x-effect로 처리 — 여기서는 바닐라 JS 6줄
+  const v = document.getElementById('heroVideo'), b = document.getElementById('heroToggle');
+  b.addEventListener('click', () => {
+    if (v.paused) { v.play(); b.textContent = '❚❚'; b.setAttribute('aria-label', '배경 영상 일시정지'); }
+    else          { v.pause(); b.textContent = '▶';  b.setAttribute('aria-label', '배경 영상 재생'); }
+  });
+</script>
+</body>
+</html>

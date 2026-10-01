@@ -10,3 +10,4 @@ bin/
 
 # Maven
 target/
+.claude/settings.local.json

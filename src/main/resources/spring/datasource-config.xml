@@ -20,22 +20,48 @@
 
     <!-- Configurer that replaces ${...} placeholders with values from a properties file -->
     <!-- (in this case, JDBC-related settings for the dataSource definition below) -->
-    <context:property-placeholder location="classpath:spring/data-access.properties" system-properties-mode="OVERRIDE"/>
+    <context:property-placeholder location="${petclinic.config.location:classpath:spring/data-access.properties}" system-properties-mode="OVERRIDE"/>
 
     <!-- DataSource configuration for the tomcat jdbc connection pool 
     See here for more details on commons-dbcp versus tomcat-jdbc: 
     http://blog.ippon.fr/2013/03/13/improving-the-performance-of-the-spring-petclinic-sample-application-part-3-of-5/-->
-    <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource"
+    <bean id="writeDataSource" class="org.apache.tomcat.jdbc.pool.DataSource"
           p:driverClassName="${jdbc.driverClassName}" p:url="${jdbc.url}"
-          p:username="${jdbc.username}" p:password="${jdbc.password}"/>
+          p:username="${jdbc.username}" p:password="${jdbc.password}"
+          p:testOnBorrow="true" p:validationQuery="SELECT 1" p:validationInterval="30000"
+          p:testWhileIdle="true" p:timeBetweenEvictionRunsMillis="60000" p:minEvictableIdleTimeMillis="600000"
+          p:initialSize="2" p:maxActive="10" p:maxIdle="5" p:minIdle="2"/>
+
+    <bean id="readDataSource" class="org.apache.tomcat.jdbc.pool.DataSource"
+          p:driverClassName="${jdbc.driverClassName}" p:url="${jdbc.read.url}"
+          p:username="${jdbc.username}" p:password="${jdbc.password}"
+          p:testOnBorrow="true" p:validationQuery="SELECT 1" p:validationInterval="30000"
+          p:testWhileIdle="true" p:timeBetweenEvictionRunsMillis="60000" p:minEvictableIdleTimeMillis="600000"
+          p:initialSize="2" p:maxActive="10" p:maxIdle="5" p:minIdle="2"/>
+
+    <bean id="routingDataSource" class="org.springframework.samples.petclinic.config.ReadWriteRoutingDataSource">
+        <property name="targetDataSources">
+            <map>
+                <entry key="write" value-ref="writeDataSource"/>
+                <entry key="read" value-ref="readDataSource"/>
+            </map>
+        </property>
+        <property name="defaultTargetDataSource" ref="writeDataSource"/>
+    </bean>
+
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy">
+        <constructor-arg ref="routingDataSource"/>
+    </bean>
 
     <!-- Database initializer. If any of the script fails, the initialization stops. -->
     <!-- As an alternative, for embedded databases see <jdbc:embedded-database/>. -->
-    <jdbc:initialize-database data-source="dataSource">
-        <jdbc:script location="${jdbc.initLocation}"/>
-        <jdbc:script location="${jdbc.dataLocation}"/>
-    </jdbc:initialize-database>
 
+  <beans profile="db-init">
+	  <jdbc:initialize-database data-source="writeDataSource">
+		  <jdbc:script location="${jdbc.initLocation}"/>
+		  <jdbc:script location="${jdbc.dataLocation}"/>
+	  </jdbc:initialize-database>
+  </beans>
     <beans profile="javaee">
         <!-- JNDI DataSource for JEE environments -->
         <jee:jndi-lookup id="dataSource" jndi-name="java:comp/env/jdbc/petclinic"/>

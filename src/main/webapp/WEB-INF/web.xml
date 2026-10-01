@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PetclinicInitializer(WebApplicationInitializer)가 서블릿 구성을 담당하므로 여기서는 welcome-file만 지정한다.
+  index.html(디자인 미리보기)이 웹앱 루트에 있으면 Tomcat 기본 welcome-file 규칙이 /petclinic/ 요청을
+  그 정적 파일로 보내 Spring 홈(welcome.jsp)이 가려진다. 존재하지 않는 이름을 지정해 기본 목록(index.html 등)을
+  대체하면 /petclinic/ 은 "/" 에 매핑된 DispatcherServlet으로 간다. index.html 자체는 /petclinic/index.html 로 계속 접근 가능.
+-->
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1" metadata-complete="false">
+    <welcome-file-list>
+        <welcome-file>spring-home</welcome-file>
+    </welcome-file-list>
+</web-app>
