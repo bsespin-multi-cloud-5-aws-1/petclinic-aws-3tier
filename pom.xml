@@ -506,6 +506,7 @@
                 <jpa.database>H2</jpa.database>
                 <jdbc.driverClassName>org.h2.Driver</jdbc.driverClassName>
                 <jdbc.url>jdbc:h2:mem:petclinic</jdbc.url>
+                <jdbc.read.url>jdbc:h2:mem:petclinic</jdbc.read.url>
                 <jdbc.username>sa</jdbc.username>
                 <jdbc.password/>
             </properties>
